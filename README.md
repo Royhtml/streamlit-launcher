@@ -95,7 +95,7 @@ launcher --help
 
 ## 🖼️ Screenshot
 
-![Screenshot](https://raw.githubusercontent.com/royhtml/streamlit-launcher/master/screenshot.png)
+<img src = "Screenshot 2025-09-12 185242.png" width="100%" height="100%">
 
 *Tampilan GUI Streamlit Launcher yang user-friendly*
 
