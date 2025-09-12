@@ -20,6 +20,8 @@
 | Python Version Support | 3.7+ |
 | Streamlit Version | 1.28+ |
 
+<img src = "Screenshot 2025-09-12 192733.png" width = "100%" height= "100%" >
+
 ## 📖 Overview
 
 **Streamlit Launcher** adalah alat GUI yang sederhana dan powerful untuk menjalankan aplikasi Streamlit secara lokal. Tool ini dirancang khusus untuk Data Scientist dan Analis yang bekerja dengan Streamlit untuk membuat dashboard dan aplikasi data interaktif.
