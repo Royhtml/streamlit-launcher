@@ -226,24 +226,24 @@ Package ini membutuhkan:
 
 1. **Port already in use:**
    ```bash
-   launcher --port 8502
+   streamlit-launcher --port 8502
    ```
 
 2. **Module not found:**
    ```bash
-   pip install --upgrade launcher
+   pip install --upgrade streamlit-launcher
    ```
 
 3. **Permission issues:**
    ```bash
-   pip install --user launcher
+   pip install --user streamlit-launcher
    ```
 
 ### Debug Mode:
 
 ```bash
 # Enable debug mode
-launcher --debug true
+streamlit-launcher --debug true
 
 # Atau set environment variable
 export STREAMLIT_DEBUG=true
