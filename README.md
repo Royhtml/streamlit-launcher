@@ -24,6 +24,10 @@
 
 **Streamlit Launcher** adalah alat GUI yang sederhana dan powerful untuk menjalankan aplikasi Streamlit secara lokal. Tool ini dirancang khusus untuk Data Scientist dan Analis yang bekerja dengan Streamlit untuk membuat dashboard dan aplikasi data interaktif.
 
+<img src = "Screenshot 2025-09-12 185806.png" width = "100%" height= "100%">
+<img src = "Screenshot 2025-09-12 185806.png" width = "100%" height= "100%">
+<img src = "Screenshot 2025-09-12 185806.png" width = "100%" height= "100%">
+
 ## 🎯 Untuk Data Scientist & Analis
 
 ### Keuntungan untuk Data Science:
