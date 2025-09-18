@@ -10,8 +10,8 @@
 [![Streamlit](https://img.shields.io/badge/Streamlit-1.28%2B-FF4B4B)](https://streamlit.io/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
-<p>Ini Link python Mode Offline Localhost : <a href = "https://pypi.org/project/streamlit-launcher/"></p>
-<p>Ini Link Publick Mode Online : <a href = "https://stremlit-launcher.streamlit.app/"></p>
+<p>Ini Link python Mode Offline Localhost : <a href = "https://pypi.org/project/streamlit-launcher/">Open Offline</a></p>
+<p>Ini Link Publick Mode Online : <a href = "https://stremlit-launcher.streamlit.app/">Open Online</a></p>
 
 ## 📊 Statistik Penggunaan
 
