@@ -10,6 +10,9 @@
 [![Streamlit](https://img.shields.io/badge/Streamlit-1.28%2B-FF4B4B)](https://streamlit.io/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
+<p>Ini Link python Mode Offline Localhost : <a href = "https://pypi.org/project/streamlit-launcher/">Open Offline</a></p>
+<p>Ini Link Publick Mode Online : <a href = "https://stremlit-launcher.streamlit.app/">Open Online</a></p>
+
 ## 📊 Statistik Penggunaan
 
 | Metric | Value |
@@ -54,20 +57,20 @@
 
 ```bash
 # Install menggunakan pip
-pip install launcher
+pip install streamlit-launcher
 
 # Atau install dengan options tambahan
-pip install launcher[dev]  # Untuk development
+pip install streamlit_launcher[dev]  # Untuk development
 ```
 
 ### Verifikasi Installasi:
 
 ```bash
 # Cek versi yang terinstall
-launcher --version
+streamlit_launcher --version
 
 # Atau
-python -m launcher --version
+python -m streamlit_launcher --version
 ```
 
 ## 💻 Usage
@@ -76,19 +79,19 @@ python -m launcher --version
 
 ```bash
 # Jalankan launcher
-launcher
+streamlit_launcher
 
 # Atau dengan python module
-python -m launcher
+python -m streamlit_launcher
 
 # Dengan options tertentu
-launcher --port 8501 --host 0.0.0.0
+streamlit_launcher --port 8501 --host 0.0.0.0
 ```
 
 ### Options yang Tersedia:
 
 ```bash
-launcher --help
+streamlit_launcher --help
 # Output:
 # Usage: launcher [OPTIONS]
 # 
@@ -224,24 +227,24 @@ Package ini membutuhkan:
 
 1. **Port already in use:**
    ```bash
-   launcher --port 8502
+   streamlit_launcher --port 8502
    ```
 
 2. **Module not found:**
    ```bash
-   pip install --upgrade launcher
+   pip install --upgrade streamlit_launcher
    ```
 
 3. **Permission issues:**
    ```bash
-   pip install --user launcher
+   pip install --user streamlit_launcher
    ```
 
 ### Debug Mode:
 
 ```bash
 # Enable debug mode
-launcher --debug true
+streamlit_launcher --debug true
 
 # Atau set environment variable
 export STREAMLIT_DEBUG=true
