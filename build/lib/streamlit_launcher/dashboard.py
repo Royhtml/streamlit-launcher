@@ -22,6 +22,7 @@ st.title("📊 Dashboard Analisis Data Lanjutan")
 
 # CSS kustom untuk styling
 st.markdown("""
+<meta name="google-site-verification" content="ryAdKrOiPgVE9lQjxBAPCNbxtfCOJkDg_pvo7dzlp4U" />
 <style>
     .main-header {
         font-size: 3rem;
