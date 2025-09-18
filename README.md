@@ -1,6 +1,6 @@
 # Streamlit Launcher
 
-<img src = "treamlit.jpg" width = "100%" height= "100%">
+<center><img src = "treamlit.jpg"></center>
 
 [![PyPI version](https://badge.fury.io/py/launcher.svg)](https://badge.fury.io/py/launcher)
 [![Downloads](https://pepy.tech/badge/launcher)](https://pepy.tech/project/launcher)
