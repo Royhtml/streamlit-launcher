@@ -19,6 +19,7 @@ st.set_page_config(
     layout="wide",
     initial_sidebar_state="expanded"
 )
+
 # CSS kustom untuk styling
 st.markdown("""
 <style>
