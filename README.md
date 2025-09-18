@@ -54,20 +54,20 @@
 
 ```bash
 # Install menggunakan pip
-pip install launcher
+pip install streamlit-launcher
 
 # Atau install dengan options tambahan
-pip install launcher[dev]  # Untuk development
+pip install streamlit_launcher[dev]  # Untuk development
 ```
 
 ### Verifikasi Installasi:
 
 ```bash
 # Cek versi yang terinstall
-launcher --version
+streamlit_launcher --version
 
 # Atau
-python -m launcher --version
+python -m streamlit_launcher --version
 ```
 
 ## 💻 Usage
@@ -79,16 +79,16 @@ python -m launcher --version
 launcher
 
 # Atau dengan python module
-python -m launcher
+python -m streamlit_launcher
 
 # Dengan options tertentu
-launcher --port 8501 --host 0.0.0.0
+streamlit_launcher --port 8501 --host 0.0.0.0
 ```
 
 ### Options yang Tersedia:
 
 ```bash
-launcher --help
+streamlit_launcher --help
 # Output:
 # Usage: launcher [OPTIONS]
 # 
