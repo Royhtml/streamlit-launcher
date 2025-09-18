@@ -14,11 +14,11 @@ import streamlit as st
 
 # --- Konfigurasi halaman ---
 st.set_page_config(
-    page_title="📊 Dashboard Analisis Data",
     page_icon="📊",
     layout="wide",
     initial_sidebar_state="expanded"
 )
+st.title("📊 Dashboard Analisis Data Lanjutan")
 
 # CSS kustom untuk styling
 st.markdown("""
