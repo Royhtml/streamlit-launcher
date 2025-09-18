@@ -1,0 +1,2 @@
+[gui_scripts]
+streamlit_launcher = streamlit_launcher.cli:main

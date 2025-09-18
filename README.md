@@ -20,8 +20,6 @@
 | Python Version Support | 3.7+ |
 | Streamlit Version | 1.28+ |
 
-<img src = "Screenshot 2025-09-12 192733.png" width = "100%" height= "100%" >
-
 ## 📖 Overview
 
 **Streamlit Launcher** adalah alat GUI yang sederhana dan powerful untuk menjalankan aplikasi Streamlit secara lokal. Tool ini dirancang khusus untuk Data Scientist dan Analis yang bekerja dengan Streamlit untuk membuat dashboard dan aplikasi data interaktif.
@@ -56,20 +54,20 @@
 
 ```bash
 # Install menggunakan pip
-pip install streamlit-launcher
+pip install launcher
 
 # Atau install dengan options tambahan
-pip install streamlit-launcher[dev]  # Untuk development
+pip install launcher[dev]  # Untuk development
 ```
 
 ### Verifikasi Installasi:
 
 ```bash
 # Cek versi yang terinstall
-streamlit-launcher --version
+launcher --version
 
 # Atau
-python -m streamlit-launcher --version
+python -m launcher --version
 ```
 
 ## 💻 Usage
@@ -78,13 +76,13 @@ python -m streamlit-launcher --version
 
 ```bash
 # Jalankan launcher
-streamlit-launcher
+launcher
 
 # Atau dengan python module
-python -m streamlit-launcher
+python -m launcher
 
 # Dengan options tertentu
-streamlit-launcher --port 8501 --host 0.0.0.0
+launcher --port 8501 --host 0.0.0.0
 ```
 
 ### Options yang Tersedia:
@@ -226,24 +224,24 @@ Package ini membutuhkan:
 
 1. **Port already in use:**
    ```bash
-   streamlit-launcher --port 8502
+   launcher --port 8502
    ```
 
 2. **Module not found:**
    ```bash
-   pip install --upgrade streamlit-launcher
+   pip install --upgrade launcher
    ```
 
 3. **Permission issues:**
    ```bash
-   pip install --user streamlit-launcher
+   pip install --user launcher
    ```
 
 ### Debug Mode:
 
 ```bash
 # Enable debug mode
-streamlit-launcher --debug true
+launcher --debug true
 
 # Atau set environment variable
 export STREAMLIT_DEBUG=true
