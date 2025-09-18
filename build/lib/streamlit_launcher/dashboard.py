@@ -10,10 +10,6 @@ from datetime import datetime, timedelta
 import warnings
 warnings.filterwarnings('ignore')
 
-from gtts import gTTS
-from io import BytesIO
-import base64
-
 import streamlit as st
 
 # --- Konfigurasi halaman ---
@@ -27,30 +23,6 @@ st.set_page_config(
 st.title("📊 Dashboard Statistik Profesional")
 st.image(r"C:\Users\User\Downloads\streamlit_launcher\streamlit_launcher\ai.jpg", 
          caption="Visualisasi AI", use_container_width=True)
-
-
-# --- Teks sambutan bahasa Inggris ---
-text_english = """
-Welcome! My name is Alisa and I am here to help you with your data analysis needs. I am an designed to assist you in the fields of Data Science and Data Analysis.
-Analyze data quickly and accurately Create clear and engaging data visualizations Generate valuable insights for decision-making Support industries with ease and efficiency The best part? You don’t need any coding background to use me. Everything is designed to be simple, practical, and accessible. I was created by Roy with the mission to make data more understandable and useful for everyone—whether you’re an individual, a student, or part of an industry. I’m excited to meet you and help you unlock the full potential of your data. Let’s work together to transform data into solutions, not problems.
-"""
-
-# --- Generate suara bahasa Inggris ---
-tts = gTTS(text=text_english, lang="en")
-tts_bytes = BytesIO()
-tts.write_to_fp(tts_bytes)
-tts_bytes.seek(0)
-
-# --- Convert audio ke base64 agar bisa diputar di HTML ---
-b64 = base64.b64encode(tts_bytes.read()).decode()
-
-audio_html = f"""
-<audio controls autoplay style="width: 100%;">
-  <source src="data:audio/mp3;base64,{b64}" type="audio/mp3">
-</audio>
-"""
-# --- Tampilkan audio player ---
-st.markdown(audio_html, unsafe_allow_html=True)
 
 
 # CSS kustom untuk styling
