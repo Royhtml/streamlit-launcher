@@ -2,17 +2,11 @@
 streamlit==1.49.1
 pandas==2.3.2
 numpy==2.2.2
-
-# Plotting & visualization
 plotly==5.24.1
 matplotlib==3.9.2
-
-# Stats & scientific
 scipy==1.14.1
-
-# Utility & logging (opsional)
 rich==14.1.0
-gTTS==2.4.6
+gTTS>=2.5.0
 playsound==1.3.0
 
 # Data analysis (opsional)
