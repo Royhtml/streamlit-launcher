@@ -14,17 +14,11 @@ import streamlit as st
 
 # --- Konfigurasi halaman ---
 st.set_page_config(
+    page_title="📊 Dashboard Analisis Data",
     page_icon="📊",
     layout="wide",
     initial_sidebar_state="expanded"
 )
-
-# --- Judul dan Gambar ---
-st.title("📊 Dashboard Statistik Profesional")
-st.image(r"C:\Users\User\Downloads\streamlit_launcher\streamlit_launcher\ai.jpg", 
-         caption="Visualisasi AI", use_container_width=True)
-
-
 # CSS kustom untuk styling
 st.markdown("""
 <style>
