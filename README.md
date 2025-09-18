@@ -76,7 +76,7 @@ python -m streamlit_launcher --version
 
 ```bash
 # Jalankan launcher
-launcher
+streamlit_launcher
 
 # Atau dengan python module
 python -m streamlit_launcher
@@ -224,24 +224,24 @@ Package ini membutuhkan:
 
 1. **Port already in use:**
    ```bash
-   launcher --port 8502
+   streamlit_launcher --port 8502
    ```
 
 2. **Module not found:**
    ```bash
-   pip install --upgrade launcher
+   pip install --upgrade streamlit_launcher
    ```
 
 3. **Permission issues:**
    ```bash
-   pip install --user launcher
+   pip install --user streamlit_launcher
    ```
 
 ### Debug Mode:
 
 ```bash
 # Enable debug mode
-launcher --debug true
+streamlit_launcher --debug true
 
 # Atau set environment variable
 export STREAMLIT_DEBUG=true
