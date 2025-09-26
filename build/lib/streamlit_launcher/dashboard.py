@@ -8,127 +8,333 @@ from scipy import stats
 import matplotlib.dates as mdates
 from datetime import datetime, timedelta
 import warnings
-warnings.filterwarnings('ignore')
+import io
+import base64
+import sys
+import os
 
-import streamlit as st
+warnings.filterwarnings('ignore')
 
 # --- Konfigurasi halaman ---
 st.set_page_config(
+    page_title="Advanced Data Analysis Dashboard",
     page_icon="📊",
     layout="wide",
     initial_sidebar_state="expanded"
 )
-st.title("📊 Dashboard Analisis Data Lanjutan")
 
 # CSS kustom untuk styling
 st.markdown("""
-<meta name="google-site-verification" content="ryAdKrOiPgVE9lQjxBAPCNbxtfCOJkDg_pvo7dzlp4U" />
 <style>
     .main-header {
-        font-size: 3rem;
+        font-size: 2.5rem;
         color: #1f77b4;
         text-align: center;
         margin-bottom: 2rem;
     }
     .metric-card {
         background-color: #f0f2f6;
-        padding: 1.5rem;
+        padding: 1rem;
         border-radius: 0.5rem;
-        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
     }
-    .stButton>button {
-        width: 100%;
-        background-color: #1f77b4;
-        color: white;
+    .code-editor {
+        background-color: #f5f5f5;
+        border: 1px solid #ddd;
+        border-radius: 5px;
+        padding: 10px;
+        font-family: 'Courier New', monospace;
+    }
+    .jupyter-cell {
+        border: 1px solid #e0e0e0;
+        border-radius: 5px;
+        margin: 10px 0;
+        padding: 10px;
     }
     .data-table {
         width: 100%;
         border-collapse: collapse;
         margin: 1rem 0;
+        font-size: 0.9rem;
     }
     .data-table th, .data-table td {
         border: 1px solid #ddd;
-        padding: 8px;
+        padding: 6px;
         text-align: left;
     }
     .data-table th {
         background-color: #f2f2f2;
     }
-    .data-table tr:nth-child(even) {
-        background-color: #f9f9f9;
-    }
-    .up-trend {
-        color: green;
-        font-weight: bold;
-    }
-    .down-trend {
-        color: red;
-        font-weight: bold;
-    }
-    .stock-summary {
-        background-color: #f8f9fa;
-        padding: 15px;
-        border-radius: 5px;
-        margin-bottom: 20px;
-        border-left: 5px solid #1f77b4;
-    }
 </style>
 """, unsafe_allow_html=True)
 
+st.title("📊 Advanced Data Analysis Dashboard")
+
 # Fungsi untuk menampilkan dataframe sebagai HTML (menggantikan st.dataframe)
-def display_dataframe(df, num_rows=5):
-    st.markdown(df.head(num_rows).to_html(classes='data-table', escape=False), unsafe_allow_html=True)
+def display_dataframe(df, num_rows=10):
+    """Display dataframe as HTML table to avoid PyArrow issues"""
+    st.markdown(f"**Preview Data ({num_rows} rows):**")
+    st.markdown(df.head(num_rows).to_html(classes='data-table', escape=False, index=False), unsafe_allow_html=True)
 
 # Fungsi untuk memproses file yang diupload
 def process_uploaded_file(uploaded_file):
     try:
         if uploaded_file.name.endswith('.csv'):
-            df = pd.read_csv(uploaded_file)
+            # Gunakan engine python untuk menghindari issues
+            df = pd.read_csv(uploaded_file, engine='python')
         elif uploaded_file.name.endswith('.xlsx') or uploaded_file.name.endswith('.xls'):
             df = pd.read_excel(uploaded_file)
         else:
             st.error("Format file tidak didukung. Harap unggah file CSV atau Excel.")
             return None
-        
         return df
     except Exception as e:
         st.error(f"Terjadi kesalahan saat memproses file: {str(e)}")
         return None
 
-# Fungsi untuk menggabungkan beberapa dataset
-def merge_datasets(datasets, merge_method='concat'):
+# Fungsi untuk menggabungkan dataset
+def merge_datasets(datasets, merge_method='concat', merge_key=None):
     if not datasets:
         return None
     
     if merge_method == 'concat':
-        # Gabungkan dataset secara vertikal (menambah baris)
         return pd.concat(datasets, ignore_index=True)
     else:
-        # Untuk penggabungan berdasarkan kolom (join)
-        # Cari kolom yang sama di semua dataset
-        common_columns = set(datasets[0].columns)
-        for dataset in datasets[1:]:
-            common_columns = common_columns.intersection(set(dataset.columns))
-        
-        if not common_columns:
-            st.error("Tidak ada kolom yang sama untuk melakukan penggabungan. Silakan gunakan metode 'concat' atau pastikan dataset memiliki kolom yang sama.")
-            return None
-        
-        # Gunakan kolom pertama yang sama sebagai kunci penggabungan
-        merge_key = list(common_columns)[0]
-        st.info(f"Menggunakan kolom '{merge_key}' sebagai kunci penggabungan")
+        if not merge_key:
+            common_columns = set(datasets[0].columns)
+            for dataset in datasets[1:]:
+                common_columns = common_columns.intersection(set(dataset.columns))
+            if not common_columns:
+                st.error("Tidak ada kolom yang sama untuk melakukan penggabungan.")
+                return None
+            merge_key = list(common_columns)[0]
         
         merged_df = datasets[0]
         for i in range(1, len(datasets)):
             try:
-                merged_df = pd.merge(merged_df, datasets[i], how=merge_method, on=merge_key)
+                merged_df = pd.merge(merged_df, datasets[i], how=merge_method, on=merge_key, suffixes=('', f'_{i}'))
             except Exception as e:
                 st.error(f"Error saat menggabungkan dataset: {str(e)}")
                 return None
-        
         return merged_df
 
-# Fungsi untuk membuat visualisasi data
+def wef_interface(df):
+    st.header("🔬 WEF Interface (Write-Execute-Feedback)")
+    
+    # Inisialisasi session state
+    if 'code_cells' not in st.session_state:
+        st.session_state.code_cells = [
+            {
+                'code': '# Cell 1 - Mulai coding di sini\n'
+                        'print("Shape dataset:", df.shape)\n'
+                        'print("Columns:", df.columns.tolist())\n'
+                        'df.head(3)',
+                'output': ''
+            }
+        ]
+    
+    # Tombol aksi global
+    col_global1, col_global2 = st.columns([1,1])
+    with col_global1:
+        if st.button("➕ Tambah Cell Baru"):
+            st.session_state.code_cells.append({'code': '# Cell baru\n# Tulis kode Python di sini', 'output': ''})
+    with col_global2:
+        if st.button("♻️ Reset Semua Cell"):
+            st.session_state.code_cells = [
+                {'code': '# Cell 1 - Mulai coding di sini\nprint(df.head())', 'output': ''}
+            ]
+            st.rerun()
+
+    # Container untuk cells
+    for i, cell in enumerate(st.session_state.code_cells):
+        with st.expander(f"📝 Cell {i+1}", expanded=True):
+            col1, col2, col3 = st.columns([10, 1, 1])
+            
+            # Text area untuk kode
+            with col1:
+                new_code = st.text_area(
+                    f"Kode Cell {i+1}",
+                    value=cell['code'],
+                    height=150,
+                    key=f"code_{i}",
+                    label_visibility="collapsed"
+                )
+                st.session_state.code_cells[i]['code'] = new_code
+            
+            # Tombol Run
+            with col2:
+                if st.button("▶️", key=f"run_{i}"):
+                    try:
+                        # Buat environment aman
+                        local_env = {
+                            'df': df, 
+                            'pd': pd, 
+                            'np': np, 
+                            'plt': plt, 
+                            'px': px, 
+                            'go': go,
+                            'st': st,
+                            'print': print
+                        }
+                        
+                        # Redirect output
+                        old_stdout = sys.stdout
+                        sys.stdout = output_catcher = io.StringIO()
+                        
+                        # Execute code
+                        exec(new_code, local_env)
+                        
+                        # Capture output
+                        output = output_catcher.getvalue()
+                        sys.stdout = old_stdout
+                        
+                        st.session_state.code_cells[i]['output'] = output
+                        
+                    except Exception as e:
+                        st.session_state.code_cells[i]['output'] = f"Error: {str(e)}"
+            
+            # Tombol Delete
+            with col3:
+                if st.button("🗑️", key=f"delete_{i}"):
+                    if len(st.session_state.code_cells) > 1:
+                        st.session_state.code_cells.pop(i)
+                        st.rerun()
+            
+            # Tampilkan output
+            if st.session_state.code_cells[i]['output']:
+                st.markdown("**Output:**")
+                st.code(st.session_state.code_cells[i]['output'], language='python')
+
+    # Export kode
+    if st.button("💾 Export Semua Kode ke file"):
+        all_code = "\n\n".join([cell['code'] for cell in st.session_state.code_cells])
+        st.download_button(
+            label="⬇️ Download File Python",
+            data=all_code,
+            file_name="wef_export.py",
+            mime="text/x-python"
+        )
+
+    # Contoh kode siap pakai
+    st.subheader("📚 Contoh Kode Siap Pakai")
+    contoh_opsi = st.selectbox("Pilih contoh:", [
+        "Tampilkan 5 baris pertama",
+        "Statistik deskriptif",
+        "Plot histogram kolom numerik",
+        "Plot scatter 2 kolom (Plotly)"
+    ])
+
+    if st.button("Tambahkan contoh ke Cell Baru"):
+        if contoh_opsi == "Tampilkan 5 baris pertama":
+            kode = "print(df.head())"
+        elif contoh_opsi == "Statistik deskriptif":
+            kode = "print(df.describe())"
+        elif contoh_opsi == "Plot histogram kolom numerik":
+            kode = "df.hist(figsize=(8,6))\nplt.show()"
+        elif contoh_opsi == "Plot scatter 2 kolom (Plotly)":
+            kode = "fig = px.scatter(df, x=df.columns[0], y=df.columns[1])\nst.plotly_chart(fig)"
+        
+        st.session_state.code_cells.append({'code': kode, 'output': ''})
+        st.rerun()
+
+# Fungsi analisis multivariat yang disederhanakan
+def multivariate_analysis(df):
+    st.header("🔗 Analisis Multivariat")
+    
+    numeric_cols = df.select_dtypes(include=[np.number]).columns.tolist()
+    
+    if len(numeric_cols) < 2:
+        st.warning("Diperlukan minimal 2 variabel numerik untuk analisis multivariat")
+        return
+    
+    # Analisis Korelasi
+    st.subheader("📈 Heatmap Korelasi")
+    
+    selected_cols = st.multiselect(
+        "Pilih variabel untuk analisis korelasi:",
+        numeric_cols,
+        default=numeric_cols[:min(5, len(numeric_cols))],
+        key="corr_select"
+    )
+    
+    if len(selected_cols) >= 2:
+        try:
+            corr_matrix = df[selected_cols].corr()
+            
+            fig = px.imshow(
+                corr_matrix,
+                text_auto=".2f",
+                aspect="auto",
+                color_continuous_scale='RdBu_r',
+                title="Matriks Korelasi"
+            )
+            st.plotly_chart(fig, use_container_width=True)
+            
+        except Exception as e:
+            st.error(f"Error membuat heatmap: {str(e)}")
+    
+    # Scatter Matrix
+    if len(selected_cols) >= 2:
+        st.subheader("🔄 Scatter Matrix")
+        
+        if st.button("Buat Scatter Matrix"):
+            try:
+                fig = px.scatter_matrix(df[selected_cols], title="Scatter Matrix")
+                st.plotly_chart(fig, use_container_width=True)
+            except Exception as e:
+                st.error(f"Error membuat scatter matrix: {str(e)}")
+
+# Fungsi analisis time series
+def time_series_analysis(df):
+    st.header("⏰ Analisis Time Series")
+    
+    # Cari kolom tanggal
+    date_cols = []
+    for col in df.columns:
+        if df[col].dtype == 'object':
+            try:
+                pd.to_datetime(df[col].head(10))  # Test conversion
+                date_cols.append(col)
+            except:
+                pass
+    
+    if not date_cols:
+        st.warning("Tidak ditemukan kolom tanggal yang valid")
+        return
+    
+    date_col = st.selectbox("Pilih kolom tanggal:", date_cols)
+    numeric_cols = df.select_dtypes(include=[np.number]).columns.tolist()
+    
+    if not numeric_cols:
+        st.warning("Tidak ditemukan kolom numerik")
+        return
+    
+    value_col = st.selectbox("Pilih variabel analisis:", numeric_cols)
+    
+    try:
+        # Konversi tanggal
+        df_ts = df.copy()
+        df_ts[date_col] = pd.to_datetime(df_ts[date_col])
+        df_ts = df_ts.sort_values(date_col)
+        
+        # Plot time series
+        fig = px.line(df_ts, x=date_col, y=value_col, title=f"Time Series: {value_col}")
+        st.plotly_chart(fig, use_container_width=True)
+        
+        # Moving average
+        window = st.slider("Window Size untuk Moving Average:", 3, 30, 7)
+        df_ts['MA'] = df_ts[value_col].rolling(window=window).mean()
+        
+        fig_ma = go.Figure()
+        fig_ma.add_trace(go.Scatter(x=df_ts[date_col], y=df_ts[value_col], name='Actual'))
+        fig_ma.add_trace(go.Scatter(x=df_ts[date_col], y=df_ts['MA'], name=f'MA ({window})'))
+        fig_ma.update_layout(title=f'Moving Average - {value_col}')
+        st.plotly_chart(fig_ma, use_container_width=True)
+        
+    except Exception as e:
+        st.error(f"Error dalam analisis time series: {str(e)}")
+
+# Fungsi visualisasi dasar
 def create_visualizations(df):
     # Menentukan kolom numerik dan non-numerik
     numeric_cols = df.select_dtypes(include=[np.number]).columns.tolist()
@@ -993,65 +1199,6 @@ if st.sidebar.button("Buat File Contoh"):
         file_name="contoh_data_saham.csv",
         mime="text/csv"
     )
-
-# Fitur untuk mengunggah dan menggabungkan beberapa file
-st.sidebar.header("Unggah & Gabungkan Beberapa File")
-uploaded_files = st.sidebar.file_uploader(
-    "Pilih file CSV atau Excel (bisa multiple)",
-    type=['csv', 'xlsx', 'xls'],
-    help="Format yang didukung: CSV, XLSX, XLS",
-    accept_multiple_files=True
-)
-
-# Pilihan metode penggabungan jika ada beberapa file
-merge_method = "concat"
-if uploaded_files and len(uploaded_files) > 1:
-    merge_method = st.sidebar.selectbox(
-        "Metode Penggabungan Data",
-        ["concat", "inner", "outer", "left", "right"],
-        help="Concat: menggabungkan baris, lainnya: menggabungkan berdasarkan kolom",
-        key="merge_method_select"
-    )
-
-# Proses file yang diupload
-df = None
-if uploaded_files:
-    datasets = []
-    for uploaded_file in uploaded_files:
-        dataset = process_uploaded_file(uploaded_file)
-        if dataset is not None:
-            datasets.append(dataset)
-            st.sidebar.success(f"File berhasil diunggah: {uploaded_file.name}")
-    
-    if datasets:
-        if len(datasets) == 1:
-            df = datasets[0]
-        else:
-            df = merge_datasets(datasets, merge_method)
-            st.sidebar.success(f"Berhasil menggabungkan {len(datasets)} dataset")
-
-# Jika file sudah diupload
-if df is not None:
-    # Tampilkan statistik
-    show_statistics(df)
-    
-    # Tampilkan visualisasi
-    st.header("Visualisasi Data")
-    create_visualizations(df)
-    
-    # Analisis korelasi antar saham
-    analyze_stock_correlation(df)
-    
-    # Tambahkan opsi untuk mengunduh data yang telah diproses
-    st.sidebar.header("Unduh Data")
-    if st.sidebar.button("Unduh Data yang Telah Diproses"):
-        csv = df.to_csv(index=False)
-        st.sidebar.download_button(
-            label="Unduh sebagai CSV",
-            data=csv,
-            file_name="processed_data.csv",
-            mime="text/csv"
-        )
         
 else:
     # Tampilkan contoh data jika belum ada file yang diupload
@@ -1077,6 +1224,148 @@ else:
         fig_pie = px.pie(sector_data, names='Sektor', values='Volume', title='Volume Perdagangan per Sektor')
         st.plotly_chart(fig_pie, use_container_width=True)
 
+# Fungsi statistik dasar
+def show_basic_stats(df):
+    st.header("📈 Statistik Deskriptif")
+    
+    # Metrik cepat
+    col1, col2, col3, col4 = st.columns(4)
+    with col1:
+        st.metric("Total Records", df.shape[0])
+    with col2:
+        st.metric("Total Variables", df.shape[1])
+    with col3:
+        st.metric("Numeric Variables", len(df.select_dtypes(include=[np.number]).columns))
+    with col4:
+        missing_pct = (df.isnull().sum().sum() / (df.shape[0] * df.shape[1])) * 100
+        st.metric("Missing Values", f"{missing_pct:.1f}%")
+    
+    # Preview data
+    display_dataframe(df, 10)
+    
+    # Statistik numerik
+    numeric_cols = df.select_dtypes(include=[np.number]).columns
+    if len(numeric_cols) > 0:
+        st.subheader("Statistik Numerik")
+        try:
+            # Gunakan describe() dan format output
+            stats_df = df[numeric_cols].describe()
+            st.markdown(stats_df.to_html(classes='data-table', escape=False), unsafe_allow_html=True)
+        except:
+            # Fallback sederhana
+            for col in numeric_cols:
+                st.write(f"**{col}**: Mean={df[col].mean():.2f}, Std={df[col].std():.2f}")
+
+# UI utama
+st.sidebar.header("📁 Upload Data")
+uploaded_files = st.sidebar.file_uploader(
+    "Pilih file CSV atau Excel:",
+    type=['csv', 'xlsx', 'xls'],
+    accept_multiple_files=True
+)
+
+# Pengaturan sederhana
+merge_method = "concat"
+if uploaded_files and len(uploaded_files) > 1:
+    merge_method = st.sidebar.selectbox("Metode Penggabungan:", ["concat", "inner"])
+
+# Proses file upload
+df = None
+if uploaded_files:
+    datasets = []
+    for uploaded_file in uploaded_files:
+        dataset = process_uploaded_file(uploaded_file)
+        if dataset is not None:
+            datasets.append(dataset)
+            st.sidebar.success(f"✓ {uploaded_file.name} loaded")
+    
+    if datasets:
+        if len(datasets) == 1:
+            df = datasets[0]
+        else:
+            df = merge_datasets(datasets, merge_method)
+        st.sidebar.success(f"✅ {len(datasets)} dataset loaded successfully!")
+
+# Tampilkan interface berdasarkan ketersediaan data
+if df is not None:
+    # Tab interface
+    tab1, tab2, tab3, tab4, tab5 = st.tabs([
+        "📊 Dashboard", 
+        "🔬 WEF Interface", 
+        "🔗 Multivariat", 
+        "⏰ Time Series", 
+        "📈 Visualisasi"
+    ])
+    
+    with tab1:
+        show_basic_stats(df)
+    
+    with tab2:
+        wef_interface(df)
+    
+    with tab3:
+        multivariate_analysis(df)
+    
+    with tab4:
+        time_series_analysis(df)
+    
+    with tab5:
+        create_visualizations(df)
+
+else:
+    # Tampilan welcome
+    st.markdown("""
+    # 🚀 Welcome to Advanced Data Analysis Dashboard
+    
+    ## Features:
+    - **🔬 WEF Interface**: Jupyter-like coding environment
+    - **🔗 Multivariate Analysis**: Correlation, scatter matrices
+    - **⏰ Time Series Analysis**: Trends, moving averages
+    - **📈 Visualization**: Interactive charts and plots
+    
+    ## 📁 Getting Started:
+    1. Upload CSV or Excel files using the sidebar
+    2. Explore different analysis tabs
+    3. Use WEF interface for custom Python code
+    
+    ### Sample Code Examples:
+    ```python
+    # Basic data exploration
+    print("Dataset shape:", df.shape)
+    print("Column types:", df.dtypes.value_counts())
+    
+    # Basic statistics
+    print(df.describe())
+    
+    # Data cleaning
+    df_clean = df.dropna()
+    print("After cleaning:", df_clean.shape)
+    ```
+    """)
+    
+    # Load sample data for demonstration
+    if st.button("🔄 Load Sample Data for Demo"):
+        np.random.seed(42)
+        sample_data = pd.DataFrame({
+            'date': pd.date_range('2023-01-01', periods=50, freq='D'),
+            'sales': np.random.normal(1000, 200, 50).cumsum(),
+            'temperature': np.random.normal(25, 5, 50),
+            'region': np.random.choice(['North', 'South', 'East', 'West'], 50),
+            'category': np.random.choice(['A', 'B', 'C'], 50)
+        })
+        
+        # Simulate in session state
+        st.session_state.sample_data = sample_data
+        df = sample_data
+        st.success("Sample data loaded! Switch between tabs to explore features.")
+        st.markdown("**Sample Data Preview:**")
+        display_dataframe(sample_data, 5)
+
 # Footer
 st.markdown("---")
-st.markdown("Dashboard Statistik © 2025 - Dibuat oleh Dwi Bakti N Dev")
+st.markdown("""
+<div style='text-align: center'>
+    <p>Advanced Data Analysis Dashboard © 2025</p>
+    <p>Create By Dwi Bakti N Dev</p>
+</div>
+""", unsafe_allow_html=True)
