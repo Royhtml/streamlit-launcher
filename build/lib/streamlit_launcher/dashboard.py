@@ -7325,15 +7325,92 @@ if df is not None:
         
         st.subheader("📄 Hak Lisensi")
         st.markdown("""
-        ### Ketentuan Penggunaan
-        
-        **Lisensi MIT**
-        
-        Hak Cipta (c) 2025 Dwi Bakti N Dev
-        
-        Izin dengan ini diberikan, gratis, kepada siapa pun yang mendapatkan salinan perangkat lunak ini dan file dokumentasi terkait, untuk berurusan dalam Perangkat Lunak tanpa batasan, termasuk tanpa batasan hak untuk menggunakan, menyalin, memodifikasi, menggabungkan, menerbitkan, mendistribusikan, mensublisensikan, dan/atau menjual salinan Perangkat Lunak, dan untuk mengizinkan orang yang kepadanya Perangkat Lunak dilengkapi untuk melakukannya.
-        
-        **Disclaimer**: Aplikasi ini disediakan "sebagaimana adanya", tanpa jaminan apa pun.
+STRICT PROPRIETARY SOFTWARE LICENSE — ALL RIGHTS RESERVED (INDONESIA)
+==================================================================
+
+Hak Cipta © 2025 Dwi Bakti N Dev. Seluruh hak dilindungi undang-undang.
+
+DEFINISI
+--------
+1. "Pemilik" berarti Dwi Bakti N Dev, pemilik semua hak atas Perangkat Lunak.
+2. "Perangkat Lunak" berarti seluruh kode sumber, kode objek, dokumentasi, gambar, aset, skrip, build, dan materi lain yang disediakan di bawah lisensi ini, termasuk setiap pembaruan, patch, atau modifikasi apa pun.
+3. "Pihak Ketiga" berarti setiap orang, badan, entitas, atau organisasi selain Pemilik.
+4. "Pengguna" berarti pihak yang mendapatkan salinan Perangkat Lunak berdasarkan ketentuan lisensi ini.
+
+PENDAHULUAN
+----------
+Perangkat Lunak ini diberikan oleh Pemilik hanya berdasarkan ketentuan-ketentuan di bawah ini. Jika Pengguna tidak menyetujui semua ketentuan ini, Pengguna tidak berhak menggunakan, menyalin, atau memiliki akses ke Perangkat Lunak.
+
+HAK CIPTA & HAK MILIK
+----------------------
+Pemilik memegang seluruh hak kekayaan intelektual atas Perangkat Lunak, termasuk namun tidak terbatas pada hak cipta, hak basis data, dan hak terkait. Perangkat Lunak dilindungi oleh hukum hak cipta Indonesia dan perjanjian internasional yang berlaku. **Tidak ada hak kepemilikan atau hak eksplisit/implisit yang diberikan kepada Pengguna**, kecuali hak terbatas yang diberikan secara tegas di bawah ini.
+
+PEMBERIAN LISENSI (SANGAT TERBATAS)
+----------------------------------
+Dengan lisensi ini, Pemilik memberikan hak non-eksklusif, tidak dapat dipindahtangankan, dan tidak dapat disublicense kepada Pengguna untuk **mengakses dan menggunakan Perangkat Lunak hanya untuk tujuan internal evaluasi** (atau tujuan lain yang ditetapkan secara tertulis oleh Pemilik), selama dan sejauh Pengguna mematuhi ketentuan berikut. Hak yang tidak disebutkan secara tegas di sini **dilarang**.
+
+PEMBATASAN PENGGUNAAN (PROHIBITED USES)
+----------------------------------------
+Tanpa izin tertulis terpisah dari Pemilik, Pengguna dilarang:
+a. Menyalin, mereproduksi, atau membuat karya turunan dari Perangkat Lunak (seluruh atau sebagian).  
+b. Menyebarluaskan, menjual, menyewakan, meminjami, memberi lisensi ulang, atau membuat tersedia bagi publik Perangkat Lunak atau bagian darinya.  
+c. Menggunakan Perangkat Lunak untuk menyediakan jasa komersial (SaaS, hosting, layanan pihak ketiga) yang menyalurkan fungsionalitas Perangkat Lunak kepada pihak lain.  
+d. Membongkar (reverse engineer), mendekompilasi, atau mencoba memperoleh kode sumber (kecuali diizinkan secara tegas oleh hukum yang berlaku dan hanya sejauh hukum tersebut memaksakan hak tersebut).  
+e. Menghapus, mengubah, atau menutupi pemberitahuan hak cipta, tanda tanggung jawab (attribution), atau label kepemilikan lainnya.  
+f. Mengalihkan, memindahkan, atau mentransfer Perangkat Lunak atau hak atasnya kepada pihak lain tanpa izin tertulis dari Pemilik.
+
+KEWAJIBAN PENGGUNA
+-------------------
+Pengguna harus:
+1. Menjaga kerahasiaan Perangkat Lunak dan tidak mengungkapkannya kepada pihak ketiga tanpa persetujuan tertulis dari Pemilik.  
+2. Segera melaporkan kepada Pemilik setiap penyalahgunaan, pelanggaran keamanan, atau indikasi pelanggaran hak cipta oleh pihak ketiga.  
+3. Mematuhi semua peraturan ekspor/impor dan pembatasan hukum terkait kriptografi, enkripsi, atau teknologi lainnya.
+
+PEMBEBASAN JAMINAN
+------------------
+Perangkat Lunak disediakan "SEBAGAIMANA ADANYA" tanpa jaminan apa pun, baik tersurat ataupun tersirat, termasuk namun tidak terbatas pada jaminan kelayakan untuk tujuan tertentu, non-pelanggaran, atau jaminan terkait keamanan. Pemilik tidak menjamin bahwa Perangkat Lunak akan memenuhi kebutuhan Pengguna atau bebas dari bug.
+
+BATASAN TANGGUNG JAWAB
+----------------------
+Dalam keadaan apa pun, Pemilik tidak bertanggung jawab atas kerugian langsung, tidak langsung, insidental, khusus, emergen, atau konsekuensial yang timbul dari penggunaan atau ketidakmampuan untuk menggunakan Perangkat Lunak, bahkan jika Pemilik telah diberitahu mengenai kemungkinan kerugian tersebut.
+
+PENGGANTI RUGI
+--------------
+Pengguna setuju untuk mengganti rugi, membela, dan membebaskan Pemilik dari klaim, kerugian, tanggung jawab, biaya, atau pengeluaran (termasuk biaya pengacara) yang timbul akibat pelanggaran ketentuan lisensi ini oleh Pengguna atau pelanggaran hukum yang dilakukan oleh Pengguna.
+
+PENEGAKAN & SANKSI
+------------------
+Pelanggaran terhadap lisensi ini akan menyebabkan pengakhiran hak penggunaan secara otomatis dan/atau tindakan hukum sesuai undang-undang. Pemilik berhak menuntut ganti rugi, perintah pengadilan (injunctive relief), dan pemulihan kerugian yang timbul akibat pelanggaran.
+
+PEMBATALAN LISENSI
+------------------
+Pemilik dapat mengakhiri lisensi ini jika Pengguna melanggar ketentuan apa pun. Setelah berakhirnya lisensi, Pengguna harus menghentikan semua penggunaan Perangkat Lunak dan menghancurkan semua salinan (termasuk salinan cadangan), serta memberikan pernyataan tertulis kepada Pemilik yang mengonfirmasi penghancuran tersebut.
+
+PEMBATASAN TANGGUNG JAWAB HUKUM
+-------------------------------
+Jika undang-undang yang berlaku tidak mengizinkan pembatasan tertentu yang tercantum di atas, ketentuan tersebut akan diberlakukan sejauh diizinkan oleh hukum, sedangkan ketentuan lainnya tetap berlaku penuh dan mengikat.
+
+HUKUM YANG MENGATUR & YURISDIKSI
+--------------------------------
+Lisensi ini diatur oleh dan ditafsirkan sesuai dengan hukum Republik Indonesia. Sengketa yang timbul sehubungan dengan lisensi ini akan diselesaikan terlebih dahulu melalui mediasi; jika gagal, sengketa akan diajukan ke pengadilan yang berwenang di [KOTA/DAERAH] (misalnya: Jakarta).
+
+PEMBERITAHUAN & KONTAK
+----------------------
+Permintaan izin, pemberitahuan pelanggaran, atau komunikasi lain terkait lisensi ini harus diarahkan ke:
+Nama Pemilik : Dwi Bakti N Dev
+Nama Pengembang : Dwi Bakti N Dev
+Pencipta : Dwi Bakti N Dev
+Website : https://portofolio-dwi-bakti-n-dev-liard.vercel.app
+
+
+KESELURUHAN PERJANJIAN
+----------------------
+Ketentuan lisensi ini merupakan keseluruhan perjanjian antara Pemilik dan Pengguna terkait Perangkat Lunak dan menggantikan semua perjanjian sebelumnya.
+
+TANGGAL EFEKTIF
+---------------
+Tanggal efektif: 14/10/2025
+
         """)
         
         st.subheader("🔬 Informasi Penelitian")
