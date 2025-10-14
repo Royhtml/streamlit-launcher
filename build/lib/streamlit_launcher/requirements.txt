@@ -8,10 +8,14 @@ plotly==5.24.1
 matplotlib==3.9.2
 seaborn==0.13.2
 wordcloud==1.9.4
-streamlit-folium==0.23.1  # Integrasi peta dengan Streamlit
+streamlit-folium==0.23.1 
 
 # Stats & scientific
 scipy==1.14.1
 
 # Utility & logging
 rich==14.1.0
+
+# Excel support
+openpyxl==3.1.5
+xlrd==2.0.1  
