@@ -6,8 +6,9 @@ numpy==2.2.2
 # Plotting & visualization
 plotly==5.24.1
 matplotlib==3.9.2
+seaborn==0.13.2
 wordcloud==1.9.4
-streamlit-folium==0.23.1  # versi stabil terbaru (perlu untuk integrasi peta di Streamlit)
+streamlit-folium==0.23.1  # Integrasi peta dengan Streamlit
 
 # Stats & scientific
 scipy==1.14.1
