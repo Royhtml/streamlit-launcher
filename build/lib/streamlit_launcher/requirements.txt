@@ -1,21 +1,43 @@
-# Core dependencies
+# =============================
+# Core Dependencies
+# =============================
 streamlit==1.49.1
 pandas==2.3.2
 numpy==2.2.2
 
-# Plotting & visualization
+# =============================
+# Plotting & Visualization
+# =============================
 plotly==5.24.1
 matplotlib==3.9.2
 seaborn==0.13.2
 wordcloud==1.9.4
-streamlit-folium==0.23.1 
+streamlit-folium==0.23.1
 
-# Stats & scientific
+# =============================
+# Statistics & Scientific
+# =============================
 scipy==1.14.1
 
-# Utility & logging
+# =============================
+# Utility & Logging
+# =============================
 rich==14.1.0
 
-# Excel support
+# =============================
+# Excel & File Support
+# =============================
 openpyxl==3.1.5
-xlrd==2.0.1  
+xlrd==2.0.1
+
+# =============================
+# Other Dependencies
+# =============================
+graphviz==0.20.3
+requests==2.32.3
+
+# =============================
+# Notes
+# =============================
+# - 'warnings' is a built-in Python module, so it should NOT be listed here.
+#   You can import it directly in your code without installation.
