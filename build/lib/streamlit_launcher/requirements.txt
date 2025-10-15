@@ -35,9 +35,11 @@ xlrd==2.0.1
 # =============================
 graphviz==0.20.3
 requests==2.32.3
+pillow==10.4.0
 
 # =============================
 # Notes
 # =============================
-# - 'warnings' is a built-in Python module, so it should NOT be listed here.
-#   You can import it directly in your code without installation.
+# - 'io' and 'warnings' are built-in Python modules — do NOT include them here.
+# - 'scipy' was already listed above; duplicate removed.
+# - 'pil' should be written as 'pillow' (the actual package name on PyPI).
