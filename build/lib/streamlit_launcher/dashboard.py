@@ -13,18 +13,13 @@ import plotly.figure_factory as ff
 warnings.filterwarnings('ignore')
 import seaborn as sns
 from plotly.subplots import make_subplots
-import streamlit as st
 import requests
 import pandas as pd
 import io
 from PIL import Image
-import streamlit as st
 import pandas as pd
 import numpy as np
-import plotly.express as px
-import plotly.graph_objects as go
 from graphviz import Digraph
-import io
 
 # Konfigurasi untuk performa
 plt.style.use('default')
@@ -7290,8 +7285,7 @@ if uploaded_files:
 REMOVE_BG_API_KEY = "xQH5KznYiupRrywK5yPcjeyi"
 PIXELS_API_KEY = "LH59shPdj1xO0lolnHPsClH23qsnHE4NjkCFBhKEXvR0CbqwkrXbqBnw"
 if df is not None:
-    # Tambahkan tab7
-    tab1, tab2, tab3, tab4, tab5, tab6, tab7, tab8 = st.tabs([
+    tab1, tab2, tab3, tab4, tab5, tab6, tab7, tab8, tab9 = st.tabs([
         "📊 Statistik", 
         "📈 Visualisasi", 
         "💾 Data", 
@@ -7299,8 +7293,420 @@ if df is not None:
         "🧮 Kalkulator",
         "🖼️ Vitures",
         "📍 Flowchart",
-        "📊 Grafik Saham"
+        "📊 Grafik Saham",
+        "🗃️ SQL Style"
     ])
+    
+    with tab9:
+            st.header("📁 Upload File & Analisis Lengkap SQL Style")
+            
+            # Upload file
+            uploaded_file = st.file_uploader(
+                "Pilih file CSV atau Excel", 
+                type=['csv', 'xlsx', 'xls'],
+                help="Upload file data untuk dianalisis"
+            )
+            
+            if uploaded_file is not None:
+                try:
+                    # Baca file berdasarkan tipe
+                    if uploaded_file.name.endswith('.csv'):
+                        df = pd.read_csv(uploaded_file)
+                    else:
+                        df = pd.read_excel(uploaded_file)
+                    
+                    st.success(f"File berhasil diupload! Shape: {df.shape}")
+                    
+                    # Tampilkan preview data
+                    st.subheader("📋 Preview Data")
+                    st.dataframe(df.head())
+                    
+                    # Informasi dasar dataset
+                    st.subheader("📊 Informasi Dataset")
+                    col1, col2, col3 = st.columns(3)
+                    
+                    with col1:
+                        st.metric("Jumlah Baris", df.shape[0])
+                    with col2:
+                        st.metric("Jumlah Kolom", df.shape[1])
+                    with col3:
+                        st.metric("Missing Values", df.isnull().sum().sum())
+                    
+                    # Tampilkan ERD (Entity Relationship Diagram) sederhana
+                    st.subheader("🔗 Entity Relationship Diagram (ERD)")
+
+                    # Analisis relasi antar kolom
+                    st.write("**Relasi antar Kolom:**")
+                    numeric_cols = df.select_dtypes(include=[np.number]).columns.tolist()
+                    categorical_cols = df.select_dtypes(include=['object']).columns.tolist()
+
+                    col1, col2 = st.columns(2)
+
+                    with col1:
+                        st.write("**Kolom Numerik:**")
+                        df_numeric = pd.DataFrame({"Nama Kolom": numeric_cols})
+                        st.table(df_numeric)
+
+                    with col2:
+                        st.write("**Kolom Kategorikal:**")
+                        df_categorical = pd.DataFrame({"Nama Kolom": categorical_cols})
+                        st.table(df_categorical)
+
+                    # --- Visualisasi ERD yang Sesungguhnya ---
+                    st.write("---")
+                    st.subheader("🗄️ Entity Relationship Diagram Visualization")
+
+                    # Buat struktur entitas dan relasi
+                    st.write("**Struktur Tabel Database:**")
+
+                    # Generate SQL CREATE TABLE statements
+                    st.markdown("### 📝 SQL Schema Definition")
+
+                    # Buat diagram ERD menggunakan graphviz
+                    try:
+                        import graphviz
+                        
+                        # Buat graph untuk ERD
+                        dot = graphviz.Digraph(comment='Database ERD')
+                        dot.attr(rankdir='TB', size='8,8')
+                        
+                        # Buat node untuk tabel utama
+                        with dot.subgraph(name='cluster_main') as c:
+                            c.attr(label='Tabel Utama: dataset_table', style='filled', color='lightblue', fontsize='12')
+                            
+                            # Header tabel
+                            c.node('table_header', f'📊 dataset_table', shape='plaintext', fontsize='14', fontname='Arial bold')
+                            
+                            # Field-field dalam tabel
+                            fields = []
+                            
+                            # Primary keys (asumsikan kolom pertama sebagai PK)
+                            if len(df.columns) > 0:
+                                pk_field = f"<TR><TD ALIGN='LEFT'><B>🔑 {df.columns[0]}</B></TD><TD ALIGN='LEFT'>[PK]</TD></TR>"
+                                fields.append(pk_field)
+                            
+                            # Numeric fields
+                            for col in numeric_cols[:5]:  # Batasi agar tidak terlalu panjang
+                                if col != df.columns[0]:
+                                    fields.append(f"<TR><TD ALIGN='LEFT'>📈 {col}</TD><TD ALIGN='LEFT'>NUMERIC</TD></TR>")
+                            
+                            # Categorical fields  
+                            for col in categorical_cols[:3]:  # Batasi agar tidak terlalu panjang
+                                fields.append(f"<TR><TD ALIGN='LEFT'>📝 {col}</TD><TD ALIGN='LEFT'>VARCHAR</TD></TR>")
+                            
+                            # Jika ada field lebih dari yang ditampilkan
+                            total_fields = len(numeric_cols) + len(categorical_cols)
+                            if total_fields > 8:
+                                fields.append(f"<TR><TD ALIGN='LEFT'>...</TD><TD ALIGN='LEFT'>+{total_fields-8} fields</TD></TR>")
+                            
+                            table_html = f'''<
+                                <TABLE BORDER="1" CELLBORDER="0" CELLSPACING="0" CELLPADDING="4">
+                                <TR><TD ALIGN="CENTER"><B>COLUMN</B></TD><TD ALIGN="CENTER"><B>TYPE</B></TD></TR>
+                                {''.join(fields)}
+                                </TABLE>
+                            >'''
+                            
+                            c.node('main_table', table_html, shape='none', fontname='Arial')
+                        
+                        # Tampilkan graph
+                        st.graphviz_chart(dot)
+                        
+                    except ImportError:
+                        st.warning("Graphviz tidak terinstall. Menggunakan visualisasi alternatif...")
+                        
+                        # Visualisasi alternatif dengan Plotly
+                        st.write("**Diagram Relasi Tabel:**")
+                        
+                        # Buat network graph sederhana
+                        import plotly.graph_objects as go
+                        
+                        # Node positions
+                        node_x = [0.5]
+                        node_y = [0.5]
+                        node_text = ["dataset_table"]
+                        node_colors = ['lightblue']
+                        
+                        # Add some related tables (conceptual)
+                        related_tables = ['metadata_table', 'category_table', 'log_table']
+                        for i, table in enumerate(related_tables):
+                            node_x.append(0.2 + i * 0.3)
+                            node_y.append(0.8)
+                            node_text.append(table)
+                            node_colors.append('lightgreen')
+                        
+                        fig = go.Figure()
+                        
+                        # Add nodes
+                        fig.add_trace(go.Scatter(
+                            x=node_x, y=node_y,
+                            mode='markers+text',
+                            marker=dict(size=50, color=node_colors),
+                            text=node_text,
+                            textposition="middle center",
+                            name="Tables"
+                        ))
+                        
+                        # Add edges (relationships)
+                        for i in range(1, len(node_x)):
+                            fig.add_trace(go.Scatter(
+                                x=[node_x[0], node_x[i]],
+                                y=[node_y[0], node_y[i]],
+                                mode='lines',
+                                line=dict(width=2, color='gray'),
+                                hoverinfo='none'
+                            ))
+                        
+                        fig.update_layout(
+                            title="Database Table Relationships",
+                            showlegend=False,
+                            height=400,
+                            xaxis=dict(showgrid=False, zeroline=False, showticklabels=False),
+                            yaxis=dict(showgrid=False, zeroline=False, showticklabels=False),
+                            margin=dict(l=20, r=20, t=40, b=20)
+                        )
+                        
+                        st.plotly_chart(fig, use_container_width=True)
+
+                    # --- Bagian Penyambung SQL ---
+                    st.write("---")
+                    st.subheader("🧩 Format SQL (Comma Separated)")
+
+                    numeric_sql = ", ".join(numeric_cols)
+                    categorical_sql = ", ".join(categorical_cols)
+
+                    st.code(f"SELECT {numeric_sql}, {categorical_sql} FROM dataset_table;", language="sql")
+
+                    # Generate CREATE TABLE statement
+                    st.markdown("### 🗃️ SQL CREATE TABLE Statement")
+
+                    # Deteksi tipe data untuk SQL
+                    def infer_sql_type(dtype, sample_data):
+                        if np.issubdtype(dtype, np.number):
+                            return "DECIMAL(10,2)"
+                        elif np.issubdtype(dtype, np.datetime64):
+                            return "DATETIME"
+                        else:
+                            # Cek panjang string maksimum
+                            max_len = sample_data.astype(str).str.len().max()
+                            return f"VARCHAR({min(255, max(100, int(max_len * 1.5)))})"
+
+                    create_table_sql = "CREATE TABLE dataset_table (\n"
+                    for i, col in enumerate(df.columns):
+                        sql_type = infer_sql_type(df[col].dtype, df[col])
+                        if i == 0:
+                            create_table_sql += f"    {col} {sql_type} PRIMARY KEY,\n"
+                        else:
+                            create_table_sql += f"    {col} {sql_type},\n"
+
+                    create_table_sql = create_table_sql.rstrip(',\n') + "\n);"
+
+                    st.code(create_table_sql, language="sql")
+
+                    # Jika ingin lihat hanya daftar kolom
+                    col3, col4 = st.columns(2)
+                    with col3:
+                        st.write("**Kolom Numerik (SQL String):**")
+                        st.code(numeric_sql, language="sql")
+
+                    with col4:
+                        st.write("**Kolom Kategorikal (SQL String):**")
+                        st.code(categorical_sql, language="sql")
+
+                    # Visualisasi korelasi sebagai ERD sederhana
+                    if len(numeric_cols) > 1:
+                        st.write("---")
+                        st.subheader("📊 Matriks Korelasi (Hubungan Numerik)")
+                        corr_matrix = df[numeric_cols].corr()
+
+                        # Plot menggunakan Plotly
+                        fig = px.imshow(
+                            corr_matrix,
+                            text_auto=".2f",
+                            color_continuous_scale='RdBu_r',
+                            zmin=-1,
+                            zmax=1,
+                            aspect="auto",
+                            labels=dict(color="Korelasi")
+                        )
+                        fig.update_layout(
+                            title="Matriks Korelasi Numerik",
+                            xaxis_title="Fitur",
+                            yaxis_title="Fitur",
+                            autosize=True,
+                            margin=dict(l=40, r=40, t=60, b=40),
+                            height=600
+                        )
+                        st.plotly_chart(fig, use_container_width=True)
+
+                        # --- Linear Regression Analysis ---
+                        st.write("---")
+                        st.subheader("🧮 Linear Regression Analysis (SQL-Style LRS)")
+
+                        if len(numeric_cols) >= 2:
+                            col1, col2 = st.columns(2)
+                            
+                            with col1:
+                                x_axis = st.selectbox("Pilih variabel X (Independent)", numeric_cols, key="lrs_x")
+                            with col2:
+                                y_axis = st.selectbox("Pilih variabel Y (Dependent)", numeric_cols, key="lrs_y")
+                            
+                            if x_axis != y_axis:
+                                # Hitung regresi linear
+                                slope, intercept, r_value, p_value, std_err = stats.linregress(df[x_axis], df[y_axis])
+                                correlation = df[x_axis].corr(df[y_axis])
+                                r_squared = r_value**2
+
+                                # --- Tampilan SQL Query ---
+                                st.markdown("### 🧩 SQL Query Representation")
+                                st.code(f"""
+                    SELECT 
+                        {x_axis} AS X,
+                        {y_axis} AS Y,
+                        ROUND(REGR_SLOPE({y_axis}, {x_axis}), 4) AS slope,
+                        ROUND(REGR_INTERCEPT({y_axis}, {x_axis}), 4) AS intercept,
+                        ROUND(CORR({y_axis}, {x_axis}), 4) AS correlation,
+                        ROUND(POWER(CORR({y_axis}, {x_axis}), 2), 4) AS r_squared
+                    FROM dataset_table;
+                    """, language="sql")
+
+                                # --- Plot hubungan ---
+                                fig = px.scatter(
+                                    df,
+                                    x=x_axis,
+                                    y=y_axis,
+                                    trendline="ols",
+                                    title=f"📊 SQL Visualization: {y_axis} vs {x_axis}",
+                                    labels={x_axis: f"{x_axis}", y_axis: f"{y_axis}"}
+                                )
+                                fig.update_layout(
+                                    autosize=True,
+                                    margin=dict(l=40, r=40, t=60, b=40),
+                                    height=500,
+                                    title_x=0.5
+                                )
+                                st.plotly_chart(fig, use_container_width=True)
+
+                                # --- Relationship Mapping ---
+                                st.markdown("### 🔗 Relationship Mapping")
+                                
+                                # Buat diagram hubungan sederhana
+                                rel_fig = go.Figure()
+                                
+                                # Add nodes
+                                rel_fig.add_trace(go.Scatter(
+                                    x=[0.2, 0.8], y=[0.5, 0.5],
+                                    mode='markers+text',
+                                    marker=dict(size=80, color=['lightblue', 'lightgreen']),
+                                    text=[x_axis, y_axis],
+                                    textposition="middle center",
+                                    textfont=dict(size=14)
+                                ))
+                                
+                                # Add relationship line dengan annotation korelasi
+                                rel_fig.add_trace(go.Scatter(
+                                    x=[0.3, 0.7], y=[0.5, 0.5],
+                                    mode='lines+text',
+                                    line=dict(width=4, color='red'),
+                                    text=[f"r = {correlation:.3f}"],
+                                    textposition="middle center",
+                                    textfont=dict(size=12, color='red')
+                                ))
+                                
+                                rel_fig.update_layout(
+                                    title=f"Relationship Diagram: {x_axis} → {y_axis}",
+                                    showlegend=False,
+                                    height=300,
+                                    xaxis=dict(showgrid=False, zeroline=False, showticklabels=False, range=[0, 1]),
+                                    yaxis=dict(showgrid=False, zeroline=False, showticklabels=False, range=[0, 1]),
+                                    margin=dict(l=20, r=20, t=60, b=20)
+                                )
+                                
+                                st.plotly_chart(rel_fig, use_container_width=True)
+
+                                # --- Tabel hasil regresi ---
+                                st.markdown("### 📋 SQL-Style Result Table")
+                                result_df = pd.DataFrame({
+                                    "Metric": ["X (Independent)", "Y (Dependent)", "Slope (β1)", "Intercept (β0)", 
+                                            "R-Value", "R² (R-squared)", "P-Value", "Std Error", "Correlation"],
+                                    "Value": [x_axis, y_axis, f"{slope:.4f}", f"{intercept:.4f}", 
+                                            f"{r_value:.4f}", f"{r_squared:.4f}", f"{p_value:.4f}", 
+                                            f"{std_err:.4f}", f"{correlation:.4f}"]
+                                })
+
+                                st.dataframe(result_df, use_container_width=True, hide_index=True)
+                    
+                    # Analisis statistik lengkap
+                    st.subheader("📊 Analisis Statistik Lengkap")
+                    
+                    # Statistik deskriptif
+                    st.write("**Statistik Deskriptif:**")
+                    st.dataframe(df.describe())
+                    
+                    # Analisis missing values
+                    st.write("**Analisis Missing Values:**")
+                    missing_data = df.isnull().sum()
+                    if missing_data.sum() > 0:
+                        fig_missing = px.bar(x=missing_data.index, y=missing_data.values,
+                                        title="Missing Values per Kolom")
+                        st.plotly_chart(fig_missing)
+                    else:
+                        st.success("Tidak ada missing values dalam dataset!")
+                    
+                    # Data quality report
+                    st.subheader("📋 Data Quality Report")
+                    
+                    quality_data = []
+                    for col in df.columns:
+                        quality_data.append({
+                            'Kolom': col,
+                            'Tipe': df[col].dtype,
+                            'Missing': df[col].isnull().sum(),
+                            'Missing %': (df[col].isnull().sum() / len(df)) * 100,
+                            'Unique': df[col].nunique(),
+                            'Contoh Value': df[col].iloc[0] if not df[col].empty else 'N/A'
+                        })
+                    
+                    quality_df = pd.DataFrame(quality_data)
+                    st.dataframe(quality_df)
+                    
+                    # Download hasil analisis
+                    st.subheader("💾 Download Hasil Analisis")
+                    
+                    # Convert quality report to CSV
+                    csv = quality_df.to_csv(index=False)
+                    st.download_button(
+                        label="Download Data Quality Report",
+                        data=csv,
+                        file_name="data_quality_report.csv",
+                        mime="text/csv"
+                    )
+                    
+                except Exception as e:
+                    st.error(f"Error membaca file: {str(e)}")
+            else:
+                st.info("Silakan upload file CSV atau Excel untuk memulai analisis")
+                
+                # Contoh dataset
+                st.subheader("🎯 Contoh Format Data")
+                example_data = {
+                    'ID': [1, 2, 3, 4, 5],
+                    'Nama': ['Alice', 'Bob', 'Charlie', 'Diana', 'Eve'],
+                    'Usia': [25, 30, 35, 28, 32],
+                    'Gaji': [50000, 60000, 70000, 55000, 65000],
+                    'Departemen': ['IT', 'HR', 'IT', 'Finance', 'HR']
+                }
+                example_df = pd.DataFrame(example_data)
+                st.dataframe(example_df)
+                
+                # Download template
+                csv_template = example_df.to_csv(index=False)
+                st.download_button(
+                    label="Download Template CSV",
+                    data=csv_template,
+                    file_name="template_data.csv",
+                    mime="text/csv"
+                )
+
     
     with tab8:
         st.header("📊 Analisis Grafik Saham")
@@ -8974,9 +9380,9 @@ if df is not None:
             st.error("**🧹 Pembersihan Data**\n\nAuto-clean missing values")
         
         # Video Tutorial (placeholder)
-        st.markdown("### 🎥 Video Tutorial Penggunaan V1.0")
+        st.markdown("### 🎥 Video Tutorial Penggunaan V2.2.5")
         import streamlit.components.v1 as components
-        google_drive_id = "1dDgiM1SUp-ugTEy6ArHyJBno0O9_ASM9"
+        google_drive_id = "1obx6q2jQS1fRrNi1E4VpAPlyI_rR9nO5"
 
         google_drive_embed_html = f"""
         <style>
@@ -9130,6 +9536,41 @@ if df is not None:
         
         # Informasi Lisensi dengan expander
         st.subheader("📄 Hak Lisensi")
+                # Video Tutorial (placeholder)
+        st.markdown("### 🎥 Proses Pembuatan Streamlit Launcher")
+        import streamlit.components.v1 as components
+        google_drive_id = "1RD94cKgmYzbIf83jXz1cIPeweQeqx9CS"
+
+        google_drive_embed_html = f"""
+        <style>
+        .video-wrapper {{
+            position: relative;
+            width: 100%;
+            max-width: 800px;       /* batas lebar maksimum */
+            margin: 0 auto;         /* rata tengah */
+            padding-top: 56.25%;    /* rasio 16:9 */
+        }}
+
+        .video-wrapper iframe {{
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            border: none;
+            border-radius: 12px;    /* sudut melengkung */
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2); /* efek bayangan lembut */
+        }}
+        </style>
+
+        <div class="video-wrapper">
+            <iframe src="https://drive.google.com/file/d/{google_drive_id}/preview" allow="autoplay"></iframe>
+        </div>
+        """
+
+
+        # ✅ Render di Streamlit
+        components.html(google_drive_embed_html, height=500, scrolling=False)
         
         with st.expander("📜 STRICT PROPRIETARY SOFTWARE LICENSE — ALL RIGHTS RESERVED", expanded=False):
             st.markdown("""
