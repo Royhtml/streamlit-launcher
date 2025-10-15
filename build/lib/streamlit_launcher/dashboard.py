@@ -12,14 +12,55 @@ from wordcloud import WordCloud
 import plotly.figure_factory as ff
 warnings.filterwarnings('ignore')
 import seaborn as sns
+from plotly.subplots import make_subplots
+import streamlit as st
+import requests
+import pandas as pd
+import io
+from PIL import Image
+import streamlit as st
+import pandas as pd
+import numpy as np
+import plotly.express as px
+import plotly.graph_objects as go
+from graphviz import Digraph
+import io
+
+# Konfigurasi untuk performa
+plt.style.use('default')
+sns.set_palette("husl")
 
 # --- Konfigurasi halaman ---
 st.set_page_config(
-    page_icon="📊",
+    page_icon="https://github.com/DwiDevelopes/gambar/raw/main/Desain%20tanpa%20judul%20(8).jpg",
     layout="wide",
-    initial_sidebar_state="expanded"
+    initial_sidebar_state="expanded",
+    page_title="STREAMLIT LAUNCHER"
 )
-st.title("📊 Dashboard Analisis Data Lanjutan")
+st.title("📊 STREAMLIT LAUNCHER ANALYSIS PENELITIAN LANJUTAN")
+
+# --- Tambahkan gambar responsif ---
+st.markdown(
+    """
+    <style>
+    .responsive-img {
+        width: 100%;
+        height: auto;
+        border-radius: 15px;
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+    }
+    </style>
+    """,
+    unsafe_allow_html=True
+)
+
+# Ganti URL di bawah ini dengan lokasi gambar kamu (bisa file lokal atau URL)
+st.markdown(
+    """
+    <img src="https://github.com/DwiDevelopes/gambar/raw/main/Desain%20tanpa%20judul%20(8).jpg" class="responsive-img">
+    """,
+    unsafe_allow_html=True
+)
 
 # CSS kustom untuk styling
 st.markdown("""
@@ -7139,6 +7180,67 @@ def create_sample_file():
 
 # UI utama
 st.markdown("Unggah file CSV atau Excel untuk melihat visualisasi dan statistik data.")
+        
+with st.expander("📜 PENJELASAN TENTANG ANALISIS DATA", expanded=False):
+    st.markdown("""
+    **Penjelasan Penting 📛**
+    
+    ### 🧾 Pengertian
+    - Analisis data adalah proses yang mengolah data mulai dari identifikasi, pembersihan, transformasi, hingga pemodelan untuk mendapatkan informasi yang berguna. 
+    - Tujuannya adalah mengubah data mentah menjadi wawasan yang bisa digunakan untuk pemecahan masalah atau penetapan strategi. 
+    
+    ### ⚠️ Proses utama
+    - 🛠️ Pengumpulan data: Mengumpulkan data dari berbagai sumber seperti sensor, wawancara, atau sistem internal. 
+    - 🛠️ Pembersihan data: Membersihkan data dari kesalahan, ketidaksesuaian, atau ketidaksesuaian lainnya agar data siap dianalisis. 
+    - 🛠️ Transformasi data: Mengubah data menjadi format yang lebih sesuai untuk analisis. 
+    - 🛠️ Analisis data: Menerapkan teknik statistik atau algoritma untuk menganalisis data dan menemukan pola. 
+    - 🛠️ Interpretasi hasil: Menginterpretasikan hasil analisis untuk mendapatkan wawasan yang dapat diterapkan. 
+    
+    ### 🔖 Manfaat
+    - ⚙️ Pengambilan keputusan yang lebih akurat: Keputusan yang didasarkan pada data (berbasis data) lebih akurat dibandingkan keputusan yang hanya didasarkan pada intuisi.
+    - ⚙️ Meningkatkan efisiensi operasional: Membantu mengidentifikasi area yang bisa dioptimalkan dalam proses bisnis.
+    - ⚙️ Menciptakan keunggulan kompetitif: Memungkinkan bisnis merespons perubahan pasar dengan lebih efektif.
+    - ⚙️ Mendorong inovasi produk: Memahami preferensi pelanggan dapat mengarah pada pengembangan produk atau layanan baru. 
+    
+    ### 📑 Metode
+    - 📖 Pengambilan keputusan yang lebih akurat: Keputusan yang didasarkan pada data (berbasis data) lebih akurat dibandingkan keputusan yang hanya didasarkan pada intuisi.
+    - 📖 Meningkatkan efisiensi operasional: Membantu mengidentifikasi area yang bisa dioptimalkan dalam proses bisnis.
+    - 📖 Menciptakan keunggulan kompetitif: Memungkinkan bisnis merespons perubahan pasar dengan lebih efektif.
+    - 📖 Mendorong inovasi produk: Memahami preferensi pelanggan dapat mengarah pada pengembangan produk atau layanan baru. 
+    """)
+    
+with st.expander("📜 PENJELASAN TENTANG STATISTIK DATA", expanded=False):
+    st.markdown("""
+    **Penjelasan Penting 📛**
+    
+    ### 🧾 Proses dan tujuan statistik data
+    - Analisis data adalah proses yang mengolah data mulai dari identifikasi, pembersihan, transformasi, hingga pemodelan untuk mendapatkan informasi yang berguna. 
+    - Tujuannya adalah mengubah data mentah menjadi wawasan yang bisa digunakan untuk pemecahan masalah atau penetapan strategi. 
+    
+    ### ⚠️ Proses utama
+    - 🛠️ Pengumpulan: Data bisa dikumpulkan melalui berbagai cara seperti wawancara, observasi, kuesioner, atau sensus.
+    - 🛠️ Pengolahan: Data mentah kemudian diolah, dikelompokkan, dan ditabulasi. Hasilnya bisa disajikan dalam bentuk tabel, grafik, atau bentuk lainnya untuk mempermudah pemahaman.
+    - 🛠️ Analisis dan interpretasi: Statistik membantu menganalisis data untuk menemukan pola, tren, dan hubungan antar variabel, serta menarik kesimpulan yang dapat digunakan untuk pengambilan keputusan. 
+    - 🛠️ Tujuan: Memecahkan masalah kompleks yang melibatkan data numerik, memberikan gambaran yang representatif tentang data yang dikaji, serta membantu pemerintah dan industri dalam membuat kebijakan atau strategi yang tepat. 
+    
+    ### 🔖 Berdasarkan sifat 
+    - ⚙️ Kuantitatif: Data yang dapat diukur dengan bilangan, seperti tinggi badan atau jumlah penduduk. 
+    - ⚙️ Kualitatif: Data yang berbentuk kategori atau deskripsi, seperti preferensi atau warna. 
+    
+    ### 📑 Berdasarkan hasil pengukuran
+    - 📖 Nominal: Data yang digunakan untuk memberi label atau kategori, tanpa urutan tertentu (misalnya, jenis kelamin). 
+    - 📖 Ordinal: Data yang memiliki urutan atau peringkat (misalnya, tingkat kepuasan: baik, sedang, buruk). 
+    - 📖 Interval: Data yang memiliki jarak yang diketahui antara nilai-nilai, tetapi tidak memiliki titik nol yang absolut (misalnya, suhu). 
+    - 📖 Rasio: Data yang memiliki jarak yang diketahui dan titik nol yang absolut (misalnya, tinggi badan, berat badan). 
+    """)
+    
+with st.expander("📜 PENJELASAN LENGKAP MENGENAI ROY ACADEMY", expanded=False):
+    st.markdown("""
+    **Penjelasan Penting 📛**
+    
+    ### 🧾 Tujuan Adanya Roy Academy
+    - Tujuan Adanya Roy Akademi adalah untuk kalian yang bergabung dalam penelitian dan proses ini di buat oleh dwi bakti n dev dengan tujuan menjadi penjelasan yang mudah dimengerti dan mudah dibaca.
+    """)
 
 # Sidebar
 st.sidebar.header("🎛️ Kontrol Aplikasi")
@@ -7169,6 +7271,7 @@ if uploaded_files and len(uploaded_files) > 1:
         key="merge_method_select"
     )
 
+
 # Proses file
 df = None
 if uploaded_files:
@@ -7184,301 +7287,2040 @@ if uploaded_files:
         else:
             df = merge_datasets(datasets, merge_method)
 
-# Tampilkan konten berdasarkan ketersediaan data
+REMOVE_BG_API_KEY = "xQH5KznYiupRrywK5yPcjeyi"
+PIXELS_API_KEY = "LH59shPdj1xO0lolnHPsClH23qsnHE4NjkCFBhKEXvR0CbqwkrXbqBnw"
 if df is not None:
-    tab1, tab2, tab3, tab4 = st.tabs(["📊 Statistik", "📈 Visualisasi", "💾 Data", "ℹ️ Informasi"])
+    # Tambahkan tab7
+    tab1, tab2, tab3, tab4, tab5, tab6, tab7, tab8 = st.tabs([
+        "📊 Statistik", 
+        "📈 Visualisasi", 
+        "💾 Data", 
+        "ℹ️ Informasi", 
+        "🧮 Kalkulator",
+        "🖼️ Vitures",
+        "📍 Flowchart",
+        "📊 Grafik Saham"
+    ])
     
+    with tab8:
+        st.header("📊 Analisis Grafik Saham")
+        
+        # Upload file
+        uploaded_file = st.file_uploader(
+            "Unggah file data saham (CSV atau Excel)",
+            type=['csv', 'xlsx', 'xls'],
+            key="stock_uploader"
+        )
+        
+        if uploaded_file is not None:
+            try:
+                # Baca file berdasarkan tipe
+                if uploaded_file.name.endswith('.csv'):
+                    df = pd.read_csv(uploaded_file)
+                else:
+                    df = pd.read_excel(uploaded_file)
+                
+                st.success(f"File berhasil diunggah! Shape: {df.shape}")
+                
+                # Tampilkan data
+                with st.expander("📋 Preview Data"):
+                    st.dataframe(df.head(10))
+                
+                # Konfigurasi kolom
+                st.subheader("⚙️ Konfigurasi Data")
+                col1, col2, col3, col4 = st.columns(4)
+                
+                with col1:
+                    date_column = st.selectbox(
+                        "Pilih kolom tanggal",
+                        options=df.columns,
+                        index=0
+                    )
+                
+                with col2:
+                    open_column = st.selectbox(
+                        "Pilih kolom Open",
+                        options=df.columns,
+                        index=min(1, len(df.columns)-1)
+                    )
+                
+                with col3:
+                    high_column = st.selectbox(
+                        "Pilih kolom High",
+                        options=df.columns,
+                        index=min(2, len(df.columns)-1)
+                    )
+                
+                with col4:
+                    low_column = st.selectbox(
+                        "Pilih kolom Low",
+                        options=df.columns,
+                        index=min(3, len(df.columns)-1)
+                    )
+                
+                col5, col6, col7 = st.columns(3)
+                
+                with col5:
+                    close_column = st.selectbox(
+                        "Pilih kolom Close",
+                        options=df.columns,
+                        index=min(4, len(df.columns)-1)
+                    )
+                
+                with col6:
+                    volume_column = st.selectbox(
+                        "Pilih kolom Volume",
+                        options=df.columns,
+                        index=min(5, len(df.columns)-1) if len(df.columns) > 5 else 0
+                    )
+                
+                with col7:
+                    # Konversi kolom tanggal
+                    try:
+                        df[date_column] = pd.to_datetime(df[date_column])
+                        df = df.sort_values(date_column)
+                        st.success("Kolom tanggal berhasil dikonversi")
+                    except Exception as e:
+                        st.error(f"Gagal mengonversi kolom tanggal: {e}")
+                
+                # Pilihan jenis grafik
+                st.subheader("📈 Jenis Grafik")
+                chart_type = st.selectbox(
+                    "Pilih jenis grafik",
+                    [
+                        "Candlestick Chart",
+                        "Line Chart (Harga Penutupan)",
+                        "OHLC Chart",
+                        "Area Chart",
+                        "Volume Chart",
+                        "Moving Average Chart",
+                        "RSI Indicator",
+                        "Bollinger Bands"
+                    ]
+                )
+                
+                # Konfigurasi tambahan berdasarkan jenis grafik
+                if chart_type in ["Moving Average Chart", "Bollinger Bands"]:
+                    ma_period = st.slider("Period Moving Average", 5, 100, 20)
+                
+                if chart_type == "Bollinger Bands":
+                    bb_std = st.slider("Standard Deviation", 1, 3, 2)
+                
+                if chart_type == "RSI Indicator":
+                    rsi_period = st.slider("RSI Period", 5, 30, 14)
+                
+                # Buat grafik berdasarkan pilihan
+                if volume_column in df.columns and chart_type != "Volume Chart":
+                    fig = make_subplots(
+                        rows=2, cols=1,
+                        shared_xaxes=True,
+                        vertical_spacing=0.1,
+                        subplot_titles=('Price Chart', 'Volume'),
+                        row_width=[0.7, 0.3]
+                    )
+                else:
+                    fig = go.Figure()
+                
+                if chart_type == "Candlestick Chart":
+                    # Candlestick chart
+                    candlestick = go.Candlestick(
+                        x=df[date_column],
+                        open=df[open_column],
+                        high=df[high_column],
+                        low=df[low_column],
+                        close=df[close_column],
+                        name="Candlestick"
+                    )
+                    if volume_column in df.columns:
+                        fig.add_trace(candlestick, row=1, col=1)
+                    else:
+                        fig.add_trace(candlestick)
+                    
+                elif chart_type == "Line Chart (Harga Penutupan)":
+                    line_chart = go.Scatter(
+                        x=df[date_column],
+                        y=df[close_column],
+                        mode='lines',
+                        name='Close Price',
+                        line=dict(color='blue', width=2)
+                    )
+                    if volume_column in df.columns:
+                        fig.add_trace(line_chart, row=1, col=1)
+                    else:
+                        fig.add_trace(line_chart)
+                    
+                elif chart_type == "OHLC Chart":
+                    ohlc_chart = go.Ohlc(
+                        x=df[date_column],
+                        open=df[open_column],
+                        high=df[high_column],
+                        low=df[low_column],
+                        close=df[close_column],
+                        name="OHLC"
+                    )
+                    if volume_column in df.columns:
+                        fig.add_trace(ohlc_chart, row=1, col=1)
+                    else:
+                        fig.add_trace(ohlc_chart)
+                    
+                elif chart_type == "Area Chart":
+                    area_chart = go.Scatter(
+                        x=df[date_column],
+                        y=df[close_column],
+                        mode='lines',
+                        fill='tozeroy',
+                        name='Close Price',
+                        line=dict(color='green', width=2)
+                    )
+                    if volume_column in df.columns:
+                        fig.add_trace(area_chart, row=1, col=1)
+                    else:
+                        fig.add_trace(area_chart)
+                    
+                elif chart_type == "Volume Chart":
+                    if volume_column in df.columns:
+                        volume_chart = go.Bar(
+                            x=df[date_column],
+                            y=df[volume_column],
+                            name='Volume',
+                            marker_color='rgba(0,0,255,0.3)'
+                        )
+                        fig.add_trace(volume_chart)
+                    else:
+                        st.warning("Kolom volume tidak ditemukan dalam data")
+                    
+                elif chart_type == "Moving Average Chart":
+                    # Hitung moving average
+                    df['MA'] = df[close_column].rolling(window=ma_period).mean()
+                    
+                    price_line = go.Scatter(
+                        x=df[date_column],
+                        y=df[close_column],
+                        mode='lines',
+                        name='Close Price',
+                        line=dict(color='blue', width=1)
+                    )
+                    
+                    ma_line = go.Scatter(
+                        x=df[date_column],
+                        y=df['MA'],
+                        mode='lines',
+                        name=f'MA {ma_period}',
+                        line=dict(color='red', width=2)
+                    )
+                    
+                    if volume_column in df.columns:
+                        fig.add_trace(price_line, row=1, col=1)
+                        fig.add_trace(ma_line, row=1, col=1)
+                    else:
+                        fig.add_trace(price_line)
+                        fig.add_trace(ma_line)
+                    
+                elif chart_type == "Bollinger Bands":
+                    # Hitung Bollinger Bands
+                    df['MA'] = df[close_column].rolling(window=ma_period).mean()
+                    df['STD'] = df[close_column].rolling(window=ma_period).std()
+                    df['Upper'] = df['MA'] + (df['STD'] * bb_std)
+                    df['Lower'] = df['MA'] - (df['STD'] * bb_std)
+                    
+                    price_line = go.Scatter(
+                        x=df[date_column],
+                        y=df[close_column],
+                        mode='lines',
+                        name='Close Price',
+                        line=dict(color='blue', width=1)
+                    )
+                    
+                    ma_line = go.Scatter(
+                        x=df[date_column],
+                        y=df['MA'],
+                        mode='lines',
+                        name=f'MA {ma_period}',
+                        line=dict(color='red', width=2)
+                    )
+                    
+                    upper_band = go.Scatter(
+                        x=df[date_column],
+                        y=df['Upper'],
+                        mode='lines',
+                        name='Upper Band',
+                        line=dict(color='gray', width=1, dash='dash')
+                    )
+                    
+                    lower_band = go.Scatter(
+                        x=df[date_column],
+                        y=df['Lower'],
+                        mode='lines',
+                        name='Lower Band',
+                        line=dict(color='gray', width=1, dash='dash'),
+                        fill='tonexty'
+                    )
+                    
+                    if volume_column in df.columns:
+                        fig.add_trace(price_line, row=1, col=1)
+                        fig.add_trace(ma_line, row=1, col=1)
+                        fig.add_trace(upper_band, row=1, col=1)
+                        fig.add_trace(lower_band, row=1, col=1)
+                    else:
+                        fig.add_trace(price_line)
+                        fig.add_trace(ma_line)
+                        fig.add_trace(upper_band)
+                        fig.add_trace(lower_band)
+                    
+                elif chart_type == "RSI Indicator":
+                    # Hitung RSI
+                    delta = df[close_column].diff()
+                    gain = (delta.where(delta > 0, 0)).rolling(window=rsi_period).mean()
+                    loss = (-delta.where(delta < 0, 0)).rolling(window=rsi_period).mean()
+                    rs = gain / loss
+                    df['RSI'] = 100 - (100 / (1 + rs))
+                    
+                    rsi_chart = go.Scatter(
+                        x=df[date_column],
+                        y=df['RSI'],
+                        mode='lines',
+                        name=f'RSI {rsi_period}',
+                        line=dict(color='purple', width=2)
+                    )
+                    
+                    # Overbought/oversold lines
+                    overbought = go.Scatter(
+                        x=df[date_column],
+                        y=[70] * len(df),
+                        mode='lines',
+                        name='Overbought (70)',
+                        line=dict(color='red', width=1, dash='dash')
+                    )
+                    
+                    oversold = go.Scatter(
+                        x=df[date_column],
+                        y=[30] * len(df),
+                        mode='lines',
+                        name='Oversold (30)',
+                        line=dict(color='green', width=1, dash='dash')
+                    )
+                    
+                    if volume_column in df.columns:
+                        fig.add_trace(rsi_chart, row=1, col=1)
+                        fig.add_trace(overbought, row=1, col=1)
+                        fig.add_trace(oversold, row=1, col=1)
+                        # Update y-axis untuk RSI
+                        fig.update_yaxes(range=[0, 100], row=1, col=1)
+                    else:
+                        fig.add_trace(rsi_chart)
+                        fig.add_trace(overbought)
+                        fig.add_trace(oversold)
+                        fig.update_yaxes(range=[0, 100])
+                
+                # Tambahkan volume chart untuk semua jenis grafik (kecuali Volume Chart sendiri)
+                if volume_column in df.columns and chart_type != "Volume Chart" and chart_type != "RSI Indicator":
+                    volume_chart = go.Bar(
+                        x=df[date_column],
+                        y=df[volume_column],
+                        name='Volume',
+                        marker_color='rgba(0,0,255,0.3)'
+                    )
+                    if volume_column in df.columns:
+                        fig.add_trace(volume_chart, row=2, col=1)
+                    else:
+                        fig.add_trace(volume_chart)
+                
+                # Update layout
+                fig.update_layout(
+                    title=f"{chart_type} - {uploaded_file.name}",
+                    xaxis_title="Date",
+                    yaxis_title="Price",
+                    height=600 if volume_column in df.columns else 400,
+                    showlegend=True,
+                    template="plotly_white"
+                )
+                
+                # Tampilkan grafik
+                st.plotly_chart(fig, use_container_width=True)
+                
+                # Statistik tambahan
+                st.subheader("📊 Statistik Data Saham")
+                col1, col2, col3, col4 = st.columns(4)
+                
+                with col1:
+                    if close_column in df.columns and len(df) > 0:
+                        st.metric("Harga Terakhir", f"${df[close_column].iloc[-1]:.2f}")
+                
+                with col2:
+                    if close_column in df.columns and len(df) > 1:
+                        daily_return = ((df[close_column].iloc[-1] - df[close_column].iloc[-2]) / df[close_column].iloc[-2]) * 100
+                        st.metric("Return Harian", f"{daily_return:.2f}%")
+                    else:
+                        st.metric("Return Harian", "N/A")
+                
+                with col3:
+                    if high_column in df.columns:
+                        st.metric("High Tertinggi", f"${df[high_column].max():.2f}")
+                
+                with col4:
+                    if low_column in df.columns:
+                        st.metric("Low Terendah", f"${df[low_column].min():.2f}")
+                
+                # Informasi data
+                with st.expander("📋 Informasi Data Lengkap"):
+                    st.write(f"**Periode Data:** {df[date_column].min().strftime('%Y-%m-%d')} hingga {df[date_column].max().strftime('%Y-%m-%d')}")
+                    st.write(f"**Jumlah Data:** {len(df)} records")
+                    
+                    if close_column in df.columns:
+                        col1, col2, col3 = st.columns(3)
+                        with col1:
+                            st.metric("Rata-rata Close", f"${df[close_column].mean():.2f}")
+                        with col2:
+                            st.metric("Std Dev Close", f"${df[close_column].std():.2f}")
+                        with col3:
+                            st.metric("Volatilitas", f"{(df[close_column].std() / df[close_column].mean() * 100):.2f}%")
+                
+                # Download data yang sudah diproses
+                st.subheader("💾 Download Data")
+                csv = df.to_csv(index=False)
+                st.download_button(
+                    label="Download Data sebagai CSV",
+                    data=csv,
+                    file_name=f"processed_{uploaded_file.name.split('.')[0]}.csv",
+                    mime="text/csv"
+                )
+                
+            except Exception as e:
+                st.error(f"Error processing file: {str(e)}")
+                st.info("Pastikan file Anda memiliki format yang benar dengan kolom: Date, Open, High, Low, Close, Volume")
+        
+        else:
+            # Tampilkan contoh data dan petunjuk
+            st.info("""
+            **📋 Petunjuk Upload File Saham:**
+            
+            1. File harus dalam format CSV atau Excel
+            2. Data harus mengandung kolom-kolom berikut:
+            - **Tanggal** (Date)
+            - **Harga Pembukaan** (Open)
+            - **Harga Tertinggi** (High) 
+            - **Harga Terendah** (Low)
+            - **Harga Penutupan** (Close)
+            - **Volume** (opsional)
+            
+            3. Contoh format data:
+            ```
+            Date,Open,High,Low,Close,Volume
+            2024-01-01,150.0,155.5,149.0,154.2,1000000
+            2024-01-02,154.5,157.0,153.8,156.0,1200000
+            ```
+            """)
+            
+            # Contoh data
+            sample_data = {
+                'Date': pd.date_range('2024-01-01', periods=30, freq='D'),
+                'Open': [150 + i * 0.5 + np.random.normal(0, 1) for i in range(30)],
+                'High': [155 + i * 0.5 + np.random.normal(0, 1) for i in range(30)],
+                'Low': [149 + i * 0.5 + np.random.normal(0, 1) for i in range(30)],
+                'Close': [154 + i * 0.5 + np.random.normal(0, 1) for i in range(30)],
+                'Volume': [1000000 + i * 50000 for i in range(30)]
+            }
+            
+            sample_df = pd.DataFrame(sample_data)
+            
+            with st.expander("🎯 Contoh Format Data yang Didukung"):
+                st.dataframe(sample_df.head(10))
+                
+                # Download sample data
+                csv_sample = sample_df.to_csv(index=False)
+                st.download_button(
+                    label="Download Contoh Data CSV",
+                    data=csv_sample,
+                    file_name="sample_stock_data.csv",
+                    mime="text/csv"
+                )
+
+    with tab7:
+        st.header("📁 Upload File & Generate Flowchart")
+        
+        # Upload file section dengan deteksi otomatis
+        uploaded_file = st.file_uploader(
+            "Pilih file CSV atau Excel (Format: .csv, .xlsx, .xls)", 
+            type=['csv', 'xlsx', 'xls'],
+            help="File akan otomatis terdeteksi sebagai CSV atau Excel"
+        )
+        
+        if uploaded_file is not None:
+            try:
+                # Deteksi tipe file dan proses
+                with st.spinner('🔄 Mendeteksi dan memproses file...'):
+                    file_type = "CSV" if uploaded_file.name.endswith('.csv') else "Excel"
+                    st.info(f"📄 File terdeteksi: {file_type} - {uploaded_file.name}")
+                    
+                    if uploaded_file.name.endswith('.csv'):
+                        # Untuk CSV dengan deteksi encoding
+                        file_size = uploaded_file.size
+                        if file_size > 10 * 1024 * 1024:
+                            st.info("⚡ File besar terdeteksi, menggunakan processing optimal...")
+                            chunks = pd.read_csv(uploaded_file, chunksize=10000, encoding='utf-8')
+                            df = pd.concat(chunks, ignore_index=True)
+                        else:
+                            # Coba berbagai encoding untuk CSV
+                            try:
+                                df = pd.read_csv(uploaded_file, encoding='utf-8')
+                            except:
+                                try:
+                                    df = pd.read_csv(uploaded_file, encoding='latin-1')
+                                except:
+                                    df = pd.read_csv(uploaded_file, encoding='iso-8859-1')
+                    else:
+                        # Untuk Excel - baca semua sheets
+                        excel_file = pd.ExcelFile(uploaded_file)
+                        sheet_names = excel_file.sheet_names
+                        
+                        if len(sheet_names) > 1:
+                            selected_sheet = st.selectbox(
+                                "📑 Pilih sheet yang akan diproses:",
+                                options=sheet_names,
+                                help="File Excel memiliki multiple sheets, pilih satu untuk dianalisis"
+                            )
+                            df = pd.read_excel(uploaded_file, sheet_name=selected_sheet)
+                        else:
+                            df = pd.read_excel(uploaded_file, sheet_name=sheet_names[0])
+                
+                # Informasi file berhasil diupload
+                st.success(f"✅ File berhasil diproses! Dataset: {df.shape[0]} baris × {df.shape[1]} kolom")
+                
+                # Auto-deteksi kolom tanggal dengan analisis lebih detail
+                date_columns = []
+                date_completeness = {}
+                
+                for col in df.columns:
+                    try:
+                        # Coba konversi seluruh kolom ke datetime
+                        temp_dates = pd.to_datetime(df[col], errors='coerce')
+                        valid_dates = temp_dates.notna().sum()
+                        total_rows = len(df)
+                        completeness_ratio = valid_dates / total_rows
+                        
+                        # Jika rasio kelengkapan > 50%, anggap sebagai kolom tanggal
+                        if completeness_ratio > 0.5:
+                            date_columns.append(col)
+                            date_completeness[col] = {
+                                'completeness_ratio': completeness_ratio,
+                                'valid_dates': valid_dates,
+                                'total_rows': total_rows,
+                                'date_range': {
+                                    'min': temp_dates.min(),
+                                    'max': temp_dates.max()
+                                }
+                            }
+                    except:
+                        continue
+                
+                # Analisis tipe data detail
+                numeric_columns = df.select_dtypes(include=[np.number]).columns.tolist()
+                text_columns = df.select_dtypes(include=['object']).columns.tolist()
+                datetime_columns = df.select_dtypes(include=['datetime64']).columns.tolist()
+                
+                # Hitung persentase untuk setiap tipe data
+                total_columns = len(df.columns)
+                numeric_percentage = (len(numeric_columns) / total_columns) * 100 if total_columns > 0 else 0
+                text_percentage = (len(text_columns) / total_columns) * 100 if total_columns > 0 else 0
+                date_percentage = (len(date_columns) / total_columns) * 100 if total_columns > 0 else 0
+                other_percentage = 100 - (numeric_percentage + text_percentage + date_percentage)
+                
+                # Tampilkan preview data dengan expander
+                with st.expander("🔍 **PREVIEW DATA - 10 Baris Pertama**", expanded=True):
+                    st.dataframe(df.head(10), use_container_width=True)
+                    
+                    # Informasi ringkas data
+                    col1, col2, col3, col4 = st.columns(4)
+                    with col1:
+                        st.metric("📊 Total Baris", df.shape[0])
+                    with col2:
+                        st.metric("📋 Total Kolom", df.shape[1])
+                    with col3:
+                        st.metric("🔢 Numeric Columns", len(numeric_columns))
+                    with col4:
+                        st.metric("📅 Date Columns", len(date_columns))
+
+                # ==================== BAGIAN FLOWCHART DINAMIS DENGAN PERSENTASE ====================
+                st.markdown("---")
+                st.subheader("🔄 **FLOWCHART PROSES DATA & ANALISIS KOMPOSISI**")
+                
+                # Generate flowchart dinamis dengan persentase
+                dot = Digraph(comment='Data Process Flowchart', format='png')
+                dot.attr(rankdir='TB', size='14,10')
+                dot.attr('node', style='filled', fontname='Arial', fontsize='10')
+                
+                # Node utama proses
+                nodes = {
+                    'start': ['START\nUpload File', 'ellipse', '#28a745', 'white'],
+                    'load': [f'LOAD {file_type}\n{uploaded_file.name}', 'box', '#ffc107', 'black'],
+                    'validate': ['DATA VALIDATION\nQuality Check', 'diamond', '#17a2b8', 'white'],
+                    'analyze': ['DATA ANALYSIS\nStructure & Types', 'box', '#6f42c1', 'white'],
+                    'end': ['END\nProcess Complete', 'ellipse', '#dc3545', 'white']
+                }
+                
+                # Node untuk komposisi data
+                composition_nodes = {
+                    'comp_numeric': [f'NUMERIC DATA\n{len(numeric_columns)} cols\n({numeric_percentage:.1f}%)', 'box', '#fd7e14', 'white'],
+                    'comp_text': [f'TEXT DATA\n{len(text_columns)} cols\n({text_percentage:.1f}%)', 'box', '#6f42c1', 'white'],
+                    'comp_date': [f'DATE DATA\n{len(date_columns)} cols\n({date_percentage:.1f}%)', 'box', '#20c997', 'white'],
+                    'comp_other': [f'OTHER DATA\n({other_percentage:.1f}%)', 'box', '#6c757d', 'white']
+                }
+                
+                # Tambahkan semua node utama
+                for node_id, (label, shape, color, fontcolor) in nodes.items():
+                    dot.node(node_id, label, shape=shape, fillcolor=color, fontcolor=fontcolor)
+                
+                # Tambahkan node komposisi
+                for node_id, (label, shape, color, fontcolor) in composition_nodes.items():
+                    dot.node(node_id, label, shape=shape, fillcolor=color, fontcolor=fontcolor)
+                
+                # Koneksi utama
+                main_connections = [
+                    ('start', 'load'),
+                    ('load', 'validate'), 
+                    ('validate', 'analyze'),
+                    ('analyze', 'comp_numeric'),
+                    ('analyze', 'comp_text'),
+                    ('analyze', 'comp_date'),
+                    ('analyze', 'comp_other')
+                ]
+                
+                # Koneksi ke end berdasarkan dominansi data
+                dominant_type = max([(numeric_percentage, 'comp_numeric'), 
+                                (text_percentage, 'comp_text'),
+                                (date_percentage, 'comp_date')], 
+                                key=lambda x: x[0])
+                
+                # Hubungkan node dominan ke end
+                main_connections.append((dominant_type[1], 'end'))
+                
+                # Buat semua koneksi
+                for from_node, to_node in main_connections:
+                    dot.edge(from_node, to_node)
+                
+                # Tampilkan flowchart
+                st.graphviz_chart(dot)
+                
+                # ==================== GRAFIK KOMPOSISI DATA ====================
+                st.subheader("📊 **GRAFIK KOMPOSISI DATA**")
+                
+                # Buat grafik pie chart untuk komposisi data
+                fig_composition = px.pie(
+                    values=[numeric_percentage, text_percentage, date_percentage, other_percentage],
+                    names=['Numeric', 'Text', 'Date', 'Other'],
+                    title='Komposisi Tipe Data dalam Dataset',
+                    color=['Numeric', 'Text', 'Date', 'Other'],
+                    color_discrete_map={
+                        'Numeric': '#fd7e14',
+                        'Text': '#6f42c1', 
+                        'Date': '#20c997',
+                        'Other': '#6c757d'
+                    }
+                )
+                
+                fig_composition.update_traces(
+                    textposition='inside',
+                    textinfo='percent+label',
+                    hovertemplate='<b>%{label}</b><br>%{value:.1f}%<br>%{customdata}',
+                    customdata=[[f"{len(numeric_columns)} columns"], 
+                            [f"{len(text_columns)} columns"],
+                            [f"{len(date_columns)} columns"], 
+                            [f"{total_columns - len(numeric_columns) - len(text_columns) - len(date_columns)} columns"]]
+                )
+                
+                fig_composition.update_layout(
+                    height=400,
+                    showlegend=True,
+                    legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1)
+                )
+                
+                st.plotly_chart(fig_composition, use_container_width=True)
+                
+                # ==================== ANALISIS DETAIL PER KOLOM ====================
+                with st.expander("📈 **ANALISIS DETAIL PER KOLOM**", expanded=True):
+                    st.subheader("📋 **Detail Analisis Kolom**")
+                    
+                    # Tabel analisis kolom
+                    analysis_data = []
+                    for col in df.columns:
+                        col_type = df[col].dtype
+                        null_count = df[col].isnull().sum()
+                        null_percentage = (null_count / len(df)) * 100
+                        unique_count = df[col].nunique()
+                        
+                        # Tentukan kategori
+                        if col in numeric_columns:
+                            category = "Numerik"
+                            details = f"Range: {df[col].min():.2f} - {df[col].max():.2f}"
+                        elif col in date_columns:
+                            category = "Tanggal"
+                            completeness = date_completeness.get(col, {})
+                            comp_ratio = completeness.get('completeness_ratio', 0) * 100
+                            details = f"Kelengkapan: {comp_ratio:.1f}%"
+                        elif col in text_columns:
+                            category = "Teks"
+                            details = f"Unique: {unique_count}"
+                        else:
+                            category = "Lainnya"
+                            details = f"Type: {col_type}"
+                        
+                        analysis_data.append({
+                            'Kolom': col,
+                            'Tipe Data': str(col_type),
+                            'Kategori': category,
+                            'Null Values': null_count,
+                            'Null %': f"{null_percentage:.1f}%",
+                            'Unique Values': unique_count,
+                            'Detail': details
+                        })
+                    
+                    analysis_df = pd.DataFrame(analysis_data)
+                    st.dataframe(analysis_df, use_container_width=True)
+                    
+                    # Statistik summary
+                    col1, col2, col3, col4 = st.columns(4)
+                    with col1:
+                        st.metric("✅ Kolom Valid", f"{total_columns}")
+                    with col2:
+                        st.metric("📊 Data Lengkap", f"{(100 - analysis_df['Null %'].str.rstrip('%').astype(float).mean()):.1f}%")
+                    with col3:
+                        st.metric("🎯 Kualitas Data", f"{(100 - analysis_df['Null %'].str.rstrip('%').astype(float).max()):.1f}%")
+                    with col4:
+                        complexity_score = (analysis_df['Unique Values'].mean() / len(df)) * 100
+                        st.metric("⚡ Kompleksitas", f"{complexity_score:.1f}%")
+                
+                # ==================== KETERANGAN FLOWCHART & PERHITUNGAN ====================
+                with st.expander("🧮 **DETAIL PERHITUNGAN & KETERANGAN**", expanded=True):
+                    st.subheader("📐 **Metrik Perhitungan**")
+                    
+                    # Tampilkan perhitungan persentase
+                    calculation_data = {
+                        'Tipe Data': ['Numerik', 'Teks', 'Tanggal', 'Lainnya'],
+                        'Jumlah Kolom': [len(numeric_columns), len(text_columns), len(date_columns), 
+                                    total_columns - len(numeric_columns) - len(text_columns) - len(date_columns)],
+                        'Persentase': [f"{numeric_percentage:.1f}%", f"{text_percentage:.1f}%", 
+                                    f"{date_percentage:.1f}%", f"{other_percentage:.1f}%"],
+                        'Rumus': [
+                            f"{len(numeric_columns)} / {total_columns} × 100%",
+                            f"{len(text_columns)} / {total_columns} × 100%", 
+                            f"{len(date_columns)} / {total_columns} × 100%",
+                            f"{total_columns - len(numeric_columns) - len(text_columns) - len(date_columns)} / {total_columns} × 100%"
+                        ]
+                    }
+                    
+                    calc_df = pd.DataFrame(calculation_data)
+                    st.dataframe(calc_df, use_container_width=True)
+                    
+                    # Analisis dominansi
+                    st.subheader("🎯 **Analisis Dominansi Data**")
+                    dominant_type_name = {
+                        'comp_numeric': 'NUMERIK',
+                        'comp_text': 'TEKS', 
+                        'comp_date': 'TANGGAL'
+                    }[dominant_type[1]]
+                    
+                    st.success(f"""
+                    **Tipe Data Dominan:** {dominant_type_name} ({dominant_type[0]:.1f}%)
+                    
+                    **Implikasi:**
+                    - Dataset ini cocok untuk analisis {'statistik dan pemodelan matematis' if dominant_type_name == 'NUMERIK' else 'analisis teks dan kategorikal' if dominant_type_name == 'TEKS' else 'analisis time series dan trend'}
+                    - Flowchart mengarah ke **{dominant_type_name}** sebagai output utama
+                    - Rekomendasi visualisasi: {'Line Chart, Histogram, Scatter Plot' if dominant_type_name == 'NUMERIK' else 'Bar Chart, Word Cloud, Pie Chart' if dominant_type_name == 'TEKS' else 'Time Series, Trend Analysis, Seasonal Plot'}
+                    """)
+                
+                # Download flowchart
+                flowchart_pdf = dot.pipe(format='pdf')
+                st.download_button(
+                    label="📥 **Download Flowchart (PDF)**",
+                    data=flowchart_pdf,
+                    file_name="data_processing_flowchart.pdf",
+                    mime="application/pdf",
+                    help="Download flowchart proses data dalam format PDF"
+                )
+
+                # ==================== BAGIAN LINE CHART ====================
+                st.markdown("---")
+                st.subheader("📈 **LINE CHART GENERATOR**")
+                
+                if len(numeric_columns) > 0 and (len(date_columns) > 0 or len(text_columns) > 0):
+                    # Container untuk input parameters
+                    with st.container():
+                        col1, col2, col3 = st.columns(3)
+                        
+                        with col1:
+                            # Prioritaskan kolom tanggal untuk grouping
+                            grouping_options = date_columns + [col for col in text_columns if col not in date_columns]
+                            group_column = st.selectbox(
+                                "**Pilih Kolom Grouping (X-Axis):**",
+                                options=grouping_options,
+                                help="Kolom untuk mengelompokkan data (tanggal direkomendasikan)"
+                            )
+                            
+                            # Tampilkan info kolom yang dipilih
+                            if group_column in date_columns:
+                                completeness = date_completeness[group_column]['completeness_ratio'] * 100
+                                st.success(f"📅 Kolom tanggal terdeteksi - {completeness:.1f}% lengkap")
+                            else:
+                                st.info("ℹ️ Kolom teks dipilih - pastikan memiliki nilai unik yang terbatas")
+                        
+                        with col2:
+                            value_column = st.selectbox(
+                                "**Pilih Kolom Nilai (Y-Axis):**",
+                                options=numeric_columns,
+                                help="Kolom numerik yang akan divisualisasikan"
+                            )
+                        
+                        with col3:
+                            agg_function = st.selectbox(
+                                "**Fungsi Aggregasi:**",
+                                options=['mean', 'sum', 'count', 'min', 'max', 'median'],
+                                help="Cara mengelompokkan data numerik"
+                            )
+                    
+                    # Tombol generate chart
+                    if st.button("🚀 **Generate Line Chart**", type="primary", use_container_width=True):
+                        with st.spinner('🔄 Membuat line chart...'):
+                            try:
+                                # Preprocessing data
+                                temp_df = df.copy()
+                                
+                                # Jika kolom grouping adalah tanggal, konversi ke datetime
+                                if group_column in date_columns:
+                                    temp_df[group_column] = pd.to_datetime(temp_df[group_column], errors='coerce')
+                                    # Hapus rows dengan tanggal invalid
+                                    temp_df = temp_df.dropna(subset=[group_column])
+                                
+                                # Group data berdasarkan kolom yang dipilih
+                                if agg_function == 'mean':
+                                    grouped_data = temp_df.groupby(group_column)[value_column].mean().reset_index()
+                                elif agg_function == 'sum':
+                                    grouped_data = temp_df.groupby(group_column)[value_column].sum().reset_index()
+                                elif agg_function == 'count':
+                                    grouped_data = temp_df.groupby(group_column)[value_column].count().reset_index()
+                                elif agg_function == 'min':
+                                    grouped_data = temp_df.groupby(group_column)[value_column].min().reset_index()
+                                elif agg_function == 'max':
+                                    grouped_data = temp_df.groupby(group_column)[value_column].max().reset_index()
+                                elif agg_function == 'median':
+                                    grouped_data = temp_df.groupby(group_column)[value_column].median().reset_index()
+                                
+                                # Sort data untuk line chart yang rapi
+                                if group_column in date_columns:
+                                    grouped_data = grouped_data.sort_values(by=group_column)
+                                else:
+                                    # Untuk non-date, sort by value atau tetap urutan asli
+                                    grouped_data = grouped_data.sort_values(by=value_column, ascending=False)
+                                
+                                # Buat line chart dengan Plotly
+                                fig = px.line(
+                                    grouped_data,
+                                    x=group_column,
+                                    y=value_column,
+                                    title=f"📈 Line Chart: {value_column} by {group_column} ({agg_function})",
+                                    markers=True,
+                                    line_shape='linear'
+                                )
+                                
+                                # Customize layout
+                                fig.update_layout(
+                                    xaxis_title=f"**{group_column}**",
+                                    yaxis_title=f"**{value_column}** ({agg_function})",
+                                    hovermode='x unified',
+                                    height=500,
+                                    showlegend=False
+                                )
+                                
+                                # Tambahkan animasi hover yang lebih informatif
+                                fig.update_traces(
+                                    hovertemplate=f"<b>{group_column}</b>: %{{x}}<br>" +
+                                                f"<b>{value_column}</b>: %{{y:.2f}}<extra></extra>"
+                                )
+                                
+                                # Tampilkan chart
+                                st.plotly_chart(fig, use_container_width=True)
+                                
+                                # Tampilkan statistik chart
+                                st.subheader("📊 **Statistik Chart**")
+                                col1, col2, col3, col4 = st.columns(4)
+                                with col1:
+                                    st.metric("Total Data Points", len(grouped_data))
+                                with col2:
+                                    st.metric(f"Min {value_column}", f"{grouped_data[value_column].min():.2f}")
+                                with col3:
+                                    st.metric(f"Max {value_column}", f"{grouped_data[value_column].max():.2f}")
+                                with col4:
+                                    st.metric(f"Avg {value_column}", f"{grouped_data[value_column].mean():.2f}")
+                                    
+                                # Tampilkan data tabel
+                                with st.expander("📋 **Lihat Data Chart**"):
+                                    st.dataframe(grouped_data, use_container_width=True)
+                                
+                            except Exception as e:
+                                st.error(f"❌ Error generating chart: {str(e)}")
+                                st.info("💡 Pastikan kolom grouping memiliki nilai yang valid untuk grouping data.")
+                    
+                else:
+                    st.warning("⚠️ Tidak cukup kolom numerik atau grouping untuk membuat line chart.")
+                    
+            except Exception as e:
+                with st.expander("🌸 Panduan Penelitian Model", expanded=False):
+                    st.markdown("""
+                    **Penjelasan Penting 📛**
+                    
+                    ### ✨ Model Flowchart
+                    - Model Tersebut Masih Tahap Uji Coba Jadi Tidak Sepenuhnya Tersedia Lebih Banyak Jadi Bisa Gunakan Model Flowchart Untuk Menjelaskan Proses Pemrosesan Data.
+                    """)
+                st.info("""
+                **Tips Troubleshooting:**
+                - Pastikan file tidak corrupt
+                - Untuk CSV, pastikan format konsisten
+                - Untuk Excel, pastikan tidak ada merged cells
+                - Coba upload file dengan data yang lebih sederhana
+                """)
+        
+        else:
+            # Panduan penggunaan saat belum upload file
+            with st.expander("🎯 **PANDUAN PENGGUNAAN**", expanded=True):
+                col1, col2 = st.columns(2)
+                
+                with col1:
+                    st.markdown("""
+                    ### 📁 **FORMAT FILE YANG DIDUKUNG**
+                    
+                    **CSV Files:**
+                    - Format: .csv
+                    - Encoding: UTF-8, Latin-1, ISO-8859-1
+                    - Delimiter: koma (otomatis)
+                    - Support file besar (>10MB)
+                    
+                    **Excel Files:**
+                    - Format: .xlsx, .xls
+                    - Multiple sheets support
+                    - Auto sheet detection
+                    """)
+                
+                with col2:
+                    st.markdown("""
+                    ### 🚀 **FITUR ANALISIS LANJUT**
+                    
+                    **Analisis Otomatis:**
+                    - Deteksi tipe data dengan persentase
+                    - Analisis kelengkapan data
+                    - Identifikasi data dominan
+                    
+                    **Visualization:**
+                    - Flowchart dengan perhitungan akurat
+                    - Pie chart komposisi data
+                    - Line chart interaktif
+                    
+                    **Metrics:**
+                    - Persentase per tipe data
+                    - Kualitas data
+                    - Kompleksitas dataset
+                    """)
+    
+    with tab6:
+        st.header("🖼️ Remove Background")
+        
+        # Sub-tabs untuk fitur yang berbeda
+        sub_tab1, sub_tab2 = st.tabs(["Remove Background", "Roy Search"])
+        
+        with sub_tab1:
+            st.subheader("Remove Background Dwi Bakti N Dev")
+            
+            with st.expander("📜 TATA CARA PENGGUNAAN REMOVE BACKGROUND", expanded=False):
+                st.markdown(
+                    """
+                    <img src="https://blog.airbrush.com/wp-content/uploads/2024/08/AB_Cover_Remove-Bg_1.jpg" class="responsive-img">
+                    """,
+                    unsafe_allow_html=True
+                )
+                st.markdown("""
+
+                
+                ### 🧾 Pengertian
+                - Remove background adalah fitur atau alat yang digunakan untuk secara otomatis menghapus latar belakang dari sebuah gambar, sehingga hanya menyisakan subjek utama. Fitur ini sangat berguna untuk berbagai keperluan seperti desain grafis, media sosial, dan e-commerce karena dapat menghemat waktu dan mempermudah proses pengeditan gambar tanpa perlu mengedit secara manual. Penggunaannya umumnya dilakukan melalui platform online seperti remove.bg atau fitur di aplikasi pengolah gambar seperti Photoshop dan PowerPoint. 
+                
+                ### ⚠️ Cara kerja dan penggunaan
+                - 🛠️ Otomatis dengan AI: Alat ini memanfaatkan kecerdasan buatan untuk mendeteksi dan memisahkan subjek utama dari latar belakang, seringkali hanya dengan satu klik. 
+                - 🛠️ Hasil instant: Proses penghapusan latar belakang dapat dilakukan dalam hitungan detik. 
+                - 🛠️ Fleksibel: Setelah latar belakang dihapus, gambar dapat digunakan untuk berbagai keperluan. Gambar tersebut kemudian dapat disimpan sebagai format PNG dengan latar belakang transparan atau diganti dengan latar belakang baru. 
+                
+                ### 🔖 Contoh penggunaan
+                - ⚙️ Kuantitatif: Data yang dapat diukur dengan bilangan, seperti tinggi badan atau jumlah penduduk. 
+                - ⚙️ Kualitatif: Data yang berbentuk kategori atau deskripsi, seperti preferensi atau warna. 
+                
+                ### 📑 Berdasarkan hasil pengukuran
+                - 📖 Desain grafis: Mempermudah pembuatan desain dengan menggabungkan objek ke latar belakang yang berbeda. 
+                - 📖 Media sosial: Membuat foto profil atau konten media sosial terlihat lebih profesional dan menarik. 
+                - 📖 E-commerce: Menampilkan foto produk secara bersih dan fokus tanpa gangguan dari latar belakang yang ramai. 
+                
+                ### 📑 Metode Perbandingan
+                - 📒 Alat remove background sangat cepat dan otomatis untuk tugas yang sederhana
+                - 📒 Penghapus manual (misalnya, Pen Tool di Photoshop) memberikan kontrol yang lebih presisi untuk hasil yang sangat detail, seperti pada rambut atau tepi objek yang rumit. 
+                """)
+            
+            # Upload gambar
+            uploaded_file = st.file_uploader(
+                "Upload gambar untuk remove background", 
+                type=['png', 'jpg', 'jpeg'],
+                key="remove_bg"
+            )
+            
+            if uploaded_file is not None:
+                # Tampilkan gambar original
+                col1, col2 = st.columns(2)
+                
+                with col1:
+                    st.image(uploaded_file, caption="Gambar Original", use_column_width=True)
+                
+                # Proses remove background
+                if st.button("Remove Background"):
+                    with st.spinner("Menghapus background..."):
+                        try:
+                            # Kirim request ke Remove.bg API
+                            response = requests.post(
+                                'https://api.remove.bg/v1.0/removebg',
+                                files={'image_file': uploaded_file.getvalue()},
+                                data={'size': 'auto'},
+                                headers={'X-Api-Key': REMOVE_BG_API_KEY}
+                            )
+                            
+                            if response.status_code == 200:
+                                # Tampilkan hasil
+                                result_image = Image.open(io.BytesIO(response.content))
+                                with col2:
+                                    st.image(result_image, caption="Hasil Remove Background", use_column_width=True)
+                                
+                                # Download button
+                                buf = io.BytesIO()
+                                result_image.save(buf, format="PNG")
+                                byte_im = buf.getvalue()
+                                
+                                st.download_button(
+                                    label="Download Hasil",
+                                    data=byte_im,
+                                    file_name="no_bg_image.png",
+                                    mime="image/png"
+                                )
+                                
+                                st.success("Background berhasil dihapus!")
+                            else:
+                                st.error(f"Error API: {response.status_code}")
+                                if response.status_code == 402:
+                                    st.warning("Quota API mungkin habis")
+                                elif response.status_code == 403:
+                                    st.warning("API key tidak valid")
+                                elif response.status_code == 400:
+                                    st.warning("Format gambar tidak didukung")
+                                
+                        except Exception as e:
+                            st.error(f"Terjadi error: {str(e)}")
+            
+        with sub_tab2:
+            st.subheader("Roy Academy Search")
+            
+            # Input pencarian
+            col1, col2 = st.columns([3, 1])
+            with col1:
+                search_query = st.text_input(
+                    "Kata kunci pencarian gambar statistik",
+                    placeholder="contoh: statistics, chart, graph, data",
+                    value="statistics",
+                    help="Cari gambar terkait statistik dan visualisasi data"
+                )
+            
+            with col2:
+                per_page = st.selectbox("Jumlah", [10, 20, 30, 50], index=0)
+            
+            # Filter tambahan
+            col3, col4 = st.columns(2)
+            with col3:
+                orientation = st.selectbox(
+                    "Orientasi", 
+                    ["all", "landscape", "portrait", "square"],
+                    index=0
+                )
+            with col4:
+                size = st.selectbox(
+                    "Ukuran",
+                    ["all", "large", "medium", "small"],
+                    index=0
+                )
+            
+            if st.button("🔍 Cari Gambar Statistik"):
+                with st.spinner("Mencari gambar statistik..."):
+                    try:
+                        # Parameters untuk Pixels API
+                        params = {
+                            'query': search_query + " statistics chart graph data",
+                            'per_page': per_page,
+                            'orientation': orientation,
+                            'size': size
+                        }
+                        
+                        headers = {
+                            'Authorization': PIXELS_API_KEY
+                        }
+                        
+                        # Pixels API endpoint
+                        response = requests.get(
+                            'https://api.pexels.com/v1/search',
+                            params=params,
+                            headers=headers
+                        )
+                        
+                        if response.status_code == 200:
+                            data = response.json()
+                            
+                            # Tampilkan hasil
+                            if 'photos' in data and len(data['photos']) > 0:
+                                st.success(f"🎉 Ditemukan {len(data['photos'])} gambar statistik")
+                                
+                                # Tampilkan gambar dalam grid
+                                st.subheader("📷 Hasil Pencarian")
+                                cols = st.columns(3)
+                                
+                                for idx, photo in enumerate(data['photos']):
+                                    with cols[idx % 3]:
+                                        # Tampilkan gambar dengan ukuran medium
+                                        st.image(
+                                            photo['src']['medium'],
+                                            use_column_width=True,
+                                            caption=f"📸 Oleh: {photo.get('photographer', 'Unknown')}"
+                                        )
+                                        
+                                        # Tombol untuk melihat versi larger
+                                        with st.expander("ℹ️ Info Detail"):
+                                            st.write(f"**Photographer:** {photo.get('photographer', 'Unknown')}")
+                                            st.write(f"**Ukuran:** {photo.get('width', 'Unknown')} x {photo.get('height', 'Unknown')}")
+                                            st.markdown(f"[🔗 Download Original]({photo['src']['original']})")
+                                        
+                                        st.markdown("---")
+                            else:
+                                st.warning("❌ Tidak ada gambar statistik yang ditemukan")
+                                st.info("Coba kata kunci lain seperti: data, chart, graph, analytics")
+                                
+                        else:
+                            st.error(f"❌ Error API: {response.status_code}")
+                            if response.status_code == 401:
+                                st.warning("API key Pixels tidak valid")
+                            elif response.status_code == 429:
+                                st.warning("Quota API habis, coba lagi nanti")
+                            
+                    except Exception as e:
+                        st.error(f"❌ Terjadi error: {str(e)}")
+                        st.info("💡 Pastikan koneksi internet stabil")
+
+    # Sidebar info
+    with st.sidebar:
+        st.header("🔑 Info API Access")
+        st.info("Roy Acedemy 👑!")
+        st.info("Ayo Belajar 📚 dan Meningkatkan 💪 Sikap Akademik")
+    
+    with tab5:
+        st.header("🧮 Kalkulator Lengkap")
+        
+        # Sidebar untuk memilih jenis kalkulator
+        calc_type = st.sidebar.selectbox(
+            "Pilih Jenis Kalkulator",
+            ["Kalkulator Dasar", "Kalkulator Ilmiah", "Kalkulator Keuangan", "Konverter Satuan", "Kalkulator BMI", "Kalkulator Waktu"]
+        )
+        
+        # Initialize session state for history
+        if 'calc_history' not in st.session_state:
+            st.session_state.calc_history = []
+        
+        def add_to_history(calculation):
+            """Tambahkan perhitungan ke riwayat"""
+            st.session_state.calc_history.append(calculation)
+            if len(st.session_state.calc_history) > 10:  # Batasi hanya 10 riwayat terakhir
+                st.session_state.calc_history.pop(0)
+        
+        if calc_type == "Kalkulator Dasar":
+            st.subheader("🔢 Kalkulator Dasar")
+            
+            # Layout dengan columns untuk tampilan kalkulator
+            col1, col2 = st.columns([1, 1])
+            
+            with col1:
+                # Input angka
+                num1 = st.number_input("Masukkan angka pertama", value=0.0, step=0.1, key="num1")
+                num2 = st.number_input("Masukkan angka kedua", value=0.0, step=0.1, key="num2")
+                
+                # Operasi dasar
+                operation = st.selectbox(
+                    "Pilih operasi",
+                    ["Penjumlahan (+)", "Pengurangan (-)", "Perkalian (×)", "Pembagian (÷)", "Pangkat (^)", "Akar Kuadrat", "Modulus (%)", "Persentase"]
+                )
+            
+            with col2:
+                st.markdown("### Hasil")
+                if st.button("🔄 Hitung", type="primary", use_container_width=True):
+                    try:
+                        if operation == "Penjumlahan (+)":
+                            result = num1 + num2
+                            calc_str = f"{num1} + {num2} = {result}"
+                            st.success(f"**Hasil:** {calc_str}")
+                            add_to_history(calc_str)
+                        elif operation == "Pengurangan (-)":
+                            result = num1 - num2
+                            calc_str = f"{num1} - {num2} = {result}"
+                            st.success(f"**Hasil:** {calc_str}")
+                            add_to_history(calc_str)
+                        elif operation == "Perkalian (×)":
+                            result = num1 * num2
+                            calc_str = f"{num1} × {num2} = {result}"
+                            st.success(f"**Hasil:** {calc_str}")
+                            add_to_history(calc_str)
+                        elif operation == "Pembagian (÷)":
+                            if num2 != 0:
+                                result = num1 / num2
+                                calc_str = f"{num1} ÷ {num2} = {result:.4f}"
+                                st.success(f"**Hasil:** {calc_str}")
+                                add_to_history(calc_str)
+                            else:
+                                st.error("❌ Error: Pembagian dengan nol!")
+                        elif operation == "Pangkat (^)":
+                            result = num1 ** num2
+                            calc_str = f"{num1} ^ {num2} = {result}"
+                            st.success(f"**Hasil:** {calc_str}")
+                            add_to_history(calc_str)
+                        elif operation == "Akar Kuadrat":
+                            if num1 >= 0:
+                                result = num1 ** 0.5
+                                calc_str = f"√{num1} = {result:.4f}"
+                                st.success(f"**Hasil:** {calc_str}")
+                                add_to_history(calc_str)
+                            else:
+                                st.error("❌ Error: Tidak bisa menghitung akar kuadrat dari bilangan negatif!")
+                        elif operation == "Modulus (%)":
+                            if num2 != 0:
+                                result = num1 % num2
+                                calc_str = f"{num1} % {num2} = {result}"
+                                st.success(f"**Hasil:** {calc_str}")
+                                add_to_history(calc_str)
+                            else:
+                                st.error("❌ Error: Modulus dengan nol!")
+                        elif operation == "Persentase":
+                            result = (num1 * num2) / 100
+                            calc_str = f"{num1}% dari {num2} = {result}"
+                            st.success(f"**Hasil:** {calc_str}")
+                            add_to_history(calc_str)
+                    except Exception as e:
+                        st.error(f"❌ Error: {str(e)}")
+                
+                # Reset button
+                if st.button("🗑️ Reset", use_container_width=True):
+                    st.rerun()
+        
+        elif calc_type == "Kalkulator Ilmiah":
+            st.subheader("🔬 Kalkulator Ilmiah")
+            
+            col1, col2 = st.columns(2)
+            
+            with col1:
+                sci_num = st.number_input("Masukkan angka", value=0.0, step=0.1, key="sci_num")
+                
+                sci_operation = st.selectbox(
+                    "Pilih fungsi ilmiah",
+                    [
+                        "sin() - Sinus", "cos() - Cosinus", "tan() - Tangen",
+                        "asin() - Arcsinus", "acos() - Arccosinus", "atan() - Arctangen",
+                        "log() - Logaritma natural", "log10() - Logaritma basis 10",
+                        "exp() - Eksponensial", "abs() - Nilai absolut",
+                        "sqrt() - Akar kuadrat", "factorial() - Faktorial"
+                    ]
+                )
+                
+                # Input tambahan untuk fungsi tertentu
+                if sci_operation in ["sin() - Sinus", "cos() - Cosinus", "tan() - Tangen"]:
+                    use_radians = st.checkbox("Gunakan radian (default: derajat)")
+            
+            with col2:
+                if st.button("🔬 Hitung Fungsi Ilmiah", type="primary", use_container_width=True):
+                    try:
+                        if "sin()" in sci_operation:
+                            if use_radians:
+                                result = np.sin(sci_num)
+                                calc_str = f"sin({sci_num} rad) = {result:.6f}"
+                            else:
+                                result = np.sin(np.radians(sci_num))
+                                calc_str = f"sin({sci_num}°) = {result:.6f}"
+                            st.success(f"**Hasil:** {calc_str}")
+                            add_to_history(calc_str)
+                        elif "cos()" in sci_operation:
+                            if use_radians:
+                                result = np.cos(sci_num)
+                                calc_str = f"cos({sci_num} rad) = {result:.6f}"
+                            else:
+                                result = np.cos(np.radians(sci_num))
+                                calc_str = f"cos({sci_num}°) = {result:.6f}"
+                            st.success(f"**Hasil:** {calc_str}")
+                            add_to_history(calc_str)
+                        elif "tan()" in sci_operation:
+                            if use_radians:
+                                result = np.tan(sci_num)
+                                calc_str = f"tan({sci_num} rad) = {result:.6f}"
+                            else:
+                                result = np.tan(np.radians(sci_num))
+                                calc_str = f"tan({sci_num}°) = {result:.6f}"
+                            st.success(f"**Hasil:** {calc_str}")
+                            add_to_history(calc_str)
+                        elif "asin()" in sci_operation:
+                            if -1 <= sci_num <= 1:
+                                result = np.degrees(np.arcsin(sci_num))
+                                calc_str = f"arcsin({sci_num}) = {result:.4f}°"
+                                st.success(f"**Hasil:** {calc_str}")
+                                add_to_history(calc_str)
+                            else:
+                                st.error("❌ Error: Input harus antara -1 dan 1 untuk arcsin!")
+                        elif "acos()" in sci_operation:
+                            if -1 <= sci_num <= 1:
+                                result = np.degrees(np.arccos(sci_num))
+                                calc_str = f"arccos({sci_num}) = {result:.4f}°"
+                                st.success(f"**Hasil:** {calc_str}")
+                                add_to_history(calc_str)
+                            else:
+                                st.error("❌ Error: Input harus antara -1 dan 1 untuk arccos!")
+                        elif "atan()" in sci_operation:
+                            result = np.degrees(np.arctan(sci_num))
+                            calc_str = f"arctan({sci_num}) = {result:.4f}°"
+                            st.success(f"**Hasil:** {calc_str}")
+                            add_to_history(calc_str)
+                        elif "log()" in sci_operation:
+                            if sci_num > 0:
+                                result = np.log(sci_num)
+                                calc_str = f"ln({sci_num}) = {result:.6f}"
+                                st.success(f"**Hasil:** {calc_str}")
+                                add_to_history(calc_str)
+                            else:
+                                st.error("❌ Error: Logaritma hanya untuk bilangan positif!")
+                        elif "log10()" in sci_operation:
+                            if sci_num > 0:
+                                result = np.log10(sci_num)
+                                calc_str = f"log10({sci_num}) = {result:.6f}"
+                                st.success(f"**Hasil:** {calc_str}")
+                                add_to_history(calc_str)
+                            else:
+                                st.error("❌ Error: Logaritma hanya untuk bilangan positif!")
+                        elif "exp()" in sci_operation:
+                            result = np.exp(sci_num)
+                            calc_str = f"exp({sci_num}) = {result:.6f}"
+                            st.success(f"**Hasil:** {calc_str}")
+                            add_to_history(calc_str)
+                        elif "abs()" in sci_operation:
+                            result = abs(sci_num)
+                            calc_str = f"|{sci_num}| = {result}"
+                            st.success(f"**Hasil:** {calc_str}")
+                            add_to_history(calc_str)
+                        elif "sqrt()" in sci_operation:
+                            if sci_num >= 0:
+                                result = np.sqrt(sci_num)
+                                calc_str = f"√{sci_num} = {result:.6f}"
+                                st.success(f"**Hasil:** {calc_str}")
+                                add_to_history(calc_str)
+                            else:
+                                st.error("❌ Error: Tidak bisa menghitung akar kuadrat dari bilangan negatif!")
+                        elif "factorial()" in sci_operation:
+                            if sci_num >= 0 and sci_num == int(sci_num):
+                                result = np.math.factorial(int(sci_num))
+                                calc_str = f"{int(sci_num)}! = {result}"
+                                st.success(f"**Hasil:** {calc_str}")
+                                add_to_history(calc_str)
+                            else:
+                                st.error("❌ Error: Faktorial hanya untuk bilangan bulat non-negatif!")
+                    except Exception as e:
+                        st.error(f"❌ Error: {str(e)}")
+        
+        elif calc_type == "Kalkulator Keuangan":
+            st.subheader("💰 Kalkulator Keuangan")
+            
+            finance_option = st.selectbox(
+                "Pilih kalkulator keuangan",
+                ["Bunga Sederhana", "Bunga Majemuk", "Cicilan Loan", "Investasi", "Nilai Tukar Mata Uang"]
+            )
+            
+            if finance_option == "Bunga Sederhana":
+                st.write("**Kalkulator Bunga Sederhana**")
+                col1, col2 = st.columns(2)
+                
+                with col1:
+                    principal = st.number_input("Modal awal (P)", value=1000000.0, step=100000.0, min_value=0.0)
+                    rate = st.number_input("Suku bunga tahunan (%)", value=5.0, step=0.1, min_value=0.0)
+                
+                with col2:
+                    time = st.number_input("Waktu (tahun)", value=1.0, step=0.5, min_value=0.0)
+                
+                if st.button("💰 Hitung Bunga Sederhana", type="primary"):
+                    interest = principal * rate * time / 100
+                    total = principal + interest
+                    calc_str = f"Bunga Sederhana: Rp {principal:,.0f} × {rate}% × {time}thn = Rp {interest:,.0f}"
+                    st.success(f"""
+                    **Hasil Perhitungan:**
+                    - Bunga Sederhana: **Rp {interest:,.2f}**
+                    - Total Akhir: **Rp {total:,.2f}**
+                    """)
+                    add_to_history(calc_str)
+            
+            elif finance_option == "Bunga Majemuk":
+                st.write("**Kalkulator Bunga Majemuk**")
+                col1, col2 = st.columns(2)
+                
+                with col1:
+                    principal = st.number_input("Modal awal (P)", value=1000000.0, step=100000.0, min_value=0.0, key="compound_principal")
+                    rate = st.number_input("Suku bunga tahunan (%)", value=5.0, step=0.1, min_value=0.0, key="compound_rate")
+                
+                with col2:
+                    time = st.number_input("Waktu (tahun)", value=1.0, step=0.5, min_value=0.0, key="compound_time")
+                    compounds = st.number_input("Frekuensi compounding per tahun", value=12, step=1, min_value=1)
+                
+                if st.button("💰 Hitung Bunga Majemuk", type="primary"):
+                    amount = principal * (1 + rate/(100 * compounds)) ** (compounds * time)
+                    interest = amount - principal
+                    calc_str = f"Bunga Majemuk: Rp {principal:,.0f} → Rp {amount:,.0f} (bunga: Rp {interest:,.0f})"
+                    st.success(f"""
+                    **Hasil Perhitungan:**
+                    - Bunga Majemuk: **Rp {interest:,.2f}**
+                    - Total Akhir: **Rp {amount:,.2f}**
+                    - Effective Annual Rate: **{(amount/principal)**(1/time)-1:.2%}**
+                    """)
+                    add_to_history(calc_str)
+            
+            elif finance_option == "Cicilan Loan":
+                st.write("**Kalkulator Cicilan Loan**")
+                col1, col2 = st.columns(2)
+                
+                with col1:
+                    loan_amount = st.number_input("Jumlah Pinjaman", value=10000000.0, step=1000000.0, min_value=0.0)
+                    interest_rate = st.number_input("Suku bunga tahunan (%)", value=6.0, step=0.1, min_value=0.0)
+                
+                with col2:
+                    loan_term = st.number_input("Jangka waktu (tahun)", value=5, step=1, min_value=1)
+                    payment_frequency = st.selectbox("Frekuensi Pembayaran", ["Bulanan", "Tahunan"])
+                
+                if st.button("🏠 Hitung Cicilan", type="primary"):
+                    if payment_frequency == "Bulanan":
+                        periods = loan_term * 12
+                        monthly_rate = interest_rate / 100 / 12
+                        monthly_payment = loan_amount * (monthly_rate * (1 + monthly_rate)**periods) / ((1 + monthly_rate)**periods - 1)
+                        total_payment = monthly_payment * periods
+                        total_interest = total_payment - loan_amount
+                        
+                        st.success(f"""
+                        **Hasil Perhitungan Cicilan:**
+                        - Cicilan Bulanan: **Rp {monthly_payment:,.2f}**
+                        - Total Pembayaran: **Rp {total_payment:,.2f}**
+                        - Total Bunga: **Rp {total_interest:,.2f}**
+                        """)
+                        add_to_history(f"Cicilan: Rp {loan_amount:,.0f} → Rp {monthly_payment:,.0f}/bulan")
+        
+        elif calc_type == "Konverter Satuan":
+            st.subheader("📐 Konverter Satuan")
+            
+            conversion_type = st.selectbox(
+                "Pilih jenis konversi",
+                ["Panjang", "Berat", "Suhu", "Luas", "Volume", "Kecepatan", "Energi"]
+            )
+            
+            if conversion_type == "Panjang":
+                col1, col2, col3 = st.columns([2,1,2])
+                with col1:
+                    length_value = st.number_input("Nilai", value=1.0, step=0.1)
+                    from_unit = st.selectbox("Dari", ["meter", "kilometer", "centimeter", "milimeter", "inci", "kaki", "yard", "mil"])
+                with col3:
+                    to_unit = st.selectbox("Ke", ["meter", "kilometer", "centimeter", "milimeter", "inci", "kaki", "yard", "mil"])
+                    
+                    # Konversi panjang
+                    conversions = {
+                        "meter": 1,
+                        "kilometer": 1000,
+                        "centimeter": 0.01,
+                        "milimeter": 0.001,
+                        "inci": 0.0254,
+                        "kaki": 0.3048,
+                        "yard": 0.9144,
+                        "mil": 1609.344
+                    }
+                    
+                    if st.button("🔄 Konversi Panjang", type="primary"):
+                        result = length_value * conversions[from_unit] / conversions[to_unit]
+                        calc_str = f"{length_value} {from_unit} = {result:.6f} {to_unit}"
+                        st.success(f"**Hasil:** {calc_str}")
+                        add_to_history(calc_str)
+            
+            elif conversion_type == "Suhu":
+                col1, col2, col3 = st.columns([2,1,2])
+                with col1:
+                    temp_value = st.number_input("Suhu", value=0.0, step=0.1)
+                    from_temp = st.selectbox("Dari", ["Celsius", "Fahrenheit", "Kelvin"])
+                with col3:
+                    to_temp = st.selectbox("Ke", ["Celsius", "Fahrenheit", "Kelvin"])
+                    
+                    if st.button("🌡️ Konversi Suhu", type="primary"):
+                        # Konversi ke Celsius dulu
+                        if from_temp == "Celsius":
+                            celsius = temp_value
+                        elif from_temp == "Fahrenheit":
+                            celsius = (temp_value - 32) * 5/9
+                        else:  # Kelvin
+                            celsius = temp_value - 273.15
+                        
+                        # Konversi dari Celsius ke target
+                        if to_temp == "Celsius":
+                            result = celsius
+                        elif to_temp == "Fahrenheit":
+                            result = (celsius * 9/5) + 32
+                        else:  # Kelvin
+                            result = celsius + 273.15
+                        
+                        calc_str = f"{temp_value}° {from_temp} = {result:.2f}° {to_temp}"
+                        st.success(f"**Hasil:** {calc_str}")
+                        add_to_history(calc_str)
+            
+            elif conversion_type == "Berat":
+                col1, col2, col3 = st.columns([2,1,2])
+                with col1:
+                    weight_value = st.number_input("Nilai", value=1.0, step=0.1)
+                    from_unit = st.selectbox("Dari", ["gram", "kilogram", "miligram", "pon", "ons"])
+                with col3:
+                    to_unit = st.selectbox("Ke", ["gram", "kilogram", "miligram", "pon", "ons"])
+                    
+                    conversions = {
+                        "gram": 1,
+                        "kilogram": 1000,
+                        "miligram": 0.001,
+                        "pon": 453.592,
+                        "ons": 28.3495
+                    }
+                    
+                    if st.button("⚖️ Konversi Berat", type="primary"):
+                        result = weight_value * conversions[from_unit] / conversions[to_unit]
+                        calc_str = f"{weight_value} {from_unit} = {result:.6f} {to_unit}"
+                        st.success(f"**Hasil:** {calc_str}")
+                        add_to_history(calc_str)
+        
+        elif calc_type == "Kalkulator BMI":
+            st.subheader("💪 Kalkulator BMI (Body Mass Index)")
+            
+            col1, col2 = st.columns(2)
+            
+            with col1:
+                weight = st.number_input("Berat Badan (kg)", value=70.0, step=0.1, min_value=1.0)
+                height = st.number_input("Tinggi Badan (cm)", value=170.0, step=0.1, min_value=1.0)
+                age = st.number_input("Usia", value=25, step=1, min_value=1, max_value=120)
+                gender = st.radio("Jenis Kelamin", ["Laki-laki", "Perempuan"])
+            
+            with col2:
+                if st.button("📊 Hitung BMI", type="primary", use_container_width=True):
+                    height_m = height / 100
+                    bmi = weight / (height_m ** 2)
+                    
+                    # Kategori BMI
+                    if bmi < 18.5:
+                        category = "Kurus"
+                        advice = "Disarankan untuk menambah berat badan dengan makanan bergizi"
+                    elif 18.5 <= bmi < 24.9:
+                        category = "Normal"
+                        advice = "Pertahankan berat badan ideal Anda!"
+                    elif 25 <= bmi < 29.9:
+                        category = "Gemuk"
+                        advice = "Disarankan untuk menurunkan berat badan"
+                    else:
+                        category = "Obesitas"
+                        advice = "Sangat disarankan untuk menurunkan berat badan dan konsultasi dokter"
+                    
+                    st.success(f"""
+                    **Hasil Perhitungan BMI:**
+                    - **BMI:** {bmi:.1f}
+                    - **Kategori:** {category}
+                    - **Saran:** {advice}
+                    """)
+                    add_to_history(f"BMI: {bmi:.1f} ({category})")
+        
+        elif calc_type == "Kalkulator Waktu":
+            st.subheader("⏰ Kalkulator Waktu")
+            
+            time_option = st.selectbox("Pilih jenis perhitungan", [
+                "Penambahan/Pengurangan Waktu", 
+                "Selisih Waktu", 
+                "Konversi Waktu"
+            ])
+            
+            if time_option == "Penambahan/Pengurangan Waktu":
+                col1, col2, col3 = st.columns(3)
+                with col1:
+                    hours = st.number_input("Jam", value=0, min_value=0, max_value=23)
+                    minutes = st.number_input("Menit", value=0, min_value=0, max_value=59)
+                with col2:
+                    seconds = st.number_input("Detik", value=0, min_value=0, max_value=59)
+                    operation = st.radio("Operasi", ["Tambah", "Kurangi"])
+                with col3:
+                    add_hours = st.number_input("Jam untuk ditambah/dikurang", value=0, min_value=0)
+                    add_minutes = st.number_input("Menit untuk ditambah/dikurang", value=0, min_value=0, max_value=59)
+                    add_seconds = st.number_input("Detik untuk ditambah/dikurang", value=0, min_value=0, max_value=59)
+                
+                if st.button("⏰ Hitung Waktu", type="primary"):
+                    total_seconds = hours * 3600 + minutes * 60 + seconds
+                    add_total_seconds = add_hours * 3600 + add_minutes * 60 + add_seconds
+                    
+                    if operation == "Tambah":
+                        result_seconds = total_seconds + add_total_seconds
+                    else:
+                        result_seconds = total_seconds - add_total_seconds
+                    
+                    if result_seconds < 0:
+                        st.error("❌ Hasil waktu tidak boleh negatif!")
+                    else:
+                        result_hours = result_seconds // 3600
+                        result_minutes = (result_seconds % 3600) // 60
+                        result_seconds_final = result_seconds % 60
+                        
+                        calc_str = f"{hours:02d}:{minutes:02d}:{seconds:02d} {operation} {add_hours:02d}:{add_minutes:02d}:{add_seconds:02d} = {result_hours:02d}:{result_minutes:02d}:{result_seconds_final:02d}"
+                        st.success(f"**Hasil:** {calc_str}")
+                        add_to_history(calc_str)
+
+        # History Kalkulator
+        st.markdown("---")
+        st.subheader("📜 Riwayat Perhitungan")
+        
+        # Display history
+        if st.session_state.calc_history:
+            for i, calculation in enumerate(reversed(st.session_state.calc_history)):
+                st.write(f"{i+1}. {calculation}")
+        else:
+            st.info("Belum ada riwayat perhitungan")
+        
+        # Clear history button
+        col1, col2, col3 = st.columns([1,2,1])
+        with col2:
+            if st.button("🗑️ Hapus Semua Riwayat", use_container_width=True):
+                st.session_state.calc_history = []
+                st.rerun()
+
+    # Menambahkan CSS untuk styling kalkulator
+    st.markdown("""
+    <style>
+        .stButton button {
+            width: 100%;
+            border-radius: 8px;
+            font-weight: bold;
+        }
+        .stButton button[kind="primary"] {
+            background-color: #4CAF50;
+            color: white;
+        }
+        .stSuccess {
+            padding: 15px;
+            border-radius: 10px;
+            background-color: #d4edda;
+            border: 1px solid #c3e6cb;
+        }
+        .stError {
+            padding: 15px;
+            border-radius: 10px;
+            background-color: #f8d7da;
+            border: 1px solid #f5c6cb;
+        }
+        .stInfo {
+            padding: 15px;
+            border-radius: 10px;
+            background-color: #d1ecf1;
+            border: 1px solid #bee5eb;
+        }
+        div[data-testid="stVerticalBlock"] > div:has(> div[data-testid="stVerticalBlock"] > div[data-testid="stVerticalBlock"] > div[data-testid="stVerticalBlock"]) {
+            border: 1px solid #e0e0e0;
+            border-radius: 10px;
+            padding: 15px;
+            margin: 10px 0;
+        }
+    </style>
+    """, unsafe_allow_html=True)
+
     with tab4:
         st.subheader("📋 Informasi Penggunaan")
-        st.markdown("""
-        ### Cara Penggunaan Aplikasi
         
-        1. **Unggah Data**: Gunakan menu sidebar untuk mengunggah file data dalam format CSV atau Excel
-        2. **Statistik**: Lihat ringkasan statistik deskriptif di tab Statistik
-        3. **Visualisasi**: Eksplorasi data melalui berbagai chart dan grafik
-        4. **Data Mentah**: Periksa data asli dalam format tabel
+        # Header dengan columns
+        col1, col2 = st.columns([2, 1])
         
-        ### Fitur Utama
-        - Analisis statistik deskriptif
-        - Visualisasi data interaktif
-        - Ekspor hasil analisis
-        - Pembersihan data otomatis
-        """)
+        with col1:
+            st.markdown("""
+            ### 🚀 Cara Penggunaan Aplikasi
+            
+            1. **📤 Unggah Data**: Gunakan menu sidebar untuk mengunggah file data dalam format CSV atau Excel
+            2. **📊 Statistik**: Lihat ringkasan statistik deskriptif di tab Statistik
+            3. **📈 Visualisasi**: Eksplorasi data melalui berbagai chart dan grafik interaktif
+            4. **🔍 Data Mentah**: Periksa data asli dalam format tabel yang dapat di-filter
+            """)
         
+        with col2:
+            st.image("https://cdn-icons-png.flaticon.com/512/3135/3135715.png", 
+                    width=150, caption="Dwi Bakti N Dev")
+        
+        # Fitur Utama dengan cards
+        st.markdown("### ⭐ Fitur Utama")
+        col1, col2, col3, col4 = st.columns(4)
+        
+        with col1:
+            st.info("**📐 Analisis Statistik**\n\nMean, Median, Modus, Standar Deviasi")
+        
+        with col2:
+            st.success("**🎨 Visualisasi Interaktif**\n\nChart dan Grafik Real-time")
+        
+        with col3:
+            st.warning("**💾 Ekspor Hasil**\n\nDownload hasil analisis")
+        
+        with col4:
+            st.error("**🧹 Pembersihan Data**\n\nAuto-clean missing values")
+        
+        # Video Tutorial (placeholder)
+        st.markdown("### 🎥 Video Tutorial Penggunaan V1.0")
+        import streamlit.components.v1 as components
+        google_drive_id = "1dDgiM1SUp-ugTEy6ArHyJBno0O9_ASM9"
+
+        google_drive_embed_html = f"""
+        <style>
+        .video-wrapper {{
+            position: relative;
+            width: 100%;
+            max-width: 800px;       /* batas lebar maksimum */
+            margin: 0 auto;         /* rata tengah */
+            padding-top: 56.25%;    /* rasio 16:9 */
+        }}
+
+        .video-wrapper iframe {{
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            border: none;
+            border-radius: 12px;    /* sudut melengkung */
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2); /* efek bayangan lembut */
+        }}
+        </style>
+
+        <div class="video-wrapper">
+            <iframe src="https://drive.google.com/file/d/{google_drive_id}/preview" allow="autoplay"></iframe>
+        </div>
+        """
+
+
+        # ✅ Render di Streamlit
+        components.html(google_drive_embed_html, height=500, scrolling=False)
+        
+        st.divider()
+        
+        # Rumus Matematika dengan expanders
         st.subheader("🧮 Rumus Matematika dan Metode Perhitungan")
         
-        # Statistical Formulas
-        st.markdown("""
-        ### Statistik Deskriptif - Rumus dan Perhitungan
+        # Statistical Formulas dengan tabs
+        tab_rumus, tab_contoh, tab_visual = st.tabs(["📐 Rumus", "🔢 Contoh", "📊 Visualisasi"])
         
-        #### 1. Mean (Rata-rata)
-        **Rumus:**
-        ```
-        μ = (Σxᵢ) / n
-        ```
-        **Keterangan:**
-        - μ = mean populasi
-        - xᵢ = nilai data ke-i
-        - n = jumlah data
-        - Σ = simbol penjumlahan
+        with tab_rumus:
+            st.markdown("""
+            ### 📊 Statistik Deskriptif - Rumus dan Perhitungan
+            
+            #### 1. Mean (Rata-rata)
+            ```math
+            \mu = \frac{\sum_{i=1}^{n} x_i}{n}
+            ```
+            
+            #### 2. Median
+            - **n ganjil:** `Median = x₍ₙ₊₁₎/₂`
+            - **n genap:** `Median = (x₍ₙ/₂₎ + x₍ₙ/₂₊₁₎) / 2`
+            
+            #### 3. Standar Deviasi (Sampel)
+            ```math
+            s = \sqrt{\frac{\sum_{i=1}^{n} (x_i - \bar{x})^2}{n-1}}
+            ```
+            
+            #### 4. Variance (Ragam)
+            ```math
+            s^2 = \frac{\sum_{i=1}^{n} (x_i - \bar{x})^2}{n-1}
+            ```
+            
+            #### 5. Koefisien Korelasi Pearson
+            ```math
+            r = \frac{\sum (x_i - \bar{x})(y_i - \bar{y})}{\sqrt{\sum (x_i - \bar{x})^2} \times \sqrt{\sum (y_i - \bar{y})^2}}
+            ```
+            """)
         
-        **Contoh Perhitungan:**
-        Data: [2, 4, 6, 8, 10]
-        μ = (2 + 4 + 6 + 8 + 10) / 5 = 30 / 5 = 6
+        with tab_contoh:
+            col1, col2 = st.columns(2)
+            
+            with col1:
+                st.markdown("""
+                #### Contoh Perhitungan Mean
+                **Data:** [2, 4, 6, 8, 10]
+                ```
+                μ = (2 + 4 + 6 + 8 + 10) / 5 
+                = 30 / 5 
+                = 6
+                ```
+                
+                #### Contoh Standar Deviasi
+                **Data:** [2, 4, 4, 4, 5, 5, 7, 9]
+                ```
+                Mean = 5
+                Variance = 32/7 ≈ 4.57
+                Standar Deviasi = √4.57 ≈ 2.14
+                ```
+                """)
+            
+            with col2:
+                st.markdown("""
+                #### Contoh Korelasi
+                **Data X:** [1, 2, 3, 4, 5]
+                **Data Y:** [2, 4, 6, 8, 10]
+                ```
+                r = 1.0 (Korelasi positif sempurna)
+                ```
+                
+                #### Contoh Regresi Linear
+                **Persamaan:** y = a + bx
+                ```
+                b = 2.0, a = 0.0
+                y = 0 + 2x
+                ```
+                """)
         
-        #### 2. Median
-        **Langkah Perhitungan:**
-        1. Urutkan data dari terkecil ke terbesar
-        2. Jika n ganjil: Median = nilai tengah
-        3. Jika n genap: Median = rata-rata dua nilai tengah
+        with tab_visual:
+            col1, col2 = st.columns(2)
+            
+            with col1:
+                # Placeholder untuk visualisasi distribusi normal
+                st.image("https://upload.wikimedia.org/wikipedia/commons/thumb/7/74/Normal_Distribution_PDF.svg/1200px-Normal_Distribution_PDF.svg.png", 
+                        caption="Distribusi Normal", use_column_width=True)
+            
+            with col2:
+                # Placeholder untuk visualisasi korelasi
+                st.image("https://uploads-ssl.webflow.com/61af164800e38cf1b6c60b55/6401eb60f7f8fc5fd74a1abd_nilai%20korelasi.WebP",
+                        caption="Jenis-jenis Korelasi", use_column_width=True)
         
-        **Rumus:**
-        - n ganjil: Median = x₍ₙ₊₁₎/₂
-        - n genap: Median = (x₍ₙ/₂₎ + x₍ₙ/₂₊₁₎) / 2
+        # Distribusi Probabilitas
+        st.markdown("### 📊 Distribusi Probabilitas")
         
-        **Contoh:**
-        Data ganjil: [1, 3, 3, 6, 7, 8, 9] → Median = 6
-        Data genap: [1, 2, 3, 4, 5, 6, 8, 9] → Median = (4 + 5)/2 = 4.5
+        col1, col2 = st.columns(2)
         
-        #### 3. Modus
-        Nilai yang paling sering muncul dalam dataset
+        with col1:
+            st.markdown("""
+            #### Distribusi Normal
+            ```math
+            f(x) = \frac{1}{\sigma\sqrt{2\pi}} e^{-\frac{(x-\mu)^2}{2\sigma^2}}
+            ```
+            """)
+            st.image("https://math.libretexts.org/@api/deki/files/109416/39cca5174e2a6f2cc5de254ce6fafccd1e87c057?revision=1",
+                    caption="Kurva Distribusi Normal", use_column_width=True)
         
-        #### 4. Standar Deviasi
-        **Rumus Populasi:**
-        ```
-        σ = √[Σ(xᵢ - μ)² / n]
-        ```
+        with col2:
+            st.markdown("""
+            #### Distribusi Binomial
+            ```math
+            P(X=k) = C(n,k) \times p^k \times (1-p)^{n-k}
+            ```
+            ```math
+            C(n,k) = \frac{n!}{k!(n-k)!}
+            ```
+            """)
+            st.image("https://upload.wikimedia.org/wikipedia/commons/thumb/7/75/Binomial_distribution_pmf.svg/1200px-Binomial_distribution_pmf.svg.png",
+                    caption="Distribusi Binomial", use_column_width=True)
         
-        **Rumus Sampel:**
-        ```
-        s = √[Σ(xᵢ - x̄)² / (n-1)]
-        ```
+        st.divider()
         
-        **Langkah Perhitungan:**
-        1. Hitung mean (x̄)
-        2. Hitung selisih setiap data dengan mean: (xᵢ - x̄)
-        3. Kuadratkan selisih: (xᵢ - x̄)²
-        4. Jumlahkan semua kuadrat selisih: Σ(xᵢ - x̄)²
-        5. Bagi dengan (n-1) untuk sampel
-        6. Akar kuadrat hasilnya
-        
-        **Contoh:**
-        Data: [2, 4, 4, 4, 5, 5, 7, 9]
-        Mean = 5
-        Variance = [(2-5)² + (4-5)² + ... + (9-5)²] / (8-1) = 32/7 ≈ 4.57
-        Standar Deviasi = √4.57 ≈ 2.14
-        """)
-        
-        # Additional Statistical Measures
-        st.markdown("""
-        #### 5. Variance (Ragam)
-        **Rumus Sampel:**
-        ```
-        s² = Σ(xᵢ - x̄)² / (n-1)
-        ```
-        
-        #### 6. Koefisien Korelasi Pearson
-        **Rumus:**
-        ```
-        r = [Σ(xᵢ - x̄)(yᵢ - ȳ)] / [√Σ(xᵢ - x̄)² × √Σ(yᵢ - ȳ)²]
-        ```
-        
-        **Interpretasi:**
-        - r = +1: Korelasi positif sempurna
-        - r = -1: Korelasi negatif sempurna
-        - r = 0: Tidak ada korelasi
-        
-        #### 7. Regresi Linear Sederhana
-        **Persamaan:**
-        ```
-        y = a + bx
-        ```
-        
-        **Koefisien:**
-        ```
-        b = [Σ(xᵢ - x̄)(yᵢ - ȳ)] / Σ(xᵢ - x̄)²
-        a = ȳ - bx̄
-        ```
-        """)
-        
-        # Probability Distributions
-        st.markdown("""
-        ### Distribusi Probabilitas
-        
-        #### Distribusi Normal
-        **Fungsi Kepadatan Probabilitas:**
-        ```
-        f(x) = (1 / (σ√(2π))) × e^(-(x-μ)² / (2σ²))
-        ```
-        
-        #### Distribusi Binomial
-        **Rumus:**
-        ```
-        P(X=k) = C(n,k) × pᵏ × (1-p)ⁿ⁻ᵏ
-        ```
-        **Dimana:**
-        - C(n,k) = n! / (k!(n-k)!)
-        - p = probabilitas sukses
-        - n = jumlah percobaan
-        - k = jumlah sukses
-        """)
-        
+        # Informasi Lisensi dengan expander
         st.subheader("📄 Hak Lisensi")
-        st.markdown("""
-STRICT PROPRIETARY SOFTWARE LICENSE — ALL RIGHTS RESERVED (INDONESIA)
-==================================================================
-
-Hak Cipta © 2025 Dwi Bakti N Dev. Seluruh hak dilindungi undang-undang.
-
-DEFINISI
---------
-1. "Pemilik" berarti Dwi Bakti N Dev, pemilik semua hak atas Perangkat Lunak.
-2. "Perangkat Lunak" berarti seluruh kode sumber, kode objek, dokumentasi, gambar, aset, skrip, build, dan materi lain yang disediakan di bawah lisensi ini, termasuk setiap pembaruan, patch, atau modifikasi apa pun.
-3. "Pihak Ketiga" berarti setiap orang, badan, entitas, atau organisasi selain Pemilik.
-4. "Pengguna" berarti pihak yang mendapatkan salinan Perangkat Lunak berdasarkan ketentuan lisensi ini.
-
-PENDAHULUAN
-----------
-Perangkat Lunak ini diberikan oleh Pemilik hanya berdasarkan ketentuan-ketentuan di bawah ini. Jika Pengguna tidak menyetujui semua ketentuan ini, Pengguna tidak berhak menggunakan, menyalin, atau memiliki akses ke Perangkat Lunak.
-
-HAK CIPTA & HAK MILIK
-----------------------
-Pemilik memegang seluruh hak kekayaan intelektual atas Perangkat Lunak, termasuk namun tidak terbatas pada hak cipta, hak basis data, dan hak terkait. Perangkat Lunak dilindungi oleh hukum hak cipta Indonesia dan perjanjian internasional yang berlaku. **Tidak ada hak kepemilikan atau hak eksplisit/implisit yang diberikan kepada Pengguna**, kecuali hak terbatas yang diberikan secara tegas di bawah ini.
-
-PEMBERIAN LISENSI (SANGAT TERBATAS)
-----------------------------------
-Dengan lisensi ini, Pemilik memberikan hak non-eksklusif, tidak dapat dipindahtangankan, dan tidak dapat disublicense kepada Pengguna untuk **mengakses dan menggunakan Perangkat Lunak hanya untuk tujuan internal evaluasi** (atau tujuan lain yang ditetapkan secara tertulis oleh Pemilik), selama dan sejauh Pengguna mematuhi ketentuan berikut. Hak yang tidak disebutkan secara tegas di sini **dilarang**.
-
-PEMBATASAN PENGGUNAAN (PROHIBITED USES)
-----------------------------------------
-Tanpa izin tertulis terpisah dari Pemilik, Pengguna dilarang:
-a. Menyalin, mereproduksi, atau membuat karya turunan dari Perangkat Lunak (seluruh atau sebagian).  
-b. Menyebarluaskan, menjual, menyewakan, meminjami, memberi lisensi ulang, atau membuat tersedia bagi publik Perangkat Lunak atau bagian darinya.  
-c. Menggunakan Perangkat Lunak untuk menyediakan jasa komersial (SaaS, hosting, layanan pihak ketiga) yang menyalurkan fungsionalitas Perangkat Lunak kepada pihak lain.  
-d. Membongkar (reverse engineer), mendekompilasi, atau mencoba memperoleh kode sumber (kecuali diizinkan secara tegas oleh hukum yang berlaku dan hanya sejauh hukum tersebut memaksakan hak tersebut).  
-e. Menghapus, mengubah, atau menutupi pemberitahuan hak cipta, tanda tanggung jawab (attribution), atau label kepemilikan lainnya.  
-f. Mengalihkan, memindahkan, atau mentransfer Perangkat Lunak atau hak atasnya kepada pihak lain tanpa izin tertulis dari Pemilik.
-
-KEWAJIBAN PENGGUNA
--------------------
-Pengguna harus:
-1. Menjaga kerahasiaan Perangkat Lunak dan tidak mengungkapkannya kepada pihak ketiga tanpa persetujuan tertulis dari Pemilik.  
-2. Segera melaporkan kepada Pemilik setiap penyalahgunaan, pelanggaran keamanan, atau indikasi pelanggaran hak cipta oleh pihak ketiga.  
-3. Mematuhi semua peraturan ekspor/impor dan pembatasan hukum terkait kriptografi, enkripsi, atau teknologi lainnya.
-
-PEMBEBASAN JAMINAN
-------------------
-Perangkat Lunak disediakan "SEBAGAIMANA ADANYA" tanpa jaminan apa pun, baik tersurat ataupun tersirat, termasuk namun tidak terbatas pada jaminan kelayakan untuk tujuan tertentu, non-pelanggaran, atau jaminan terkait keamanan. Pemilik tidak menjamin bahwa Perangkat Lunak akan memenuhi kebutuhan Pengguna atau bebas dari bug.
-
-BATASAN TANGGUNG JAWAB
-----------------------
-Dalam keadaan apa pun, Pemilik tidak bertanggung jawab atas kerugian langsung, tidak langsung, insidental, khusus, emergen, atau konsekuensial yang timbul dari penggunaan atau ketidakmampuan untuk menggunakan Perangkat Lunak, bahkan jika Pemilik telah diberitahu mengenai kemungkinan kerugian tersebut.
-
-PENGGANTI RUGI
---------------
-Pengguna setuju untuk mengganti rugi, membela, dan membebaskan Pemilik dari klaim, kerugian, tanggung jawab, biaya, atau pengeluaran (termasuk biaya pengacara) yang timbul akibat pelanggaran ketentuan lisensi ini oleh Pengguna atau pelanggaran hukum yang dilakukan oleh Pengguna.
-
-PENEGAKAN & SANKSI
-------------------
-Pelanggaran terhadap lisensi ini akan menyebabkan pengakhiran hak penggunaan secara otomatis dan/atau tindakan hukum sesuai undang-undang. Pemilik berhak menuntut ganti rugi, perintah pengadilan (injunctive relief), dan pemulihan kerugian yang timbul akibat pelanggaran.
-
-PEMBATALAN LISENSI
-------------------
-Pemilik dapat mengakhiri lisensi ini jika Pengguna melanggar ketentuan apa pun. Setelah berakhirnya lisensi, Pengguna harus menghentikan semua penggunaan Perangkat Lunak dan menghancurkan semua salinan (termasuk salinan cadangan), serta memberikan pernyataan tertulis kepada Pemilik yang mengonfirmasi penghancuran tersebut.
-
-PEMBATASAN TANGGUNG JAWAB HUKUM
--------------------------------
-Jika undang-undang yang berlaku tidak mengizinkan pembatasan tertentu yang tercantum di atas, ketentuan tersebut akan diberlakukan sejauh diizinkan oleh hukum, sedangkan ketentuan lainnya tetap berlaku penuh dan mengikat.
-
-HUKUM YANG MENGATUR & YURISDIKSI
---------------------------------
-Lisensi ini diatur oleh dan ditafsirkan sesuai dengan hukum Republik Indonesia. Sengketa yang timbul sehubungan dengan lisensi ini akan diselesaikan terlebih dahulu melalui mediasi; jika gagal, sengketa akan diajukan ke pengadilan yang berwenang di [KOTA/DAERAH] (misalnya: Jakarta).
-
-PEMBERITAHUAN & KONTAK
-----------------------
-Permintaan izin, pemberitahuan pelanggaran, atau komunikasi lain terkait lisensi ini harus diarahkan ke:
-Nama Pemilik : Dwi Bakti N Dev
-Nama Pengembang : Dwi Bakti N Dev
-Pencipta : Dwi Bakti N Dev
-Website : https://portofolio-dwi-bakti-n-dev-liard.vercel.app
-
-
-KESELURUHAN PERJANJIAN
-----------------------
-Ketentuan lisensi ini merupakan keseluruhan perjanjian antara Pemilik dan Pengguna terkait Perangkat Lunak dan menggantikan semua perjanjian sebelumnya.
-
-TANGGAL EFEKTIF
----------------
-Tanggal efektif: 14/10/2025
-
-        """)
         
+        with st.expander("📜 STRICT PROPRIETARY SOFTWARE LICENSE — ALL RIGHTS RESERVED", expanded=False):
+            st.markdown("""
+            **Hak Cipta © 2025 Dwi Bakti N Dev. Seluruh hak dilindungi undang-undang.**
+            
+            ### 🔒 Definisi
+            - **Pemilik**: Dwi Bakti N Dev, pemilik semua hak atas Perangkat Lunak
+            - **Perangkat Lunak**: Seluruh kode sumber, dokumentasi, dan materi terkait
+            - **Pengguna**: Pihak yang mendapatkan salinan Perangkat Lunak
+            
+            ### ⚠️ Pembatasan Ketat
+            ❌ **DILARANG** menyalin, mereproduksi, atau membuat karya turunan  
+            ❌ **DILARANG** menyebarluaskan atau menjual Perangkat Lunak  
+            ❌ **DILARANG** menggunakan untuk layanan komersial pihak ketiga  
+            ❌ **DILARANG** reverse engineering atau dekompilasi  
+            
+            ### 📞 Kontak Lisensi
+            **Nama**: Dwi Bakti N Dev  
+            **Website**: https://portofolio-dwi-bakti-n-dev-liard.vercel.app  
+            **Tanggal Efektif**: 14/10/2025
+            """)
+        
+        st.divider()
+        
+        # Informasi Penelitian
         st.subheader("🔬 Informasi Penelitian")
-        st.markdown("""
-        ### Metodologi Penelitian
         
-        **Sumber Data**
-        - Data primer dari survei lapangan
-        - Data sekunder dari publikasi resmi
-        - Dataset open source terpercaya
+        col1, col2 = st.columns([2, 1])
         
-        **Metode Analisis**
-        - Statistik deskriptif (mean, median, modus, standar deviasi)
-        - Analisis eksploratori data (EDA)
-        - Visualisasi data untuk identifikasi pola
-        - Validasi data dengan multiple methods
+        with col1:
+            st.markdown("""
+            ### 🎯 Metodologi Penelitian
+            
+            #### 📊 Sumber Data
+            - Data primer dari survei lapangan
+            - Data sekunder dari publikasi resmi
+            - Dataset open source terpercaya
+            
+            #### 🔍 Metode Analisis
+            - Statistik deskriptif (mean, median, modus, standar deviasi)
+            - Analisis eksploratori data (EDA)
+            - Visualisasi data untuk identifikasi pola
+            - Validasi data dengan multiple methods
+            """)
         
-        **Metode Statistik yang Digunakan:**
+        with col2:
+            st.image("https://cdn-icons-png.flaticon.com/512/2933/2933245.png",
+                    caption="Metode Penelitian", width=200)
         
-        1. **Uji Normalitas** - Shapiro-Wilk test
-        ```
-        W = (Σaᵢ × x₍ᵢ₎)² / Σ(xᵢ - x̄)²
-        ```
+        # Metode Statistik dengan cards
+        st.markdown("### 📐 Metode Statistik yang Digunakan")
         
-        2. **Uji Hipotesis** - t-test
-        ```
-        t = (x̄₁ - x̄₂) / √(s₁²/n₁ + s₂²/n₂)
-        ```
+        col1, col2, col3 = st.columns(3)
         
-        3. **Analisis Varians (ANOVA)**
-        ```
-        F = (Varians antar grup) / (Varians dalam grup)
-        ```
+        with col1:
+            st.markdown("""
+            #### 🧪 Uji Normalitas
+            **Shapiro-Wilk test**
+            ```math
+            W = \\frac{(\\sum a_i \\times x_{(i)})^2}{\\sum (x_i - \\bar{x})^2}
+            ```
+            """)
         
-        """)
+        with col2:
+            st.markdown("""
+            #### 📝 Uji Hipotesis
+            **t-test**
+            ```math
+            t = \\frac{\\bar{x}_1 - \\bar{x}_2}{\\sqrt{\\frac{s_1^2}{n_1} + \\frac{s_2^2}{n_2}}}
+            ```
+            """)
         
-        # Tambahan informasi kontak
-        st.subheader("📞 Kontak")
-        st.markdown("""
-        Untuk pertanyaan lebih lanjut mengenai penelitian atau penggunaan aplikasi:
-          
-        **Website**: https://portofolio-dwi-bakti-n-dev-liard.vercel.app
-        **Nama Developer**: Dwi Bakti N Dev
-        """)
+        with col3:
+            st.markdown("""
+            #### 📊 Analisis Varians
+            **ANOVA**
+            ```math
+            F = \\frac{\\text{Varians antar grup}}{\\text{Varians dalam grup}}
+            ```
+            """)
         
-        # Additional mathematical resources
+        st.divider()
+        
+        # Sumber Belajar dengan tabs
         st.subheader("📚 Sumber Belajar Statistik")
-        st.markdown("""
-        ### Buku Referensi Recommended:
         
-        1. **"Statistics for Data Science"** - James et al.
-        - Bab 2: Descriptive Statistics
-        - Bab 3: Probability Distributions
-        - Bab 4: Statistical Inference
+        tab_buku, tab_online, tab_tools = st.tabs(["📖 Buku", "🌐 Online", "🛠️ Tools"])
         
-        2. **"Introduction to Probability"** - Bertsekas
-        - Fundamental probability theory
-        - Random variables and distributions
+        with tab_buku:
+            col1, col2 = st.columns(2)
+            
+            with col1:
+                st.markdown("""
+                ### 📚 Buku Referensi Recommended
+                
+                #### 1. "Statistics for Data Science"
+                **Penulis**: James et al.  
+                **Bab Penting**:
+                - Bab 2: Descriptive Statistics
+                - Bab 3: Probability Distributions
+                - Bab 4: Statistical Inference
+                
+                #### 2. "Introduction to Probability"
+                **Penulis**: Bertsekas  
+                **Fokus**: Fundamental probability theory
+                """)
+            
+            with col2:
+                st.markdown("""
+                #### 3. "The Elements of Statistical Learning"
+                **Penulis**: Hastie et al.  
+                **Level**: Advanced  
+                **Aplikasi**: Machine learning
+                
+                #### 4. "Practical Statistics for Data Scientists"
+                **Penulis**: Bruce & Bruce (2021) 
+                **Fokus**: Aplikasi praktis
+                """)
         
-        3. **"The Elements of Statistical Learning"** - Hastie et al.
-        - Advanced statistical methods
-        - Machine learning applications
+        with tab_online:
+            st.markdown("""
+            ### 🌐 Sumber Belajar Online
+            
+            #### 🎓 Platform Kursus
+            - **Roy Academy** - Statistics and Probability
+            - **MIT OpenCourseWare** - Introduction to Probability and Statistics
+            - **Coursera** - Data Science and Statistical Analysis Roy/Dwi Bakti N Dev
+            - **edX** - Statistical Thinking for Data Science
+            
+            #### 📹 Tutorial Video
+            - **Tiktok Channels**: Royhtml
+            - **Interactive Tutorials**: Dwi Bakti N DeV
+            """)
         
-        ### Online Resources:
-        - Khan Academy - Statistics and Probability
-        - MIT OpenCourseWare - Introduction to Probability and Statistics
-        - Coursera - Data Science and Statistical Analysis
-        """)
+        with tab_tools:
+            st.markdown("""
+            ### 🛠️ Tools & Software Statistik
+            
+            #### 🔧 Software Populer
+            - **Python** (pandas, numpy, scipy)
+            - **R** & RStudio
+            - **JASP** (Free alternative to SPSS)
+            - **Gretl** (Econometrics)
+            
+            #### 📊 Visualization Tools
+            - **Tableau** - Business intelligence
+            - **Plotly** - Interactive charts
+            - **Matplotlib/Seaborn** - Python plotting
+            """)
+        
+        st.divider()
+        
+        # Kontak dan Support
+        st.subheader("📞 Kontak & Support")
+        
+        col1, col2, col3 = st.columns(3)
+        
+        with col1:
+            st.markdown("""
+            ### 🌐 Website
+            [https://portofolio-dwi-bakti-n-dev-liard.vercel.app](https://portofolio-dwi-bakti-n-dev-liard.vercel.app)
+            
+            ### 👨‍💻 Developer
+            **Dwi Bakti N Dev**
+            """)
+        
+        with col2:
+            st.markdown("""
+            ### 💬 Bantuan
+            - Dokumentasi lengkap
+            - Tutorial penggunaan
+            - Contoh dataset
+            - FAQ
+            """)
+        
+        with col3:
+            st.markdown("""
+            ### 🔄 Update
+            - Versi terbaru: 2.2.5
+            - Last updated: 2025
+            - Compatibility: Python 3.8+
+            """)
+        
+        # Footer
+        st.markdown("---")
+        st.markdown(
+            "<div style='text-align: center; color: gray;'>"
+            "© 2025 Dwi Bakti N Dev | Statistical Analysis Tool | All Rights Reserved"
+            "</div>",
+            unsafe_allow_html=True
+        )
     
     with tab1:
         show_optimized_statistics(df)
@@ -7488,226 +9330,1073 @@ Tanggal efektif: 14/10/2025
         create_all_visualizations(df)
     
     with tab3:
-        st.header("📋 Data Lengkap")
-        
-        # Tampilkan dataframe
-        st.dataframe(df, use_container_width=True)
-        
-        # Section untuk statistik deskriptif
-        st.subheader("📊 Statistik Deskriptif")
-        
-        # Pilih kolom numerik
-        numeric_columns = df.select_dtypes(include=['number']).columns.tolist()
-        
-        if numeric_columns:
-            col1, col2, col3, col4 = st.columns(4)
-            
-            with col1:
-                st.metric("Jumlah Data", len(df))
-                st.metric("Kolom Numerik", len(numeric_columns))
-            
-            with col2:
-                if numeric_columns:
-                    total_values = df[numeric_columns].sum().sum()
-                    st.metric("Total Semua Nilai", f"{total_values:,.2f}")
-            
-            with col3:
-                if numeric_columns:
-                    avg_value = df[numeric_columns].mean().mean()
-                    st.metric("Rata-rata Keseluruhan", f"{avg_value:,.2f}")
-            
-            with col4:
-                if numeric_columns:
-                    std_value = df[numeric_columns].std().mean()
-                    st.metric("Std Dev Rata-rata", f"{std_value:,.2f}")
-        
-        # Rumus Matematika yang Digunakan
-        st.subheader("🧮 Rumus Matematika yang Digunakan")
-        
-        rumus_col1, rumus_col2 = st.columns(2)
-        
-        with rumus_col1:
-            st.markdown("""
-            **Statistik Dasar:**
-            - **Mean (Rata-rata):** 
-            ```
-            μ = (Σx) / n
-            ```
-            - **Standar Deviasi:**
-            ```
-            σ = √[Σ(x - μ)² / (n-1)]
-            ```
-            - **Varians:**
-            ```
-            σ² = Σ(x - μ)² / (n-1)
-            ```
-            """)
-        
-        with rumus_col2:
-            st.markdown("""
-            **Akumulasi & Aggregasi:**
-            - **Total Kumulatif:**
-            ```
-            S = Σx_i
-            ```
-            - **Rata-rata Bergerak:**
-            ```
-            MA = (x_t + x_{t-1} + ... + x_{t-n+1}) / n
-            ```
-            - **Pertumbuhan:**
-            ```
-            Growth = (Akhir - Awal) / Awal × 100%
-            ```
-            """)
-        
-        # Visualisasi Data
-        st.subheader("📈 Visualisasi Data")
-        
-        if numeric_columns:
-            # Pilih kolom untuk visualisasi
-            selected_column = st.selectbox("Pilih Kolom untuk Visualisasi:", numeric_columns)
-            
-            if selected_column:
-                # Chart untuk distribusi data
-                fig1, ax1 = plt.subplots(figsize=(10, 4))
-                ax1.plot(df.index, df[selected_column], marker='o', linewidth=2, markersize=4)
-                ax1.set_title(f'Trend Data - {selected_column}')
-                ax1.set_xlabel('Index')
-                ax1.set_ylabel(selected_column)
-                ax1.grid(True, alpha=0.3)
-                st.pyplot(fig1)
+        st.header("📋 Data Lengkap & Analisis Komprehensif")
+
+        # Cek jika df ada dan tidak kosong
+        if 'df' in locals() or 'df' in globals():
+            if len(df) > 0:
+                # Optimasi: Tampilkan dataframe dengan pagination untuk dataset besar
+                st.dataframe(df, use_container_width=True, 
+                            height=400 if len(df) > 1000 else min(400, len(df)*25))
                 
-                # Histogram
-                fig2, ax2 = plt.subplots(figsize=(10, 4))
-                ax2.hist(df[selected_column], bins=20, alpha=0.7, edgecolor='black')
-                ax2.set_title(f'Distribusi Data - {selected_column}')
-                ax2.set_xlabel(selected_column)
-                ax2.set_ylabel('Frekuensi')
-                ax2.grid(True, alpha=0.3)
-                st.pyplot(fig2)
-        
-        # Analisis Akumulasi
-        st.subheader("📊 Analisis Akumulasi")
-        
-        if numeric_columns:
-            # Pilih kolom untuk analisis akumulasi
-            accum_column = st.selectbox("Pilih Kolom untuk Analisis Akumulasi:", numeric_columns, key="accum")
-            
-            if accum_column:
-                # Hitung nilai kumulatif
-                df_cumulative = df.copy()
-                df_cumulative['Kumulatif'] = df_cumulative[accum_column].cumsum()
-                df_cumulative['Rata-rata Bergerak (3)'] = df_cumulative[accum_column].rolling(window=3).mean()
-                df_cumulative['Rata-rata Bergerak (5)'] = df_cumulative[accum_column].rolling(window=5).mean()
+                # Informasi dasar dataset dengan optimasi memory
+                st.subheader("📊 Informasi Dataset")
                 
-                # Tampilkan data akumulasi
-                st.write("**Data dengan Akumulasi:**")
-                st.dataframe(df_cumulative[[accum_column, 'Kumulatif', 'Rata-rata Bergerak (3)', 'Rata-rata Bergerak (5)']].tail(10), 
-                            use_container_width=True)
+                col_info1, col_info2, col_info3, col_info4 = st.columns(4)
                 
-                # Chart akumulasi
-                fig3, ax3 = plt.subplots(figsize=(12, 6))
-                ax3.plot(df_cumulative.index, df_cumulative['Kumulatif'], 
-                        label='Nilai Kumulatif', linewidth=2, color='blue')
-                ax3.plot(df_cumulative.index, df_cumulative[accum_column], 
-                        label=f'Nilai {accum_column}', linewidth=1, color='red', alpha=0.7)
-                ax3.set_title(f'Akumulasi Data - {accum_column}')
-                ax3.set_xlabel('Index')
-                ax3.set_ylabel('Nilai')
-                ax3.legend()
-                ax3.grid(True, alpha=0.3)
-                st.pyplot(fig3)
-        
-        # Analisis Korelasi (jika ada multiple numeric columns)
-        if len(numeric_columns) > 1:
-            st.subheader("🔗 Analisis Korelasi")
-            
-            # Heatmap korelasi
-            fig4, ax4 = plt.subplots(figsize=(8, 6))
-            correlation_matrix = df[numeric_columns].corr()
-            im = ax4.imshow(correlation_matrix, cmap='coolwarm', aspect='auto', vmin=-1, vmax=1)
-            ax4.set_xticks(range(len(numeric_columns)))
-            ax4.set_yticks(range(len(numeric_columns)))
-            ax4.set_xticklabels(numeric_columns, rotation=45)
-            ax4.set_yticklabels(numeric_columns)
-            
-            # Tambahkan nilai di setiap cell
-            for i in range(len(numeric_columns)):
-                for j in range(len(numeric_columns)):
-                    ax4.text(j, i, f'{correlation_matrix.iloc[i, j]:.2f}', 
-                            ha='center', va='center', color='white' if abs(correlation_matrix.iloc[i, j]) > 0.5 else 'black')
-            
-            ax4.set_title('Matriks Korelasi')
-            plt.colorbar(im, ax=ax4)
-            st.pyplot(fig4)
-        
-        # Summary Statistics Detail
-        st.subheader("📋 Detail Statistik per Kolom")
-        
-        if numeric_columns:
-            for col in numeric_columns:
-                with st.expander(f"Statistik untuk {col}"):
-                    col_data = df[col].dropna()
-                    if len(col_data) > 0:
-                        stats_col1, stats_col2, stats_col3, stats_col4 = st.columns(4)
+                with col_info1:
+                    st.metric("Total Records", f"{len(df):,}")
+                    st.metric("Total Kolom", len(df.columns))
+                
+                with col_info2:
+                    numeric_cols = len(df.select_dtypes(include=['number']).columns)
+                    categorical_cols = len(df.select_dtypes(include=['object']).columns)
+                    st.metric("Kolom Numerik", f"{numeric_cols}")
+                    st.metric("Kolom Kategorikal", f"{categorical_cols}")
+                
+                with col_info3:
+                    missing_values = df.isnull().sum().sum()
+                    duplicate_rows = df.duplicated().sum()
+                    st.metric("Missing Values", f"{missing_values}")
+                    st.metric("Duplikat", f"{duplicate_rows}")
+                
+                with col_info4:
+                    memory_usage = df.memory_usage(deep=True).sum() / 1024**2
+                    st.metric("Memory Usage", f"{memory_usage:.2f} MB")
+                    st.metric("Data Types", f"{len(df.dtypes.unique())}")
+
+                # Optimasi: Hitung statistik hanya sekali dan cache
+                @st.cache_data
+                def calculate_basic_stats(_df, numeric_columns):
+                    stats = {}
+                    if numeric_columns:
+                        stats['total_values'] = _df[numeric_columns].sum().sum()
+                        stats['avg_value'] = _df[numeric_columns].mean().mean()
+                        stats['median_value'] = _df[numeric_columns].median().median()
+                        stats['std_value'] = _df[numeric_columns].std().mean()
+                        stats['cv_value'] = (stats['std_value'] / stats['avg_value'] * 100) if stats['avg_value'] != 0 else 0
                         
-                        with stats_col1:
-                            st.metric("Mean", f"{col_data.mean():.2f}")
-                            st.metric("Median", f"{col_data.median():.2f}")
+                        # Tambahan statistik lengkap
+                        stats['skewness'] = _df[numeric_columns].skew().mean()
+                        stats['kurtosis'] = _df[numeric_columns].kurtosis().mean()
+                        stats['q1'] = _df[numeric_columns].quantile(0.25).mean()
+                        stats['q3'] = _df[numeric_columns].quantile(0.75).mean()
+                        stats['min_value'] = _df[numeric_columns].min().min()
+                        stats['max_value'] = _df[numeric_columns].max().max()
+                        stats['range'] = stats['max_value'] - stats['min_value']
                         
-                        with stats_col2:
-                            st.metric("Std Dev", f"{col_data.std():.2f}")
-                            st.metric("Varians", f"{col_data.var():.2f}")
+                    return stats
+
+                # Section untuk statistik deskriptif
+                st.subheader("📊 Statistik Deskriptif Lengkap")
+                
+                # Pilih kolom numerik
+                numeric_columns = df.select_dtypes(include=['number']).columns.tolist()
+                
+                if numeric_columns:
+                    basic_stats = calculate_basic_stats(df, numeric_columns)
+                    
+                    # Tampilkan dalam 2 baris metrik
+                    col1, col2, col3, col4 = st.columns(4)
+                    
+                    with col1:
+                        st.metric("Jumlah Data", len(df))
+                        st.metric("Kolom Numerik", len(numeric_columns))
+                        st.metric("Nilai Minimum", f"{basic_stats['min_value']:,.2f}")
+                    
+                    with col2:
+                        st.metric("Total Semua Nilai", f"{basic_stats['total_values']:,.2f}")
+                        st.metric("Total Nilai Valid", f"{df[numeric_columns].count().sum():,}")
+                        st.metric("Nilai Maksimum", f"{basic_stats['max_value']:,.2f}")
+                    
+                    with col3:
+                        st.metric("Rata-rata Keseluruhan", f"{basic_stats['avg_value']:,.2f}")
+                        st.metric("Median Keseluruhan", f"{basic_stats['median_value']:,.2f}")
+                        st.metric("Range", f"{basic_stats['range']:,.2f}")
+                    
+                    with col4:
+                        st.metric("Std Dev Rata-rata", f"{basic_stats['std_value']:,.2f}")
+                        st.metric("Koef. Variasi", f"{basic_stats['cv_value']:.1f}%")
+                        st.metric("Skewness", f"{basic_stats['skewness']:.2f}")
+
+                # STRATEGI DAN METODOLOGI ANALISIS
+                st.subheader("🎯 STRATEGI ANALISIS & METODOLOGI")
+                
+                strategy_tab1, strategy_tab2, strategy_tab3 = st.tabs(["📋 Framework", "🧮 Rumus Statistik", "🔍 Teknik Analisis"])
+                
+                with strategy_tab1:
+                    st.markdown("""
+                    ### 🎯 Framework Analisis Data Komprehensif
+                    
+                    **1. DATA ASSESSMENT** 
+                    - ✅ Profiling Dataset & Quality Check
+                    - ✅ Missing Values Analysis  
+                    - ✅ Outlier Detection
+                    - ✅ Data Consistency Validation
+                    
+                    **2. STATISTICAL ANALYSIS**
+                    - 📈 Descriptive Statistics (Mean, Median, Std Dev)
+                    - 📊 Distribution Analysis (Skewness, Kurtosis)
+                    - 🔍 Correlation & Pattern Detection
+                    - 📉 Trend & Seasonality Analysis
+                    
+                    **3. BUSINESS INTELLIGENCE**
+                    - 🎯 Key Performance Indicators
+                    - 📋 Actionable Insights
+                    - 🚀 Strategic Recommendations
+                    - 📊 Dashboard & Reporting
+                    """)
+                
+                with strategy_tab2:
+                    st.markdown("""
+                    ### 🧮 FORMULA & METODE STATISTIK YANG DIGUNAKAN
+                    
+                    **📊 Ukuran Pemusatan Data:**
+                    ```python
+                    Mean = Σx / n
+                    Median = nilai tengah (Q2)
+                    Modus = nilai paling sering muncul
+                    ```
+                    
+                    **📈 Ukuran Penyebaran Data:**
+                    ```python
+                    Std Dev = √[Σ(x - μ)² / (n-1)]
+                    Variance = Σ(x - μ)² / (n-1)
+                    Range = Max - Min
+                    IQR = Q3 - Q1
+                    ```
+                    
+                    **📉 Koefisien Variasi (CV):**
+                    ```python
+                    CV = (Std Dev / Mean) × 100%
+                    ```
+                    
+                    **📊 Deteksi Outlier (IQR Method):**
+                    ```python
+                    Lower Bound = Q1 - 1.5 × IQR
+                    Upper Bound = Q3 + 1.5 × IQR
+                    ```
+                    
+                    **📈 Skewness & Kurtosis:**
+                    ```python
+                    Skewness = Σ[(x - μ)³] / (n × σ³)
+                    Kurtosis = Σ[(x - μ)⁴] / (n × σ⁴) - 3
+                    ```
+                    """)
+                
+                with strategy_tab3:
+                    st.markdown("""
+                    ### 🔍 TEKNIK ANALISIS LANJUTAN
+                    
+                    **📊 Analisis Kualitas Data:**
+                    - Data Completeness Rate
+                    - Data Consistency Check
+                    - Duplicate Detection
+                    - Data Validation Rules
+                    
+                    **📈 Analisis Distribusi:**
+                    - Normal Distribution Test
+                    - Skewness & Kurtosis Analysis
+                    - QQ-Plot Visualization
+                    - Histogram & Density Plot
+                    
+                    **🔍 Analisis Korelasi:**
+                    - Pearson Correlation Matrix
+                    - Spearman Rank Correlation
+                    - Heatmap Visualization
+                    - Multicollinearity Check
+                    
+                    **📉 Time Series Analysis:**
+                    - Trend Analysis (Linear/Non-linear)
+                    - Seasonality Detection
+                    - Moving Average Calculation
+                    - Year-over-Year Growth
+                    """)
+
+                # ANALISIS LENGKAP DENGAN RUMUSAN MASALAH DAN SOLUSI
+                st.subheader("🔍 ANALISIS KOMPREHENSIF & REKOMENDASI STRATEGIS")
+
+                # Identifikasi Masalah Utama dengan Scoring
+                st.markdown("### 🎯 DIAGNOSIS MASALAH UTAMA")
+                
+                problems = []
+                solutions = []
+                risk_scores = []
+                
+                # Analisis Data Quality dengan scoring
+                completeness_rate = (1 - missing_values / (len(df) * len(df.columns))) * 100 if len(df) > 0 else 0
+                if completeness_rate < 90:
+                    risk_score = min(100, (90 - completeness_rate) * 2)
+                    problems.append({
+                        "issue": f"**Kualitas Data Rendah**", 
+                        "detail": f"Tingkat kelengkapan data hanya {completeness_rate:.1f}%",
+                        "risk": risk_score,
+                        "impact": "Tinggi"
+                    })
+                    solutions.append("**Prioritas Cleaning Data**: Implementasi imputasi data untuk missing values menggunakan mean/median/mode berdasarkan distribusi")
+                    risk_scores.append(risk_score)
+                
+                if duplicate_rows > 0:
+                    risk_score = min(100, (duplicate_rows / len(df)) * 1000)
+                    problems.append({
+                        "issue": f"**Data Duplikat**", 
+                        "detail": f"Terdapat {duplicate_rows} records duplikat ({duplicate_rows/len(df)*100:.1f}%)",
+                        "risk": risk_score,
+                        "impact": "Menengah"
+                    })
+                    solutions.append("**Hapus Duplikat**: Gunakan df.drop_duplicates() dengan subset kolom kunci untuk membersihkan data")
+                    risk_scores.append(risk_score)
+                
+                # Analisis Variasi Data
+                high_variance_cols = []
+                if numeric_columns:
+                    for col in numeric_columns:
+                        if df[col].std() / df[col].mean() > 0.5:  # CV > 50%
+                            high_variance_cols.append((col, df[col].std() / df[col].mean()))
+                    
+                    if high_variance_cols:
+                        risk_score = min(100, len(high_variance_cols) * 15)
+                        problems.append({
+                            "issue": f"**Variasi Data Tinggi**", 
+                            "detail": f"{len(high_variance_cols)} kolom memiliki koefisien variasi > 50%",
+                            "risk": risk_score,
+                            "impact": "Menengah"
+                        })
+                        solutions.append("**Normalisasi Data**: Terapkan standard scaling atau min-max scaling untuk kolom dengan variasi tinggi sebelum modeling")
+                        risk_scores.append(risk_score)
+                
+                # Analisis Outlier dengan detail
+                outlier_cols = []
+                if numeric_columns:
+                    for col in numeric_columns:
+                        Q1 = df[col].quantile(0.25)
+                        Q3 = df[col].quantile(0.75)
+                        IQR = Q3 - Q1
+                        outlier_count = ((df[col] < (Q1 - 1.5 * IQR)) | (df[col] > (Q3 + 1.5 * IQR))).sum()
+                        outlier_percentage = (outlier_count / len(df)) * 100
+                        if outlier_percentage > 5:  # >5% outliers
+                            outlier_cols.append((col, outlier_count, outlier_percentage))
+                    
+                    if outlier_cols:
+                        risk_score = min(100, sum([perc for _, _, perc in outlier_cols]))
+                        problems.append({
+                            "issue": f"**Outlier Signifikan**", 
+                            "detail": f"{len(outlier_cols)} kolom memiliki >5% outlier",
+                            "risk": risk_score,
+                            "impact": "Tinggi"
+                        })
+                        solutions.append("**Treatment Outlier**: Pertimbangkan winsorizing (mengganti dengan Q1-1.5IQR/Q3+1.5IQR) atau transformasi logaritmik")
+                        risk_scores.append(risk_score)
+
+                # Analisis Distribusi Data
+                if numeric_columns and 'basic_stats' in locals():
+                    skewness_risk = abs(basic_stats['skewness'])
+                    if skewness_risk > 1:
+                        problems.append({
+                            "issue": f"**Distribusi Tidak Normal**", 
+                            "detail": f"Skewness: {basic_stats['skewness']:.2f} (>{'positif' if basic_stats['skewness'] > 0 else 'negatif'})",
+                            "risk": min(100, skewness_risk * 20),
+                            "impact": "Menengah"
+                        })
+                        solutions.append("**Transformasi Data**: Pertimbangkan transformasi log, square root, atau Box-Cox untuk normalisasi distribusi")
+                        risk_scores.append(min(100, skewness_risk * 20))
+
+                # Tampilkan Masalah dan Solusi dengan Risk Assessment
+                col_prob, col_sol = st.columns(2)
+                
+                with col_prob:
+                    st.markdown("#### ❌ MASALAH TERIDENTIFIKASI")
+                    if problems:
+                        total_risk = sum(risk_scores) / len(risk_scores) if risk_scores else 0
+                        st.metric("Overall Risk Score", f"{total_risk:.1f}/100", 
+                                delta="High Risk" if total_risk > 70 else "Medium Risk" if total_risk > 40 else "Low Risk")
                         
-                        with stats_col3:
-                            st.metric("Min", f"{col_data.min():.2f}")
-                            st.metric("Max", f"{col_data.max():.2f}")
+                        for i, problem in enumerate(problems, 1):
+                            with st.expander(f"{i}. {problem['issue']} (Risk: {problem['risk']:.1f})", expanded=True):
+                                st.write(f"**Detail**: {problem['detail']}")
+                                st.write(f"**Impact**: {problem['impact']}")
+                                st.progress(min(problem['risk']/100, 1.0))
+                    else:
+                        st.success("✅ Tidak ada masalah kritis yang teridentifikasi")
+                        st.metric("Overall Risk Score", "0/100", delta="Low Risk")
+                
+                with col_sol:
+                    st.markdown("#### 💡 REKOMENDASI SOLUSI STRATEGIS")
+                    if solutions:
+                        for i, solution in enumerate(solutions, 1):
+                            st.markdown(f"""
+                            **{i}. {solution.split(':**')[0]}**
+                            {solution.split(':**')[1] if ':**' in solution else solution}
+                            """)
                         
-                        with stats_col4:
-                            st.metric("Range", f"{col_data.max() - col_data.min():.2f}")
-                            st.metric("Jumlah Data", len(col_data))
-        
-    st.sidebar.header("📥 Unduh Data")
-    if st.sidebar.button("💾 Unduh Data yang Telah Diproses"):
-        csv = df.to_csv(index=False)
-        st.sidebar.download_button(
-            label="📥 Unduh sebagai CSV",
-            data=csv,
-            file_name="processed_data.csv",
-            mime="text/csv"
-        )
-        
+                        st.markdown("---")
+                        st.markdown("#### 🎯 IMPLEMENTATION ROADMAP")
+                        st.markdown("""
+                        1. **Phase 1 (Minggu 1)**: Data Cleaning & Quality Assurance
+                        2. **Phase 2 (Minggu 2)**: Statistical Analysis & Validation
+                        3. **Phase 3 (Minggu 3)**: Advanced Analytics & Modeling
+                        4. **Phase 4 (Minggu 4)**: Reporting & Dashboard Deployment
+                        """)
+                    else:
+                        st.success("✅ Data dalam kondisi baik untuk analisis lanjutan")
+
+                # KESIMPULAN ANALITIS LENGKAP DENGAN STRATEGI BISNIS
+                st.subheader("🎯 KESIMPULAN ANALITIS & STRATEGI BISNIS")
+                
+                # Hitung metrics untuk kesimpulan
+                data_quality_score = completeness_rate - (duplicate_rows / len(df) * 100) - (len(high_variance_cols) * 5) - (len(outlier_cols) * 3)
+                data_quality_score = max(0, min(100, data_quality_score))
+                
+                # Business Impact Assessment
+                business_impact = "Tinggi" if data_quality_score > 80 else "Menengah" if data_quality_score > 60 else "Rendah"
+                implementation_priority = "Segera" if data_quality_score < 70 else "Bisa Ditunda"
+                analytics_readiness = "Siap" if data_quality_score > 75 else "Perlu Persiapan" if data_quality_score > 50 else "Tidak Siap"
+                
+                conclusion_col1, conclusion_col2, conclusion_col3 = st.columns(3)
+                
+                with conclusion_col1:
+                    st.markdown("""
+                    ### 📊 ASSESSMENT KUANTITATIF
+                    
+                    **Volume & Struktur:**
+                    - Total Records: {:,}
+                    - Total Features: {}
+                    - Numeric Features: {}
+                    - Categorical Features: {}
+                    - Memory Usage: {:.2f} MB
+                    
+                    **Kualitas Data:**
+                    - Completeness Rate: {:.1f}%
+                    - Duplicate Records: {}
+                    - Missing Values: {}
+                    - Quality Score: {:.1f}/100
+                    """.format(
+                        len(df), len(df.columns), numeric_cols, categorical_cols,
+                        memory_usage, completeness_rate, duplicate_rows, 
+                        missing_values, data_quality_score
+                    ))
+                
+                with conclusion_col2:
+                    st.markdown("""
+                    ### 📈 PROFIL STATISTIK
+                    
+                    **Distribusi Data:**
+                    - Rata-rata: {:.2f}
+                    - Median: {:.2f}
+                    - Std Dev: {:.2f}
+                    - Range: {:.2f}
+                    - Skewness: {:.2f}
+                    
+                    **Karakteristik:**
+                    - Koef. Variasi: {:.1f}%
+                    - Q1 (25%): {:.2f}
+                    - Q3 (75%): {:.2f}
+                    - IQR: {:.2f}
+                    """.format(
+                        basic_stats['avg_value'] if numeric_columns else 0,
+                        basic_stats['median_value'] if numeric_columns else 0,
+                        basic_stats['std_value'] if numeric_columns else 0,
+                        basic_stats['range'] if numeric_columns else 0,
+                        basic_stats['skewness'] if numeric_columns else 0,
+                        basic_stats['cv_value'] if numeric_columns else 0,
+                        basic_stats['q1'] if numeric_columns else 0,
+                        basic_stats['q3'] if numeric_columns else 0,
+                        (basic_stats['q3'] - basic_stats['q1']) if numeric_columns else 0
+                    ))
+                
+                with conclusion_col3:
+                    st.markdown("""
+                    ### 🎯 BUSINESS IMPACT
+                    
+                    **Tingkat Kesiapan:**
+                    - Skor Kualitas: {:.1f}/100
+                    - Business Impact: {}
+                    - Implementation Priority: {}
+                    - Analytics Readiness: {}
+                    
+                    **Rekomendasi Strategis:**
+                    - Data Cleaning: {}
+                    - Outlier Treatment: {}
+                    - Normalisasi: {}
+                    - Analisis Lanjutan: {}
+                    """.format(
+                        data_quality_score,
+                        business_impact,
+                        implementation_priority,
+                        analytics_readiness,
+                        "✅ Diperlukan" if missing_values > 0 or duplicate_rows > 0 else "✅ Optimal",
+                        "✅ Diperlukan" if outlier_cols else "✅ Tidak Perlu",
+                        "✅ Disarankan" if high_variance_cols else "✅ Optimal",
+                        "🚀 Lanjutkan" if data_quality_score > 70 else "⏳ Tunda"
+                    ))
+
+                # ROADMAP IMPLEMENTASI DETAIL
+                st.subheader("📋 ROADMAP IMPLEMENTASI DETAIL")
+                
+                # Define phases based on data quality score
+                if data_quality_score < 50:
+                    phases = [
+                        {
+                            "phase": "🚨 PHASE 1: CRITICAL DATA CLEANING",
+                            "duration": "1-2 Minggu",
+                            "activities": [
+                                "Data Profiling & Assessment Mendalam",
+                                "Missing Values Treatment (Imputasi)",
+                                "Duplicate Records Removal", 
+                                "Data Type Validation & Conversion",
+                                "Basic Outlier Detection"
+                            ],
+                            "deliverables": ["Clean Dataset", "Data Quality Report", "Validation Rules"]
+                        },
+                        {
+                            "phase": "🔧 PHASE 2: DATA ENHANCEMENT", 
+                            "duration": "1 Minggu",
+                            "activities": [
+                                "Advanced Outlier Treatment",
+                                "Data Normalization & Scaling",
+                                "Feature Engineering Basic",
+                                "Data Distribution Analysis"
+                            ],
+                            "deliverables": ["Enhanced Dataset", "Statistical Report", "Feature Documentation"]
+                        }
+                    ]
+                elif data_quality_score < 75:
+                    phases = [
+                        {
+                            "phase": "⚡ PHASE 1: RAPID DATA PREPARATION", 
+                            "duration": "3-5 Hari",
+                            "activities": [
+                                "Quick Data Quality Check",
+                                "Essential Cleaning Tasks", 
+                                "Basic Statistical Analysis",
+                                "Outlier Identification"
+                            ],
+                            "deliverables": ["Analysis-Ready Data", "Quick Insights Report"]
+                        },
+                        {
+                            "phase": "📊 PHASE 2: ADVANCED ANALYTICS",
+                            "duration": "1-2 Minggu", 
+                            "activities": [
+                                "Comprehensive Statistical Analysis",
+                                "Correlation & Pattern Analysis",
+                                "Predictive Modeling Preparation",
+                                "Business Insights Generation"
+                            ],
+                            "deliverables": ["Analytical Models", "Business Insights", "Dashboard Prototype"]
+                        }
+                    ]
+                else:
+                    phases = [
+                        {
+                            "phase": "🚀 PHASE 1: DIRECT TO ANALYTICS",
+                            "duration": "2-3 Hari", 
+                            "activities": [
+                                "Data Validation Final Check",
+                                "Statistical Summary Generation",
+                                "Initial Insights Identification",
+                                "Reporting Framework Setup"
+                            ],
+                            "deliverables": ["Executive Summary", "Initial Findings", "Analysis Plan"]
+                        }
+                    ]
+                
+                # Display roadmap
+                for i, phase in enumerate(phases):
+                    with st.expander(f"{phase['phase']} ({phase['duration']})", expanded=True):
+                        col_act, col_del = st.columns(2)
+                        
+                        with col_act:
+                            st.markdown("**📝 Aktivitas Utama:**")
+                            for activity in phase['activities']:
+                                st.markdown(f"• {activity}")
+                        
+                        with col_del:
+                            st.markdown("**🎯 Deliverables:**")
+                            for deliverable in phase['deliverables']:
+                                st.markdown(f"• {deliverable}")
+
+                # FINAL EXECUTIVE SUMMARY
+                st.subheader("🏆 EXECUTIVE SUMMARY")
+                
+                # Create executive summary based on analysis
+                if data_quality_score >= 80:
+                    summary = f"""
+                    **🎉 STATUS: EXCELLENT** 
+                    
+                    Dataset dalam kondisi **sangat baik** dengan skor kualitas {data_quality_score:.1f}/100. 
+                    Data siap untuk analisis lanjutan dan modeling tanpa preprocessing signifikan.
+                    
+                    **📈 REKOMENDASI:**
+                    - Lanjutkan langsung ke analisis bisnis dan modeling
+                    - Manfaatkan data untuk pengambilan keputusan strategis
+                    - Pertimbangkan analisis prediktif dan machine learning
+                    """
+                elif data_quality_score >= 60:
+                    summary = f"""
+                    **⚠️ STATUS: GOOD (Need Minor Improvement)**
+                    
+                    Dataset dalam kondisi **baik** dengan skor kualitas {data_quality_score:.1f}/100. 
+                    Beberapa improvement minor diperlukan sebelum analisis lanjutan.
+                    
+                    **🔧 REKOMENDASI:**
+                    - Lakukan cleaning data ringan ({len(problems)} issues teridentifikasi)
+                    - Validasi hasil cleaning sebelum analisis utama  
+                    - Bisa parallel dengan analisis eksploratori awal
+                    """
+                else:
+                    summary = f"""
+                    **🚨 STATUS: NEEDS MAJOR IMPROVEMENT**
+                    
+                    Dataset memerlukan **significant preprocessing** dengan skor kualitas {data_quality_score:.1f}/100.
+                    {len(problems)} masalah kritis perlu ditangani sebelum analisis.
+                    
+                    **🛠️ REKOMENDASI:**
+                    - Prioritaskan data cleaning dan quality assurance
+                    - Alokasi waktu 1-2 minggu untuk preprocessing
+                    - Validasi menyeluruh sebelum analisis lanjutan
+                    """
+                
+                st.info(summary)
+
+                # Ekspor Laporan Super Lengkap
+                st.subheader("📤 EKSPOR LAPORAN ANALISIS SUPER LENGKAP")
+                
+                if st.button("📊 GENERATE COMPREHENSIVE BUSINESS REPORT"):
+                    # Buat laporan analisis super lengkap
+                    comprehensive_report = f"""
+                    LAPORAN ANALISIS DATA BISNIS KOMPREHENSIF
+                    ===========================================
+                    
+                    TANGGAL GENERATE: {pd.Timestamp.now().strftime('%Y-%m-%d %H:%M:%S')}
+                    JENIS ANALISIS: Business Intelligence & Data Assessment
+                    
+                    EXECUTIVE SUMMARY:
+                    - Overall Quality Score: {data_quality_score:.1f}/100
+                    - Business Readiness: {analytics_readiness}
+                    - Implementation Priority: {implementation_priority}
+                    - Estimated Timeline: {phases[0]['duration']}
+                    
+                    PROFIL DATASET:
+                    - Total Records: {len(df):,}
+                    - Total Features: {len(df.columns)}
+                    - Numeric Features: {numeric_cols}
+                    - Categorical Features: {categorical_cols}
+                    - Memory Usage: {memory_usage:.2f} MB
+                    - Data Types Variety: {len(df.dtypes.unique())}
+                    
+                    ASSESSMENT KUALITAS DATA:
+                    - Missing Values: {missing_values} ({missing_values/(len(df)*len(df.columns))*100:.1f}%)
+                    - Duplicate Records: {duplicate_rows} ({duplicate_rows/len(df)*100:.1f}%)
+                    - Completeness Rate: {completeness_rate:.1f}%
+                    - Data Quality Index: {data_quality_score:.1f}/100
+                    
+                    PROFIL STATISTIK LENGKAP:"""
+                    
+                    if numeric_columns:
+                        comprehensive_report += f"""
+                    - Central Tendency: Mean={basic_stats['avg_value']:.2f}, Median={basic_stats['median_value']:.2f}
+                    - Dispersion: Std Dev={basic_stats['std_value']:.2f}, Range={basic_stats['range']:.2f}
+                    - Distribution: Skewness={basic_stats['skewness']:.2f}, CV={basic_stats['cv_value']:.1f}%
+                    - Quartiles: Q1={basic_stats['q1']:.2f}, Q3={basic_stats['q3']:.2f}, IQR={(basic_stats['q3'] - basic_stats['q1']):.2f}
+                    - Extremes: Min={basic_stats['min_value']:.2f}, Max={basic_stats['max_value']:.2f}"""
+                    else:
+                        comprehensive_report += "\n                - Tidak ada kolom numerik untuk analisis statistik mendalam"
+                    
+                    comprehensive_report += f"""
+                    
+                    IDENTIFIED ISSUES & RISK ASSESSMENT:
+                    Total Problems Identified: {len(problems)}
+                    Overall Risk Score: {sum(risk_scores)/len(risk_scores) if risk_scores else 0:.1f}/100
+                    
+                    DETAILED ISSUES:"""
+                    
+                    for i, problem in enumerate(problems, 1):
+                        comprehensive_report += f"""
+                    {i}. {problem['issue']}
+                    Detail: {problem['detail']}
+                    Risk Score: {problem['risk']:.1f}/100
+                    Business Impact: {problem['impact']}"""
+                    
+                    comprehensive_report += f"""
+                    
+                    STRATEGIC RECOMMENDATIONS:
+                    {chr(10).join(['- ' + solution for solution in solutions]) if solutions else '- Data dalam kondisi optimal untuk analisis bisnis'}
+                    
+                    IMPLEMENTATION ROADMAP:"""
+                    
+                    for i, phase in enumerate(phases, 1):
+                        comprehensive_report += f"""
+                    PHASE {i}: {phase['phase']}
+                    Duration: {phase['duration']}
+                    Key Activities: {', '.join(phase['activities'])}
+                    Deliverables: {', '.join(phase['deliverables'])}"""
+                    
+                    comprehensive_report += f"""
+                    
+                    BUSINESS IMPACT ANALYSIS:
+                    - Current State: {business_impact} Impact
+                    - Readiness for Analytics: {analytics_readiness}
+                    - Recommended Next Steps: {implementation_priority}
+                    - Expected Value: {'High ROI' if data_quality_score > 70 else 'Medium ROI' if data_quality_score > 50 else 'Requires Investment'}
+                    
+                    TECHNICAL RECOMMENDATIONS:
+                    - Data Storage: {f'{memory_usage:.2f} MB - Optimal' if memory_usage < 100 else f'{memory_usage:.2f} MB - Consider Compression'}
+                    - Processing Needs: {'Standard' if len(df) < 100000 else 'High Performance'}
+                    - Monitoring: {'Basic Quality Checks' if data_quality_score > 80 else 'Comprehensive Monitoring'}
+                    
+                    CONCLUSION & NEXT STEPS:
+                    Dataset ini {'sangat layak untuk analisis bisnis lanjutan dan dapat memberikan insights bernilai tinggi' if data_quality_score > 80 
+                                else 'perlu sedikit improvement sebelum analisis mendalam tetapi dapat memberikan value business' if data_quality_score > 60 
+                                else 'memerlukan significant investment dalam data preparation sebelum dapat digunakan untuk analisis bisnis yang reliable'}.
+                    
+                    Disarankan untuk {'langsung melanjutkan ke analytical modeling' if data_quality_score > 75 
+                                    else 'melakukan data cleaning terlebih dahulu selama 1-2 minggu' if data_quality_score > 50 
+                                    else 'mengalokasikan 2-3 minggu untuk comprehensive data quality improvement'}.
+                    
+                    ---
+                    Laporan dibuat secara otomatis oleh Advanced Analytics System
+                    Tim Business Intelligence & Data Science
+                    """
+                    
+                    st.download_button(
+                        label="📥 DOWNLOAD LAPORAN BISNIS LENGKAP (TXT)",
+                        data=comprehensive_report,
+                        file_name=f"business_analytics_report_{pd.Timestamp.now().strftime('%Y%m%d_%H%M')}.txt",
+                        mime="text/plain"
+                    )
+                
+            else:
+                st.warning("Dataset kosong atau tidak valid")
 else:
-    st.info("Silakan unggah file CSV atau Excel melalui sidebar di sebelah kiri.")
+    st.info("📁 **Panduan Unggah File**: Silakan unggah file CSV atau Excel melalui sidebar di sebelah kiri untuk memulai analisis data.")
     
-    st.subheader("📋 Contoh Data")
+    st.subheader("📋 Contoh Struktur Data yang Didukung")
+    st.write("Berikut adalah contoh format data yang dapat diolah oleh dashboard ini:")
     example_data = create_sample_file()
-    st.dataframe(example_data.head())
+    st.dataframe(example_data.head(), use_container_width=True)
     
-    st.subheader("📊 Contoh Visualisasi Baru")
+    # Informasi kolom data
+    st.markdown("""
+    **Keterangan Kolom Data:**
+    - **Date**: Tanggal transaksi (format: YYYY-MM-DD)
+    - **Open**: Harga pembukaan saham
+    - **High**: Harga tertinggi harian
+    - **Low**: Harga terendah harian  
+    - **Close**: Harga penutupan saham
+    - **Volume**: Volume transaksi
+    - **Sektor**: Kategori sektor perusahaan
+    - **Kategori_Produk**: Jenis produk yang diperdagangkan
+    """)
+    
+    st.subheader("📊 Pratinjau Visualisasi Dashboard")
+    st.write("Dashboard ini akan menampilkan berbagai visualisasi interaktif setelah data diunggah:")
+    
+    # Row 1: KPI Cards
+    st.write("**📈 Key Performance Indicators**")
+    kpi_col1, kpi_col2, kpi_col3, kpi_col4 = st.columns(4)
+    
+    with kpi_col1:
+        st.markdown("""
+        <div class="kpi-card" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); 
+                    padding: 20px; border-radius: 10px; color: white; text-align: center; margin-bottom: 20px;">
+            <div class="kpi-title" style="font-size: 14px; opacity: 0.9;">Rata-rata Close Price</div>
+            <div class="kpi-value" style="font-size: 32px; font-weight: bold; margin: 10px 0;">105.42</div>
+            <div class="kpi-change" style="font-size: 12px; background: rgba(255,255,255,0.2); 
+                    padding: 5px; border-radius: 15px;">+2.5% dari bulan sebelumnya</div>
+        </div>
+        """, unsafe_allow_html=True)
+    
+    with kpi_col2:
+        st.markdown("""
+        <div class="kpi-card" style="background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); 
+                    padding: 20px; border-radius: 10px; color: white; text-align: center; margin-bottom: 20px;">
+            <div class="kpi-title" style="font-size: 14px; opacity: 0.9;">Total Volume</div>
+            <div class="kpi-value" style="font-size: 32px; font-weight: bold; margin: 10px 0;">2.5M</div>
+            <div class="kpi-change" style="font-size: 12px; background: rgba(255,255,255,0.2); 
+                    padding: 5px; border-radius: 15px;">+15.3% dari rata-rata</div>
+        </div>
+        """, unsafe_allow_html=True)
+    
+    with kpi_col3:
+        st.markdown("""
+        <div class="kpi-card" style="background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%); 
+                    padding: 20px; border-radius: 10px; color: white; text-align: center; margin-bottom: 20px;">
+            <div class="kpi-title" style="font-size: 14px; opacity: 0.9;">Volatilitas Harian</div>
+            <div class="kpi-value" style="font-size: 32px; font-weight: bold; margin: 10px 0;">3.2%</div>
+            <div class="kpi-change" style="font-size: 12px; background: rgba(255,255,255,0.2); 
+                    padding: 5px; border-radius: 15px;">-0.8% lebih rendah</div>
+        </div>
+        """, unsafe_allow_html=True)
+    
+    with kpi_col4:
+        st.markdown("""
+        <div class="kpi-card" style="background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%); 
+                    padding: 20px; border-radius: 10px; color: white; text-align: center; margin-bottom: 20px;">
+            <div class="kpi-title" style="font-size: 14px; opacity: 0.9;">Total Sektor</div>
+            <div class="kpi-value" style="font-size: 32px; font-weight: bold; margin: 10px 0;">8</div>
+            <div class="kpi-change" style="font-size: 12px; background: rgba(255,255,255,0.2); 
+                    padding: 5px; border-radius: 15px;">+2 sektor baru</div>
+        </div>
+        """, unsafe_allow_html=True)
+    
+    # Deteksi tipe data kolom
+    numeric_cols = example_data.select_dtypes(include=[np.number]).columns.tolist()
+    categorical_cols = example_data.select_dtypes(include=['object']).columns.tolist()
+    
+    # Jika tidak ada kolom kategorikal, coba kolom dengan nilai unik sedikit
+    if not categorical_cols:
+        for col in example_data.columns:
+            if example_data[col].nunique() <= 10:  # Jika punya <= 10 nilai unik, anggap kategorikal
+                categorical_cols.append(col)
+    
+    # Row 2: Line Chart dan Area Chart
     col1, col2 = st.columns(2)
     
     with col1:
-        # Contoh Histogram Responsif
-        fig_hist = px.histogram(example_data, x='Close', title='Contoh Histogram Responsif',
-                               color_discrete_sequence=['#636EFA'], opacity=0.8)
-        st.plotly_chart(fig_hist, use_container_width=True)
+        # Line Chart - Trend Harga
+        st.write("**📈 Line Chart - Trend Data**")
+        
+        # Cek dan proses data untuk line chart
+        if len(numeric_cols) >= 4:
+            # Gunakan 4 kolom numerik pertama untuk line chart
+            line_data = example_data.reset_index()
+            fig_line = px.line(line_data, x=line_data.index, y=numeric_cols[:4],
+                              title='Trend Data Numerik',
+                              color_discrete_sequence=['#636EFA', '#00CC96', '#EF553B', '#AB63FA'])
+        else:
+            # Gunakan semua kolom numerik yang ada
+            line_data = example_data.reset_index()
+            available_cols = numeric_cols[:min(4, len(numeric_cols))]
+            if available_cols:
+                fig_line = px.line(line_data, x=line_data.index, y=available_cols,
+                                  title='Trend Data Numerik',
+                                  color_discrete_sequence=px.colors.qualitative.Set1[:len(available_cols)])
+            else:
+                # Buat data dummy jika tidak ada kolom numerik
+                dummy_data = pd.DataFrame({
+                    'index': range(10),
+                    'Value1': np.random.rand(10) * 100,
+                    'Value2': np.random.rand(10) * 100 + 50
+                })
+                fig_line = px.line(dummy_data, x='index', y=['Value1', 'Value2'],
+                                  title='Contoh Trend Data',
+                                  color_discrete_sequence=['#636EFA', '#00CC96'])
+        
+        fig_line.update_layout(
+            title_font_size=16,
+            template='plotly_white',
+            legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1),
+            hovermode='x unified'
+        )
+        st.plotly_chart(fig_line, use_container_width=True)
+        st.caption("Line chart menampilkan pergerakan data numerik untuk analisis trend.")
     
     with col2:
-        # Contoh KPI Scorecard
+        # Area Chart - Data Numerik
+        st.write("**📊 Area Chart - Distribusi Kumulatif**")
+        
+        if numeric_cols:
+            area_data = example_data.reset_index()
+            fig_area = px.area(area_data, x=area_data.index, y=numeric_cols[0],
+                              title=f'Distribusi Kumulatif {numeric_cols[0]}',
+                              color_discrete_sequence=['#FFA15A'])
+        else:
+            # Buat data dummy
+            area_data = pd.DataFrame({
+                'index': range(10),
+                'Value': np.cumsum(np.random.rand(10) * 10)
+            })
+            fig_area = px.area(area_data, x='index', y='Value',
+                              title='Contoh Area Chart',
+                              color_discrete_sequence=['#FFA15A'])
+        
+        fig_area.update_layout(
+            title_font_size=16,
+            template='plotly_white',
+            showlegend=False
+        )
+        fig_area.update_traces(opacity=0.6)
+        st.plotly_chart(fig_area, use_container_width=True)
+        st.caption("Area chart menunjukkan distribusi kumulatif data dengan fill pattern.")
+    
+    # Row 3: Histogram dan Pie Chart
+    col3, col4 = st.columns(2)
+    
+    with col3:
+        # Histogram Distribusi Data
+        st.write("**📊 Histogram - Distribusi Data**")
+        
+        if numeric_cols:
+            fig_hist = px.histogram(example_data, x=numeric_cols[0], 
+                                   title=f'Distribusi Frekuensi {numeric_cols[0]}',
+                                   color_discrete_sequence=['#636EFA'], 
+                                   opacity=0.8,
+                                   nbins=20)
+        else:
+            # Buat data dummy
+            dummy_hist = pd.DataFrame({
+                'Value': np.random.normal(100, 15, 1000)
+            })
+            fig_hist = px.histogram(dummy_hist, x='Value', 
+                                   title='Contoh Histogram',
+                                   color_discrete_sequence=['#636EFA'], 
+                                   opacity=0.8,
+                                   nbins=20)
+        
+        fig_hist.update_layout(
+            title_font_size=16,
+            template='plotly_white',
+            showlegend=False,
+            xaxis_title="Nilai",
+            yaxis_title="Frekuensi"
+        )
+        st.plotly_chart(fig_hist, use_container_width=True)
+        st.caption("Histogram menampilkan distribusi frekuensi data untuk analisis pola sebaran.")
+    
+    with col4:
+        # Pie Chart - Komposisi Kategori
+        st.write("**🥧 Pie Chart - Komposisi Data**")
+        
+        if categorical_cols:
+            cat_composition = example_data[categorical_cols[0]].value_counts().reset_index()
+            cat_composition.columns = ['Kategori', 'Count']
+        else:
+            # Buat data dummy
+            cat_composition = pd.DataFrame({
+                'Kategori': ['Kategori A', 'Kategori B', 'Kategori C', 'Kategori D'],
+                'Count': [25, 30, 20, 25]
+            })
+        
+        fig_pie = px.pie(cat_composition, values='Count', names='Kategori',
+                        title='Distribusi Persentase Data',
+                        color_discrete_sequence=px.colors.qualitative.Set3,
+                        hole=0.4)
+        fig_pie.update_layout(
+            title_font_size=16,
+            template='plotly_white',
+            legend=dict(orientation="v", yanchor="middle", y=0.5, xanchor="left", x=1.1)
+        )
+        fig_pie.update_traces(textposition='inside', textinfo='percent+label')
+        st.plotly_chart(fig_pie, use_container_width=True)
+        st.caption("Pie chart menunjukkan komposisi persentase data berdasarkan kategori.")
+    
+    # Row 4: Scatter Plot dan Bar Chart
+    col5, col6 = st.columns(2)
+    
+    with col5:
+        # Scatter Plot - Korelasi Variabel
+        st.write("**🔍 Scatter Plot - Korelasi Variabel**")
+        
+        if len(numeric_cols) >= 2:
+            x_col = numeric_cols[0]
+            y_col = numeric_cols[1]
+            
+            if categorical_cols:
+                color_col = categorical_cols[0]
+                fig_scatter = px.scatter(example_data, x=x_col, y=y_col, color=color_col,
+                                       title=f'Korelasi {x_col} vs {y_col}',
+                                       size=y_col if len(numeric_cols) > 2 else None,
+                                       hover_data=example_data.columns.tolist()[:3],
+                                       color_discrete_sequence=px.colors.qualitative.Bold)
+            else:
+                fig_scatter = px.scatter(example_data, x=x_col, y=y_col,
+                                       title=f'Korelasi {x_col} vs {y_col}',
+                                       color_discrete_sequence=['#636EFA'])
+        else:
+            # Buat data dummy
+            dummy_scatter = pd.DataFrame({
+                'X': np.random.rand(50) * 100,
+                'Y': np.random.rand(50) * 100 + 50,
+                'Category': np.random.choice(['A', 'B', 'C'], 50)
+            })
+            fig_scatter = px.scatter(dummy_scatter, x='X', y='Y', color='Category',
+                                   title='Contoh Scatter Plot',
+                                   color_discrete_sequence=px.colors.qualitative.Bold)
+        
+        fig_scatter.update_layout(
+            title_font_size=16,
+            template='plotly_white',
+            xaxis_title="Variabel X",
+            yaxis_title="Variabel Y"
+        )
+        st.plotly_chart(fig_scatter, use_container_width=True)
+        st.caption("Scatter plot menampilkan hubungan korelasi antara dua variabel numerik.")
+    
+    with col6:
+        # Bar Chart - Rata-rata per Kategori
+        st.write("**📊 Bar Chart - Performa per Kategori**")
+        
+        if categorical_cols and numeric_cols:
+            bar_data = example_data.groupby(categorical_cols[0])[numeric_cols[0]].mean().reset_index()
+            bar_data.columns = ['Kategori', 'Rata_rata']
+            
+            fig_bar = px.bar(bar_data, x='Kategori', y='Rata_rata',
+                            title=f'Rata-rata {numeric_cols[0]} per {categorical_cols[0]}',
+                            color='Rata_rata',
+                            color_continuous_scale='Viridis')
+        else:
+            # Data dummy untuk bar chart
+            bar_data = pd.DataFrame({
+                'Kategori': ['Kategori A', 'Kategori B', 'Kategori C', 'Kategori D'],
+                'Rata_rata': [100, 150, 120, 180]
+            })
+            fig_bar = px.bar(bar_data, x='Kategori', y='Rata_rata',
+                            title='Contoh Bar Chart',
+                            color='Rata_rata',
+                            color_continuous_scale='Viridis')
+        
+        fig_bar.update_layout(
+            title_font_size=16,
+            template='plotly_white',
+            xaxis_title="Kategori",
+            yaxis_title="Rata-rata",
+            showlegend=False
+        )
+        st.plotly_chart(fig_bar, use_container_width=True)
+        st.caption("Bar chart perbandingan rata-rata nilai untuk setiap kategori.")
+    
+    # Row 5: Treemap dan Box Plot
+    col7, col8 = st.columns(2)
+    
+    with col7:
+        # Treemap - Hierarki Data
+        st.write("**🌳 Treemap - Struktur Hierarkis**")
+        
+        if len(categorical_cols) >= 2 and numeric_cols:
+            # Pastikan kita punya cukup kolom kategorikal
+            tree_group_cols = categorical_cols[:2]
+            tree_data = example_data.groupby(tree_group_cols)[numeric_cols[0]].sum().reset_index()
+            
+            fig_tree = px.treemap(tree_data, path=tree_group_cols, values=numeric_cols[0],
+                                 title='Struktur Data Hierarkis',
+                                 color=numeric_cols[0], 
+                                 color_continuous_scale='Blues')
+        elif categorical_cols and numeric_cols:
+            # Jika hanya punya 1 kolom kategorikal, buat level tambahan
+            tree_data = example_data.copy()
+            tree_data['Level2'] = 'Subkategori'  # Tambahkan level dummy
+            tree_group_cols = [categorical_cols[0], 'Level2']
+            tree_data = tree_data.groupby(tree_group_cols)[numeric_cols[0]].sum().reset_index()
+            
+            fig_tree = px.treemap(tree_data, path=tree_group_cols, values=numeric_cols[0],
+                                 title='Struktur Data Hierarkis',
+                                 color=numeric_cols[0], 
+                                 color_continuous_scale='Blues')
+        else:
+            # Data dummy untuk treemap
+            tree_data = pd.DataFrame({
+                'Level1': ['Sektor A', 'Sektor A', 'Sektor B', 'Sektor B'],
+                'Level2': ['Produk 1', 'Produk 2', 'Produk 1', 'Produk 2'],
+                'Value': [100, 200, 150, 250]
+            })
+            fig_tree = px.treemap(tree_data, path=['Level1', 'Level2'], values='Value',
+                                 title='Contoh Treemap',
+                                 color='Value', 
+                                 color_continuous_scale='Blues')
+        
+        fig_tree.update_layout(
+            title_font_size=16,
+            margin=dict(t=50, l=25, r=25, b=25)
+        )
+        st.plotly_chart(fig_tree, use_container_width=True)
+        st.caption("Treemap menampilkan hubungan hierarkis antara kategori data berdasarkan nilai agregat.")
+    
+    with col8:
+        # Box Plot - Distribusi per Kategori
+        st.write("**📦 Box Plot - Variasi Data**")
+        
+        if categorical_cols and numeric_cols:
+            fig_box = px.box(example_data, x=categorical_cols[0], y=numeric_cols[0],
+                            title=f'Distribusi {numeric_cols[0]} per {categorical_cols[0]}',
+                            color=categorical_cols[0],
+                            color_discrete_sequence=px.colors.qualitative.Pastel)
+        else:
+            # Data dummy untuk box plot
+            dummy_box = pd.DataFrame({
+                'Kategori': ['A']*20 + ['B']*20 + ['C']*20,
+                'Nilai': np.concatenate([
+                    np.random.normal(100, 10, 20), 
+                    np.random.normal(150, 15, 20), 
+                    np.random.normal(120, 12, 20)
+                ])
+            })
+            fig_box = px.box(dummy_box, x='Kategori', y='Nilai', color='Kategori',
+                            title='Contoh Box Plot',
+                            color_discrete_sequence=px.colors.qualitative.Pastel)
+        
+        fig_box.update_layout(
+            title_font_size=16,
+            template='plotly_white',
+            xaxis_title="Kategori",
+            yaxis_title="Nilai",
+            showlegend=False
+        )
+        st.plotly_chart(fig_box, use_container_width=True)
+        st.caption("Box plot menunjukkan distribusi statistik data untuk setiap kategori.")
+
+    # Fitur Dashboard yang Tersedia
+    st.subheader("🚀 Fitur Dashboard yang Tersedia")
+    
+    feature_col1, feature_col2, feature_col3 = st.columns(3)
+    
+    with feature_col1:
         st.markdown("""
-        <div class="kpi-card">
-            <div class="kpi-title">Rata-rata Close Price</div>
-            <div class="kpi-value">105.42</div>
-            <div class="kpi-title">Contoh KPI</div>
+        <div style="background-color: #f8f9fa; padding: 15px; border-radius: 10px; border-left: 4px solid #636EFA;">
+            <h4 style="margin: 0 0 10px 0; color: #636EFA;">📈 Analisis Trend</h4>
+            <p style="margin: 0; font-size: 14px;">Visualisasi time series dengan berbagai indikator teknikal</p>
         </div>
         """, unsafe_allow_html=True)
-        
-        # Contoh Treemap
-        tree_data = example_data.groupby(['Sektor', 'Kategori_Produk'])['Volume'].sum().reset_index()
-        fig_tree = px.treemap(tree_data, path=['Sektor', 'Kategori_Produk'], values='Volume',
-                             title='Contoh Treemap')
-        st.plotly_chart(fig_tree, use_container_width=True)
+    
+    with feature_col2:
+        st.markdown("""
+        <div style="background-color: #f8f9fa; padding: 15px; border-radius: 10px; border-left: 4px solid #00CC96;">
+            <h4 style="margin: 0 0 10px 0; color: #00CC96;">📊 Statistik Deskriptif</h4>
+            <p style="margin: 0; font-size: 14px;">Analisis statistik lengkap dengan metrik KPI</p>
+        </div>
+        """, unsafe_allow_html=True)
+    
+    with feature_col3:
+        st.markdown("""
+        <div style="background-color: #f8f9fa; padding: 15px; border-radius: 10px; border-left: 4px solid #EF553B;">
+            <h4 style="margin: 0 0 10px 0; color: #EF553B;">🔍 Analisis Korelasi</h4>
+            <p style="margin: 0; font-size: 14px;">Heatmap korelasi dan analisis hubungan variabel</p>
+        </div>
+        """, unsafe_allow_html=True)
 
 st.markdown("---")
-st.markdown("Dashboard Statistik © 2025 - Dibuat oleh Dwi Bakti N Dev")
+st.markdown("""
+<div style="text-align: center; color: #666; padding: 20px;">
+    <div style="display: flex; align-items: center; justify-content: center; gap: 20px; margin-bottom: 15px;">
+        <div style="width: 80px; height: 80px; border-radius: 50%; overflow: hidden; border: 3px solid #636EFA;">
+            <img src="https://portofolio-dwi-bakti-n-dev-liard.vercel.app/user/royhtml.jpg" alt="Profile Picture" style="width: 100%; height: 100%; object-fit: cover;">
+        </div>
+        <div>
+            <h3 style="margin-bottom: 10px;">Dashboard Statistik Lengkap</h3>
+            <p style="margin: 5px 0;">📅 <strong>Tahun 2025</strong> | 🎯 <strong>Analisis Data Keuangan & Pasar</strong></p>
+        </div>
+    </div>
+    <p style="margin: 5px 0; font-size: 14px;">Sebuah solusi komprehensif untuk analisis data finansial dengan visualisasi interaktif</p>
+    <p style="margin: 15px 0 5px 0; font-style: italic;">Dikembangkan dengan ❤️ oleh:</p>
+    <p style="margin: 0; font-weight: bold; color: #636EFA; font-size: 16px;">Dwi Bakti N Dev</p>
+    <p style="margin: 5px 0; font-size: 12px;">Data Scientist & Business Intelligence Developer</p>
+</div>
+""", unsafe_allow_html=True)
+
+# Footer yang aman
+try:
+    total_records = len(df) if 'df' in locals() or 'df' in globals() else 0
+    quality_score = data_quality_score if 'data_quality_score' in locals() or 'data_quality_score' in globals() else 0
+    risk_score = sum(risk_scores)/len(risk_scores) if risk_scores and 'risk_scores' in locals() else 0
+except:
+    total_records = 0
+    quality_score = 0
+    risk_score = 0
+
+st.markdown(f"""
+<div style='text-align: center; color: #666; font-size: 0.9em;'>
+    Terakhir diperbarui: {pd.Timestamp.now().strftime('%d %B %Y %H:%M')} | 
+    Total Records: {total_records:,} | 
+    Skor Kualitas: {quality_score:.1f}/100 |
+    Risk Level: {risk_score:.1f}/100
+</div>
+""", unsafe_allow_html=True)
