@@ -11509,7 +11509,7 @@ st.markdown("""
 <div style="text-align: center; color: #666; padding: 20px;">
     <div style="display: flex; align-items: center; justify-content: center; gap: 20px; margin-bottom: 15px;">
         <div style="width: 80px; height: 80px; border-radius: 50%; overflow: hidden; border: 3px solid #636EFA;">
-            <img src="https://github.com/DwiDevelopes/gambar/raw/main/Desain%20tanpa%20judul%20(8).jpg" alt="Profile Picture" style="width: 100%; height: 100%; object-fit: cover;">
+            <img src="https://github.com/DwiDevelopes/gambar/raw/main/Screenshot%202025-10-17%20100808.png" alt="Profile Picture" style="width: 100%; height: 100%; object-fit: cover;">
         </div>
         <div>
             <h3 style="margin-bottom: 10px;">Dashboard Statistik Lengkap</h3>
