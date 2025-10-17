@@ -20,6 +20,20 @@ from PIL import Image
 import pandas as pd
 import numpy as np
 from graphviz import Digraph
+import streamlit as st
+import pandas as pd
+import numpy as np
+import plotly.express as px
+import plotly.graph_objects as go
+from sklearn.ensemble import RandomForestRegressor, RandomForestClassifier, IsolationForest
+from sklearn.linear_model import LinearRegression, Ridge, LogisticRegression
+from sklearn.svm import SVC
+from sklearn.neighbors import LocalOutlierFactor
+from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import StandardScaler, LabelEncoder
+from sklearn.metrics import mean_squared_error, r2_score, accuracy_score, classification_report, confusion_matrix
+from sklearn.inspection import permutation_importance
+from scipy.stats import gaussian_kde
 
 # Konfigurasi untuk performa
 plt.style.use('default')
@@ -249,7 +263,7 @@ def create_all_visualizations(df):
         "📈 Grafik Garis (Line Chart)",
         "📊 Grafik Batang (Bar Chart)", 
         "📋 Histogram Responsif Berwarna",  # DIUBAH NAMA DI SINI
-        "🔄 Kombinasi Grafik Garis & Batang",
+        "🔄 Diamond Chart",
         "🔵 Scatter Plot",
         "🫧 Grafik Gelembung (Bubble Chart)",
         "🎯 Grafik Gauge (Speedometer)",
@@ -265,7 +279,7 @@ def create_all_visualizations(df):
         "🗺️ Grafik Peta (Map Chart)",
         "🌊 Grafik Peta Aliran (Flow Map)",
         "🔥 Heatmap",
-        "📈 Multiple Line Chart"
+        "🤖 Model Penelitian (Regression Chart)"
     ]
     
     chart_type = st.sidebar.selectbox("Pilih Jenis Chart", chart_types, key="chart_type_select")
@@ -286,8 +300,8 @@ def create_all_visualizations(df):
             elif chart_type == "📋 Histogram Responsif Berwarna":  # DIUBAH DI SINI
                 create_responsive_histogram(df, numeric_cols)  # PASTIKAN NAMA FUNGSI SESUAI
                 
-            elif chart_type == "🔄 Kombinasi Grafik Garis & Batang":
-                create_combined_chart(df, numeric_cols, non_numeric_cols)
+            elif chart_type == "🔄 Diamond Chart":
+                create_diamond_chart(df, numeric_cols, non_numeric_cols)
                 
             elif chart_type == "🔵 Scatter Plot":
                 create_scatter_plot(df, numeric_cols, non_numeric_cols)
@@ -334,8 +348,8 @@ def create_all_visualizations(df):
             elif chart_type == "🔥 Heatmap":
                 create_heatmap(df, numeric_cols)
                 
-            elif chart_type == "📈 Multiple Line Chart":
-                create_multiple_line_chart(df, numeric_cols, non_numeric_cols)
+            elif chart_type == "🤖 Model Penelitian (Regression Chart)":
+                create_ml_dl_analysis_dashboard(df, numeric_cols, non_numeric_cols)
                 
     except Exception as e:
         st.error(f"Error dalam membuat visualisasi: {str(e)}")
@@ -1749,36 +1763,92 @@ def create_treemap_fast(df, numeric_cols, non_numeric_cols):
         )
         
         st.plotly_chart(fig, use_container_width=True)
-
 def create_line_chart(df, numeric_cols, non_numeric_cols):
+    """
+    Membuat grafik garis interaktif dengan optimasi performa untuk dataset besar
+    
+    Parameters:
+    - df: DataFrame pandas
+    - numeric_cols: List kolom numerik
+    - non_numeric_cols: List kolom non-numerik
+    """
+    
+    # UI Controls
+    st.subheader("📈 Buat Grafik Garis")
+    
     col1, col2 = st.columns(2)
     
     with col1:
-        x_col = st.selectbox("Pilih kolom untuk sumbu X", 
-                           [df.index.name if df.index.name else "index"] + non_numeric_cols + numeric_cols, 
-                           key="line_x_col")
-    with col2:
-        y_col = st.selectbox("Pilih kolom untuk sumbu Y", numeric_cols, key="line_y_col")
+        x_col = st.selectbox(
+            "Pilih kolom untuk sumbu X", 
+            [df.index.name if df.index.name else "index"] + non_numeric_cols + numeric_cols, 
+            key="line_x_col"
+        )
     
-    # Optimasi: Pengaturan performa
+    with col2:
+        y_col = st.selectbox(
+            "Pilih kolom untuk sumbu Y", 
+            numeric_cols, 
+            key="line_y_col"
+        )
+    
+    # Multiple Y columns option
+    multi_y = st.checkbox("Gunakan multiple Y columns", value=False, key="line_multi_y")
+    
+    if multi_y:
+        y_cols = st.multiselect(
+            "Pilih kolom untuk sumbu Y (multiple)", 
+            numeric_cols,
+            default=[y_col] if y_col in numeric_cols else [numeric_cols[0]] if numeric_cols else [],
+            key="line_y_cols"
+        )
+    else:
+        y_cols = [y_col]
+    
+    # Performance settings
     with st.expander("⚙️ Pengaturan Performa", expanded=False):
         col3, col4 = st.columns(2)
+        
         with col3:
-            max_points = st.slider("Maksimum titik data", 
-                                 min_value=500, max_value=10000, value=2000, 
-                                 key="line_max_points")
+            max_points = st.slider(
+                "Maksimum titik data", 
+                min_value=500, 
+                max_value=10000, 
+                value=2000, 
+                step=500,
+                key="line_max_points"
+            )
             use_sampling = st.checkbox("Gunakan sampling", value=True, key="line_sampling")
+        
         with col4:
-            aggregation = st.selectbox("Aggregasi data", 
-                                     ["none", "mean", "sum", "max"], 
-                                     key="line_aggregation")
+            aggregation = st.selectbox(
+                "Aggregasi data", 
+                ["none", "mean", "sum", "max", "min"], 
+                key="line_aggregation"
+            )
             show_range_slider = st.checkbox("Tampilkan range slider", value=True, key="line_range_slider")
     
-    if x_col and y_col:
+    # Chart customization
+    with st.expander("🎨 Kustomisasi Chart", expanded=False):
+        col5, col6 = st.columns(2)
+        
+        with col5:
+            chart_title = st.text_input("Judul Chart", value="", key="line_title")
+            line_mode = st.selectbox(
+                "Mode Garis", 
+                ["lines", "lines+markers", "markers"],
+                key="line_mode"
+            )
+        
+        with col6:
+            line_width = st.slider("Ketebalan Garis", 1, 5, 2, key="line_width")
+            show_grid = st.checkbox("Tampilkan grid", value=True, key="line_grid")
+    
+    if x_col and y_cols:
         try:
             with st.spinner("Memproses data line chart..."):
-                # Optimasi 1: Persiapan data dasar
-                processed_df = df[[y_col]].copy()
+                # Prepare data
+                processed_df = df[y_cols].copy()
                 
                 if x_col == "index":
                     x_data = df.index
@@ -1789,113 +1859,35 @@ def create_line_chart(df, numeric_cols, non_numeric_cols):
                     x_label = x_col
                     processed_df['x_axis'] = x_data
                 
-                # Optimasi 2: Sampling untuk data besar
+                # Remove rows with NaN in x_axis
+                processed_df = processed_df.dropna(subset=['x_axis'])
+                
+                # Data sampling for large datasets
                 if use_sampling and len(processed_df) > max_points:
-                    if pd.api.types.is_datetime64_any_dtype(processed_df['x_axis']):
-                        # Untuk time series, sampling terstruktur
-                        processed_df = processed_df.sort_values('x_axis')
-                        sample_frac = max_points / len(processed_df)
-                        processed_df = processed_df.sample(frac=sample_frac, random_state=42)
-                        processed_df = processed_df.sort_values('x_axis')
-                    else:
-                        # Untuk data non-time series, sampling sederhana
-                        processed_df = processed_df.sample(n=max_points, random_state=42)
-                    
-                    st.info(f"📊 Data disampling: {len(processed_df):,} dari {len(df):,} titik data")
+                    processed_df = _apply_sampling(processed_df, max_points, x_label)
                 
-                # Optimasi 3: Aggregasi untuk data yang masih banyak
+                # Data aggregation
                 if len(processed_df) > max_points and aggregation != "none":
-                    if pd.api.types.is_datetime64_any_dtype(processed_df['x_axis']):
-                        # Aggregasi time series
-                        processed_df = processed_df.set_index('x_axis')
-                        if aggregation == "mean":
-                            processed_df = processed_df.resample('D').mean()
-                        elif aggregation == "sum":
-                            processed_df = processed_df.resample('D').sum()
-                        elif aggregation == "max":
-                            processed_df = processed_df.resample('D').max()
-                        processed_df = processed_df.reset_index()
-                        st.info(f"📈 Data diaggregasi per hari ({aggregation})")
-                    else:
-                        # Aggregasi non-time series
-                        bins = min(1000, len(processed_df) // 10)
-                        processed_df['x_bins'] = pd.cut(processed_df['x_axis'], bins=bins)
-                        agg_df = processed_df.groupby('x_bins', observed=True).agg({
-                            'x_axis': 'mean',
-                            y_col: aggregation
-                        }).reset_index()
-                        processed_df = agg_df
-                        st.info(f"📈 Data diaggregasi menjadi {bins} bin ({aggregation})")
+                    processed_df = _apply_aggregation(processed_df, y_cols, aggregation, max_points, x_label)
                 
-                # Optimasi 4: Batasi titik data akhir
+                # Final data point limitation
                 if len(processed_df) > max_points:
                     processed_df = processed_df.head(max_points)
                     st.warning(f"⚠️ Data dibatasi hingga {max_points} titik pertama")
                 
-                # Optimasi 5: Cache figure creation
-                @st.cache_data(ttl=300)
-                def create_line_figure(data, x_col, y_col, title, is_datetime, show_slider):
-                    fig = px.line(
-                        data, 
-                        x='x_axis', 
-                        y=y_col, 
-                        title=title,
-                        line_shape='linear'  # Lebih cepat daripada 'spline'
-                    )
-                    
-                    # Optimasi layout
-                    layout_config = {
-                        'height': 500,
-                        'showlegend': False,
-                        'margin': dict(l=50, r=50, t=60, b=80),
-                        'plot_bgcolor': 'rgba(0,0,0,0)',
-                        'xaxis': dict(
-                            title=x_col,
-                            showgrid=True,
-                            gridwidth=1,
-                            gridcolor='lightgray'
-                        ),
-                        'yaxis': dict(
-                            title=y_col,
-                            showgrid=True,
-                            gridwidth=1,
-                            gridcolor='lightgray'
-                        )
-                    }
-                    
-                    # Optimasi untuk time series
-                    if is_datetime and show_slider:
-                        layout_config['xaxis'].update({
-                            'rangeslider': dict(visible=True, thickness=0.05),
-                            'rangeselector': dict(
-                                buttons=list([
-                                    dict(count=1, label="1m", step="month", stepmode="backward"),
-                                    dict(count=6, label="6m", step="month", stepmode="backward"),
-                                    dict(count=1, label="YTD", step="year", stepmode="todate"),
-                                    dict(count=1, label="1y", step="year", stepmode="backward"),
-                                    dict(step="all")
-                                ])
-                            )
-                        })
-                    
-                    fig.update_layout(**layout_config)
-                    
-                    # Optimasi trace untuk performa
-                    fig.update_traces(
-                        hovertemplate=f'<b>{y_col}</b><br>{x_col}: %{{x}}<br>Nilai: %{{y:.2f}}<extra></extra>',
-                        line=dict(width=1.2),
-                        connectgaps=False  # Lebih cepat
-                    )
-                    
-                    return fig
+                # Create line chart
+                fig = _create_line_figure(
+                    processed_df, 
+                    y_cols, 
+                    x_label, 
+                    chart_title, 
+                    line_mode, 
+                    line_width, 
+                    show_grid, 
+                    show_range_slider
+                )
                 
-                # Deteksi tipe data
-                is_datetime = pd.api.types.is_datetime64_any_dtype(processed_df['x_axis'])
-                
-                title = f"Grafik Garis: {y_col} over {x_label}"
-                fig = create_line_figure(processed_df, x_label, y_col, title, is_datetime, show_range_slider)
-                
-                # Optimasi 6: Plotly config yang ringan
+                # Plotly config for performance
                 config = {
                     'displayModeBar': True,
                     'displaylogo': False,
@@ -1906,18 +1898,8 @@ def create_line_chart(df, numeric_cols, non_numeric_cols):
                 
                 st.plotly_chart(fig, use_container_width=True, config=config)
             
-            # Tampilkan statistik
-            with st.expander("📊 Statistik Data"):
-                col1, col2, col3 = st.columns(3)
-                with col1:
-                    st.metric("Total Titik Data", len(processed_df))
-                with col2:
-                    st.metric(f"Rata-rata {y_col}", f"{processed_df[y_col].mean():.2f}")
-                with col3:
-                    st.metric("Rentang Waktu" if is_datetime else "Rentang Nilai", 
-                             f"{len(processed_df['x_axis'].unique())} titik")
-                
-                st.dataframe(processed_df[['x_axis', y_col]].describe(), use_container_width=True)
+            # Display statistics
+            _display_statistics(processed_df, y_cols, x_label)
                 
         except ValueError as e:
             if "date" in str(e).lower():
@@ -1930,49 +1912,313 @@ def create_line_chart(df, numeric_cols, non_numeric_cols):
             st.error(f"Error membuat line chart: {str(e)}")
             st.info("Tips: Pastikan data sumbu X dan Y valid dan tidak mengandung nilai NaN")
 
-# Alternatif: Versi ultra-ringan untuk data sangat besar
+def _apply_sampling(processed_df, max_points, x_label):
+    """Apply sampling strategies based on data type"""
+    if pd.api.types.is_datetime64_any_dtype(processed_df['x_axis']):
+        # Time series: structured sampling
+        processed_df = processed_df.sort_values('x_axis')
+        sample_frac = max_points / len(processed_df)
+        processed_df = processed_df.sample(frac=sample_frac, random_state=42)
+        processed_df = processed_df.sort_values('x_axis')
+        st.info(f"📊 Data time series disampling: {len(processed_df):,} dari {len(processed_df):,} titik data")
+    else:
+        # Non-time series: simple random sampling
+        processed_df = processed_df.sample(n=max_points, random_state=42)
+        st.info(f"📊 Data disampling: {len(processed_df):,} dari {len(processed_df):,} titik data")
+    
+    return processed_df
+
+def _apply_aggregation(processed_df, y_cols, aggregation, max_points, x_label):
+    """Apply data aggregation based on data type"""
+    if pd.api.types.is_datetime64_any_dtype(processed_df['x_axis']):
+        # Time series aggregation
+        processed_df = processed_df.set_index('x_axis')
+        
+        # Determine resample frequency based on data span
+        time_span = processed_df.index.max() - processed_df.index.min()
+        if time_span > timedelta(days=365):
+            freq = 'W'  # Weekly for data > 1 year
+        elif time_span > timedelta(days=30):
+            freq = 'D'  # Daily for data > 1 month
+        else:
+            freq = 'H'  # Hourly for data < 1 month
+        
+        if aggregation == "mean":
+            processed_df = processed_df.resample(freq).mean()
+        elif aggregation == "sum":
+            processed_df = processed_df.resample(freq).sum()
+        elif aggregation == "max":
+            processed_df = processed_df.resample(freq).max()
+        elif aggregation == "min":
+            processed_df = processed_df.resample(freq).min()
+        
+        processed_df = processed_df.reset_index()
+        st.info(f"📈 Data time series diaggregasi per {freq} ({aggregation})")
+    else:
+        # Non-time series aggregation
+        bins = min(1000, len(processed_df) // 10)
+        processed_df['x_bins'] = pd.cut(processed_df['x_axis'], bins=bins)
+        
+        agg_dict = {'x_axis': 'mean'}
+        for col in y_cols:
+            agg_dict[col] = aggregation
+        
+        agg_df = processed_df.groupby('x_bins', observed=True).agg(agg_dict).reset_index()
+        processed_df = agg_df
+        st.info(f"📈 Data diaggregasi menjadi {bins} bin ({aggregation})")
+    
+    return processed_df
+
+def _create_line_figure(processed_df, y_cols, x_label, chart_title, line_mode, line_width, show_grid, show_range_slider):
+    """Create the line chart figure with optimizations"""
+    
+    # Determine if datetime for special handling
+    is_datetime = pd.api.types.is_datetime64_any_dtype(processed_df['x_axis'])
+    
+    # Create figure
+    if len(y_cols) == 1:
+        # Single line
+        fig = px.line(
+            processed_df, 
+            x='x_axis', 
+            y=y_cols[0],
+            title=chart_title or f"Grafik Garis: {y_cols[0]} over {x_label}",
+            line_shape='linear'  # Faster than 'spline'
+        )
+    else:
+        # Multiple lines
+        fig = go.Figure()
+        colors = px.colors.qualitative.Set1
+        
+        for i, col in enumerate(y_cols):
+            fig.add_trace(go.Scatter(
+                x=processed_df['x_axis'],
+                y=processed_df[col],
+                mode=line_mode,
+                name=col,
+                line=dict(width=line_width, color=colors[i % len(colors)]),
+                connectgaps=False  # Faster rendering
+            ))
+        
+        fig.update_layout(
+            title=chart_title or f"Grafik Garis: Multiple Series over {x_label}"
+        )
+    
+    # Layout configuration
+    layout_config = {
+        'height': 500,
+        'showlegend': len(y_cols) > 1,
+        'margin': dict(l=50, r=50, t=60, b=80),
+        'plot_bgcolor': 'rgba(0,0,0,0)',
+        'xaxis': dict(
+            title=x_label,
+            showgrid=show_grid,
+            gridwidth=1,
+            gridcolor='lightgray'
+        ),
+        'yaxis': dict(
+            title=", ".join(y_cols) if len(y_cols) > 1 else y_cols[0],
+            showgrid=show_grid,
+            gridwidth=1,
+            gridcolor='lightgray'
+        )
+    }
+    
+    # Special handling for time series
+    if is_datetime and show_range_slider:
+        layout_config['xaxis'].update({
+            'rangeslider': dict(visible=True, thickness=0.05),
+            'rangeselector': dict(
+                buttons=list([
+                    dict(count=1, label="1m", step="month", stepmode="backward"),
+                    dict(count=6, label="6m", step="month", stepmode="backward"),
+                    dict(count=1, label="YTD", step="year", stepmode="todate"),
+                    dict(count=1, label="1y", step="year", stepmode="backward"),
+                    dict(step="all")
+                ])
+            )
+        })
+    
+    fig.update_layout(**layout_config)
+    
+    # Trace optimizations for performance
+    if len(y_cols) == 1:
+        fig.update_traces(
+            mode=line_mode,
+            line=dict(width=line_width),
+            connectgaps=False,  # Faster
+            hovertemplate=f'<b>{y_cols[0]}</b><br>{x_label}: %{{x}}<br>Nilai: %{{y:.2f}}<extra></extra>'
+        )
+    
+    return fig
+
+def _display_statistics(processed_df, y_cols, x_label):
+    """Display data statistics"""
+    with st.expander("📊 Statistik Data"):
+        col1, col2, col3 = st.columns(3)
+        
+        with col1:
+            st.metric("Total Titik Data", len(processed_df))
+        
+        with col2:
+            if len(y_cols) == 1:
+                st.metric(f"Rata-rata {y_cols[0]}", f"{processed_df[y_cols[0]].mean():.2f}")
+            else:
+                st.metric("Jumlah Series", len(y_cols))
+        
+        with col3:
+            is_datetime = pd.api.types.is_datetime64_any_dtype(processed_df['x_axis'])
+            st.metric(
+                "Rentang Waktu" if is_datetime else "Rentang Nilai", 
+                f"{len(processed_df['x_axis'].unique())} titik"
+            )
+        
+        # Display statistics for each Y column
+        for col in y_cols:
+            st.write(f"**Statistik untuk {col}:**")
+            col_stats = processed_df[col].describe()
+            st.dataframe(col_stats.to_frame().T, use_container_width=True)
+
+# Lightweight version for very large datasets
 def create_line_chart_lightweight(df, numeric_cols, non_numeric_cols):
     """Versi yang lebih ringan untuk dataset sangat besar (>100k records)"""
+    
+    st.subheader("🚀 Grafik Garis Ringan (Untuk Data Besar)")
+    
     col1, col2 = st.columns(2)
     
     with col1:
-        x_col = st.selectbox("Pilih kolom untuk sumbu X", 
-                           [df.index.name if df.index.name else "index"] + non_numeric_cols + numeric_cols, 
-                           key="line_x_light")
+        x_col = st.selectbox(
+            "Pilih kolom untuk sumbu X", 
+            [df.index.name if df.index.name else "index"] + non_numeric_cols + numeric_cols, 
+            key="line_x_light"
+        )
+    
     with col2:
-        y_col = st.selectbox("Pilih kolom untuk sumbu Y", numeric_cols, key="line_y_light")
+        y_col = st.selectbox(
+            "Pilih kolom untuk sumbu Y", 
+            numeric_cols, 
+            key="line_y_light"
+        )
     
     if x_col and y_col:
         try:
-            # Aggregasi langsung untuk performa maksimal
+            # Direct aggregation for maximum performance
             if x_col == "index":
                 x_data = df.index
             else:
                 x_data = df[x_col]
             
-            # Resample otomatis untuk data besar
+            # Automatic resampling for large data
             sample_df = df[[y_col]].copy()
             sample_df['x_axis'] = x_data
+            
+            # Remove NaN values
+            sample_df = sample_df.dropna()
             
             if len(sample_df) > 1000:
                 if pd.api.types.is_datetime64_any_dtype(sample_df['x_axis']):
                     sample_df = sample_df.set_index('x_axis')
                     sample_df = sample_df.resample('H').mean().head(1000)
                     sample_df = sample_df.reset_index()
+                    st.info("Data diresample per jam (1000 titik maksimal)")
                 else:
                     sample_df = sample_df.sample(n=1000, random_state=42)
+                    st.info("Data disampling acak (1000 titik)")
             
-            # Plot sederhana
-            fig = px.line(sample_df, x='x_axis', y=y_col, 
-                         title=f"Grafik Garis: {y_col} (Data: {len(sample_df):,} titik)")
+            # Simple plot
+            fig = px.line(
+                sample_df, 
+                x='x_axis', 
+                y=y_col, 
+                title=f"Grafik Garis: {y_col} (Data: {len(sample_df):,} titik)"
+            )
             
-            fig.update_layout(height=400, margin=dict(l=50, r=50, t=50, b=80))
+            fig.update_layout(
+                height=400, 
+                margin=dict(l=50, r=50, t=50, b=80),
+                showlegend=False
+            )
             
-            st.plotly_chart(fig, use_container_width=True, 
-                           config={'displayModeBar': False})
+            st.plotly_chart(
+                fig, 
+                use_container_width=True, 
+                config={'displayModeBar': False}
+            )
             
+            # Basic statistics
+            with st.expander("📊 Statistik Sederhana"):
+                st.write(f"**{y_col}:**")
+                st.write(f"- Rata-rata: {sample_df[y_col].mean():.2f}")
+                st.write(f"- Std Dev: {sample_df[y_col].std():.2f}")
+                st.write(f"- Min/Max: {sample_df[y_col].min():.2f} / {sample_df[y_col].max():.2f}")
+                
         except Exception as e:
             st.error(f"Error membuat chart: {str(e)}")
+
+# Example usage function
+def example_usage():
+    """Contoh penggunaan fungsi line chart"""
+    
+    # Create sample data
+    dates = pd.date_range('2020-01-01', '2023-12-31', freq='D')
+    sample_data = {
+        'date': dates,
+        'sales': np.random.normal(1000, 200, len(dates)).cumsum() + 10000,
+        'customers': np.random.randint(50, 200, len(dates)),
+        'revenue': np.random.normal(500, 100, len(dates)).cumsum() + 5000
+    }
+    
+    df = pd.DataFrame(sample_data)
+    df['date'] = pd.to_datetime(df['date'])
+    
+    # Define column types
+    numeric_cols = ['sales', 'customers', 'revenue']
+    non_numeric_cols = ['date']
+    
+    # Use the line chart function
+    create_line_chart(df, numeric_cols, non_numeric_cols)
+
+# Main function to demonstrate the usage
+def main():
+    """Fungsi utama untuk demonstrasi"""
+    st.title("📈 Dashboard Line Chart Interaktif")
+    
+    # Pilihan untuk menggunakan data contoh atau upload data
+    option = st.radio("Pilih sumber data:", 
+                     ["Gunakan Data Contoh", "Upload Data CSV"])
+    
+    if option == "Gunakan Data Contoh":
+        st.info("Menggunakan data contoh untuk demonstrasi")
+        example_usage()
+        
+    else:
+        uploaded_file = st.file_uploader("Upload file CSV", type=['csv'])
+        if uploaded_file is not None:
+            try:
+                df = pd.read_csv(uploaded_file)
+                st.success(f"Data berhasil diupload: {df.shape[0]} baris, {df.shape[1]} kolom")
+                
+                # Auto-detect column types
+                numeric_cols = df.select_dtypes(include=[np.number]).columns.tolist()
+                non_numeric_cols = df.select_dtypes(exclude=[np.number]).columns.tolist()
+                
+                st.write("**Kolom Numerik:**", numeric_cols)
+                st.write("**Kolom Non-Numerik:**", non_numeric_cols)
+                
+                # Pilihan tipe chart
+                chart_type = st.selectbox(
+                    "Pilih tipe line chart:",
+                    ["Line Chart Lengkap", "Line Chart Ringan"]
+                )
+                
+                if chart_type == "Line Chart Lengkap":
+                    create_line_chart(df, numeric_cols, non_numeric_cols)
+                else:
+                    create_line_chart_lightweight(df, numeric_cols, non_numeric_cols)
+                    
+            except Exception as e:
+                st.error(f"Error membaca file: {str(e)}")
 
 def create_bar_chart(df, numeric_cols, non_numeric_cols):
     col1, col2 = st.columns(2)
@@ -2129,7 +2375,7 @@ def create_bar_chart_lightweight(df, numeric_cols, non_numeric_cols):
         st.plotly_chart(fig, use_container_width=True, 
                        config={'displayModeBar': False})
 
-def create_combined_chart(df, numeric_cols, non_numeric_cols):
+def create_diamond_chart(df, numeric_cols, non_numeric_cols):
     
     # Deteksi ukuran data dan berikan rekomendasi
     data_size = len(df)
@@ -2147,364 +2393,359 @@ def create_combined_chart(df, numeric_cols, non_numeric_cols):
     with col1:
         x_col = st.selectbox("Pilih kolom untuk sumbu X", 
                            [df.index.name if df.index.name else "index"] + non_numeric_cols + numeric_cols, 
-                           key="comb_x_col")
+                           key="diamond_x_col")
     
     with col2:
-        line_col = st.selectbox("Pilih kolom untuk garis", numeric_cols, key="line_col")
+        y_col = st.selectbox("Pilih kolom untuk sumbu Y", numeric_cols, key="diamond_y_col")
     
     with col3:
-        bar_col = st.selectbox("Pilih kolom untuk batang", numeric_cols, key="bar_col")
+        size_col = st.selectbox("Pilih kolom untuk ukuran diamond", 
+                              ["None"] + numeric_cols, key="size_col")
     
     with col4:
         optimization_level = st.selectbox("Level Optimasi", 
                                         ["Super Fast", "Fast", "Balanced"],
                                         index=0 if data_size > 100000 else 1,
-                                        key="optim_level")
+                                        key="diamond_optim_level")
     
-    if x_col and line_col and bar_col:
+    # Additional diamond chart controls
+    col5, col6 = st.columns(2)
+    
+    with col5:
+        color_scheme = st.selectbox("Skema Warna Diamond", 
+                                  ["Viridis", "Plasma", "Inferno", "Magma", "Cividis", "Rainbow"])
+    
+    with col6:
+        diamond_style = st.selectbox("Style Diamond", 
+                                   ["Standard", "Outlined", "Gradient", "Transparent"])
+    
+    if x_col and y_col:
         try:
-            with st.spinner("🔄 Mengoptimalkan data besar..."):
-                # OPTIMASI UTAMA UNTUK DATA BESAR
-                display_df = optimize_dataframe_advanced(df, x_col, line_col, bar_col, optimization_level, data_size)
+            with st.spinner("🔄 Membuat Diamond Chart..."):
+                # OPTIMASI DATA UNTUK DIAMOND CHART
+                display_df = optimize_diamond_data(df, x_col, y_col, size_col, optimization_level, data_size)
                 
-                # Buat chart dengan konfigurasi performa tinggi
-                fig = create_ultra_optimized_chart(display_df, x_col, line_col, bar_col, optimization_level, data_size)
+                # Buat diamond chart
+                fig = create_diamond_pattern_chart(display_df, x_col, y_col, size_col, 
+                                                 color_scheme, diamond_style, optimization_level)
             
-            # Konfigurasi plotly yang sangat ringan
+            # Konfigurasi plotly yang ringan
             config = {
                 'displayModeBar': True,
                 'displaylogo': False,
-                'modeBarButtonsToRemove': ['lasso2d', 'select2d', 'hoverClosestGl2d', 'toggleSpikelines'],
+                'modeBarButtonsToRemove': ['lasso2d', 'select2d'],
                 'scrollZoom': True,
                 'responsive': True
             }
             
             st.plotly_chart(fig, use_container_width=True, config=config)
             
-            # Tampilkan info optimasi
-            show_optimization_info(df, display_df, optimization_level)
+            # Tampilkan info diamond pattern
+            show_diamond_pattern_info(display_df, x_col, y_col, size_col)
             
         except Exception as e:
-            create_fallback_chart(df, x_col, line_col, bar_col)
+            st.error(f"Error creating diamond chart: {str(e)}")
+            create_diamond_fallback_chart(df, x_col, y_col, size_col)
 
-def optimize_dataframe_advanced(df, x_col, line_col, bar_col, optimization_level, original_size):
+def optimize_diamond_data(df, x_col, y_col, size_col, optimization_level, original_size):
     """
-    Fungsi optimasi agresif dengan multiple strategies
+    Optimasi data khusus untuk diamond chart pattern
     """
-    # Target sizes berdasarkan level optimasi
+    # Target sizes untuk diamond chart (lebih kecil karena visualisasi kompleks)
     target_sizes = {
-        "Super Fast": min(500, original_size),
-        "Fast": min(2000, original_size),
-        "Balanced": min(10000, original_size)
+        "Super Fast": min(200, original_size),
+        "Fast": min(500, original_size),
+        "Balanced": min(1000, original_size)
     }
     
     target_size = target_sizes[optimization_level]
     
+    # Pilih kolom yang diperlukan
+    cols_needed = [x_col, y_col]
+    if size_col and size_col != "None":
+        cols_needed.append(size_col)
+    
+    sample_df = df[cols_needed].copy().dropna()
+    
     # Jika data sudah kecil, return langsung
-    if original_size <= target_size:
-        return df[[x_col, line_col, bar_col]].copy().dropna()
+    if len(sample_df) <= target_size:
+        return sample_df
     
-    # Pilih strategi berdasarkan tipe data dan ukuran
-    sample_df = select_sampling_strategy(df, x_col, line_col, bar_col, target_size, original_size)
-    
-    return sample_df.dropna()
-
-def select_sampling_strategy(df, x_col, line_col, bar_col, target_size, original_size):
-    """
-    Pilih strategi sampling terbaik berdasarkan karakteristik data
-    """
-    sample_df = df[[x_col, line_col, bar_col]].copy()
-    
-    # Strategy 1: Time series data
-    if pd.api.types.is_datetime64_any_dtype(sample_df[x_col]):
-        return time_series_sampling(sample_df, x_col, target_size, original_size)
-    
-    # Strategy 2: Numeric X data
-    elif pd.api.types.is_numeric_dtype(sample_df[x_col]):
-        return numeric_sampling(sample_df, x_col, target_size, original_size)
-    
-    # Strategy 3: Categorical data
+    # Strategi sampling untuk diamond chart
+    if pd.api.types.is_numeric_dtype(sample_df[x_col]) and pd.api.types.is_numeric_dtype(sample_df[y_col]):
+        return numeric_diamond_sampling(sample_df, x_col, y_col, target_size)
     else:
-        return categorical_sampling(sample_df, x_col, target_size, original_size)
+        # Untuk data kategorikal, ambil sample random
+        return sample_df.sample(n=min(target_size, len(sample_df)), random_state=42)
 
-def time_series_sampling(df, x_col, target_size, original_size):
-    """Optimasi untuk data time series"""
-    df_sorted = df.sort_values(x_col).set_index(x_col)
-    
-    # Tentukan frekuensi resampling berdasarkan target size
-    if original_size > 1000000:
-        freq = '1H'  # 1 hour untuk data sangat besar
-    elif original_size > 100000:
-        freq = '30T'  # 30 menit
-    elif original_size > 50000:
-        freq = '10T'  # 10 menit
-    else:
-        freq = '1T'   # 1 menit
+def numeric_diamond_sampling(df, x_col, y_col, target_size):
+    """
+    Sampling khusus untuk data numerik dengan pertimbangan distribusi diamond
+    """
+    # Buat grid untuk mempertahankan pattern diamond
+    n_bins = int(np.sqrt(target_size))
     
     try:
-        resampled = df_sorted.resample(freq).mean().reset_index()
-        # Jika masih terlalu besar, ambil sample
-        if len(resampled) > target_size:
-            step = max(1, len(resampled) // target_size)
-            resampled = resampled.iloc[::step]
-        return resampled
-    except:
-        # Fallback: systematic sampling
-        step = max(1, original_size // target_size)
-        return df.iloc[::step].copy()
-
-def numeric_sampling(df, x_col, target_size, original_size):
-    """Optimasi untuk data numerik"""
-    # Adaptive binning berdasarkan ukuran data
-    n_bins = min(target_size, 500)
-    
-    # Buat bins yang adaptif
-    df_clean = df.dropna()
-    if len(df_clean) == 0:
-        return df.head(target_size)
-    
-    try:
-        bins = pd.cut(df_clean[x_col], bins=n_bins, duplicates='drop')
-        aggregated = df_clean.groupby(bins, observed=False).agg({
+        # Buat bins untuk kedua sumbu
+        x_bins = pd.cut(df[x_col], bins=n_bins, duplicates='drop')
+        y_bins = pd.cut(df[y_col], bins=n_bins, duplicates='drop')
+        
+        # Group by kedua bins dan ambil centroid
+        aggregated = df.groupby([x_bins, y_bins], observed=False).agg({
             x_col: 'mean',
-            **{col: 'mean' for col in df_clean.columns if col != x_col}
+            y_col: 'mean',
+            **{col: 'mean' for col in df.columns if col not in [x_col, y_col]}
         }).reset_index(drop=True)
         
-        # Pastikan tidak melebihi target size
-        return aggregated.head(target_size)
+        # Jika masih terlalu banyak, ambil sample
+        if len(aggregated) > target_size:
+            return aggregated.sample(n=target_size, random_state=42)
+        return aggregated
+        
     except:
-        # Fallback: random sampling
-        return df_clean.sample(n=min(target_size, len(df_clean)), random_state=42)
+        # Fallback: random sampling dengan stratification
+        return df.sample(n=min(target_size, len(df)), random_state=42)
 
-def categorical_sampling(df, x_col, target_size, original_size):
-    """Optimasi untuk data kategorikal"""
-    # Ambil kategori paling meaningful (dengan data terbanyak)
-    value_counts = df[x_col].value_counts()
-    
-    if len(value_counts) > target_size:
-        # Ambil top categories
-        top_categories = value_counts.head(target_size).index
-        sampled = df[df[x_col].isin(top_categories)]
-    else:
-        # Jika kategori tidak terlalu banyak, sampling random
-        sampled = df.sample(n=min(target_size, len(df)), random_state=42)
-    
-    return sampled
-
-def create_ultra_optimized_chart(display_df, x_col, line_col, bar_col, optimization_level, original_size):
+def create_diamond_pattern_chart(df, x_col, y_col, size_col, color_scheme, diamond_style, optimization_level):
     """
-    Buat chart dengan optimasi maksimal untuk performa
+    Buat diamond chart pattern yang optimal
     """
     fig = go.Figure()
     
-    # Konfigurasi berdasarkan level optimasi dan ukuran data
-    config = get_render_config(optimization_level, len(display_df), original_size)
+    # Konfigurasi berdasarkan style diamond
+    style_config = get_diamond_style_config(diamond_style, color_scheme)
     
-    # Trace untuk garis - selalu gunakan scattergl untuk WebGL
+    # Data untuk scatter plot dengan shape diamond
+    if size_col and size_col != "None":
+        marker_size = df[size_col]
+        # Normalize size untuk visualisasi yang baik
+        if marker_size.max() > marker_size.min():
+            marker_size = 10 + 40 * (marker_size - marker_size.min()) / (marker_size.max() - marker_size.min())
+        else:
+            marker_size = 20
+    else:
+        marker_size = 15
+    
+    # Tambahkan trace diamond utama
     fig.add_trace(go.Scattergl(
-        x=display_df[x_col],
-        y=display_df[line_col],
-        mode=config['line_mode'],
-        name=line_col,
-        yaxis='y1',
-        line=dict(
-            color='#1f77b4', 
-            width=config['line_width'],
-            simplify=True  # Optimasi: simplify line
+        x=df[x_col],
+        y=df[y_col],
+        mode='markers',
+        name='Diamond Pattern',
+        marker=dict(
+            symbol='diamond',  # Shape diamond
+            size=marker_size,
+            color=df[y_col] if pd.api.types.is_numeric_dtype(df[y_col]) else None,
+            colorscale=color_scheme,
+            colorbar=dict(title=y_col),
+            line=style_config['marker_line'],
+            opacity=style_config['opacity']
         ),
-        marker=dict(size=config['marker_size']),
-        hovertemplate=config['hover_template'].format(x_col=x_col, col=line_col),
-        opacity=0.9
+        hovertemplate=(
+            f"<b>{x_col}</b>: %{{x}}<br>"
+            f"<b>{y_col}</b>: %{{y}}<br>"
+            f"{f'<b>{size_col}</b>: %{{marker.size}}<br>' if size_col and size_col != 'None' else ''}"
+            "<extra></extra>"
+        ),
+        text=df.index if len(df) < 100 else None
     ))
     
-    # Trace untuk batang - hanya untuk data tidak terlalu banyak
-    if len(display_df) <= 1000 or optimization_level == "Balanced":
-        fig.add_trace(go.Bar(
-            x=display_df[x_col],
-            y=display_df[bar_col],
-            name=bar_col,
-            yaxis='y2',
-            marker=dict(
-                color='#ff7f0e', 
-                opacity=config['bar_opacity'],
-                line=dict(width=0)  # No border untuk performa
-            ),
-            hovertemplate=config['hover_template'].format(x_col=x_col, col=bar_col),
-            opacity=config['bar_opacity']
-        ))
-    else:
-        # Untuk data banyak, gunakan line juga untuk bar data
-        fig.add_trace(go.Scattergl(
-            x=display_df[x_col],
-            y=display_df[bar_col],
-            name=f"{bar_col} (line)",
-            yaxis='y2',
-            line=dict(color='#ff7f0e', width=2, dash='dot'),
-            hovertemplate=config['hover_template'].format(x_col=x_col, col=bar_col),
-            opacity=0.7
-        ))
+    # Tambahkan trend line untuk menunjukkan pattern
+    if len(df) > 10 and pd.api.types.is_numeric_dtype(df[x_col]) and pd.api.types.is_numeric_dtype(df[y_col]):
+        try:
+            # Hitung regression line
+            z = np.polyfit(df[x_col], df[y_col], 1)
+            p = np.poly1d(z)
+            
+            fig.add_trace(go.Scattergl(
+                x=df[x_col],
+                y=p(df[x_col]),
+                mode='lines',
+                name='Trend Line',
+                line=dict(color='red', width=2, dash='dash'),
+                opacity=0.7
+            ))
+        except:
+            pass
     
-    # Layout ultra-optimized
-    layout_config = {
-        'title': f"Kombinasi: {line_col} vs {bar_col} - {optimization_level} Mode",
-        'xaxis': {
-            'title': x_col,
-            'tickangle': -45 if len(display_df) > 20 else 0,
-            'gridcolor': '#f0f0f0',
-            'showgrid': True,
-        },
-        'yaxis': {
-            'title': line_col, 
-            'side': 'left',
-            'gridcolor': '#f0f0f0',
-        },
-        'yaxis2': {
-            'title': bar_col, 
-            'side': 'right', 
-            'overlaying': 'y',
-            'gridcolor': '#f0f0f0',
-        },
-        'height': 450,
-        'showlegend': config['show_legend'],
-        'margin': dict(l=60, r=60, t=60, b=80),
-        'plot_bgcolor': 'white',
-        'paper_bgcolor': 'white',
-        # Optimasi performa critical
-        'uirevision': 'constant',
-    }
+    # Layout khusus diamond chart
+    fig.update_layout(
+        title=f"🔷 Diamond Chart Pattern: {y_col} vs {x_col}",
+        xaxis=dict(
+            title=x_col,
+            gridcolor='#f0f0f0',
+            showgrid=True,
+        ),
+        yaxis=dict(
+            title=y_col,
+            gridcolor='#f0f0f0',
+            showgrid=True,
+        ),
+        height=500,
+        showlegend=True,
+        margin=dict(l=60, r=60, t=80, b=60),
+        plot_bgcolor='white',
+        paper_bgcolor='white',
+        # Fitur interaktif
+        hovermode='closest',
+        dragmode='zoom',
+    )
     
-    # Tambahkan range slider hanya untuk time series dengan data cukup
-    if (pd.api.types.is_datetime64_any_dtype(display_df[x_col]) and 
-        len(display_df) > 100):
-        layout_config['xaxis']['rangeslider'] = {
-            'visible': True, 
-            'thickness': 0.03,
-            'bgcolor': '#f8f9fa'
-        }
-    
-    fig.update_layout(**layout_config)
+    # Tambahkan quadrant lines untuk diamond pattern analysis
+    if len(df) > 0 and pd.api.types.is_numeric_dtype(df[x_col]) and pd.api.types.is_numeric_dtype(df[y_col]):
+        x_mean = df[x_col].mean()
+        y_mean = df[y_col].mean()
+        
+        fig.add_hline(y=y_mean, line_dash="dot", line_color="gray", opacity=0.5)
+        fig.add_vline(x=x_mean, line_dash="dot", line_color="gray", opacity=0.5)
     
     return fig
 
-def get_render_config(optimization_level, display_size, original_size):
-    """Konfigurasi rendering berdasarkan level optimasi"""
-    configs = {
-        "Super Fast": {
-            'line_mode': 'lines',
-            'marker_size': 0,
-            'line_width': 1,
-            'bar_opacity': 0.6,
-            'show_legend': False,
-            'hover_template': '<b>%{x}</b><br>%{y:.1f}<extra></extra>'
+def get_diamond_style_config(style, color_scheme):
+    """Konfigurasi style untuk diamond marker"""
+    styles = {
+        "Standard": {
+            'marker_line': dict(width=0),
+            'opacity': 0.8
         },
-        "Fast": {
-            'line_mode': 'lines',
-            'marker_size': 0,
-            'line_width': 1.5,
-            'bar_opacity': 0.7,
-            'show_legend': True,
-            'hover_template': '<b>%{x}</b><br>%{y:.2f}<extra></extra>'
+        "Outlined": {
+            'marker_line': dict(width=2, color='darkgray'),
+            'opacity': 0.9
+        },
+        "Gradient": {
+            'marker_line': dict(width=1, color='white'),
+            'opacity': 0.7
+        },
+        "Transparent": {
+            'marker_line': dict(width=1, color='black'),
+            'opacity': 0.5
         }
     }
-    return configs[optimization_level]
+    return styles.get(style, styles["Standard"])
 
-def show_optimization_info(original_df, optimized_df, optimization_level):
-    """Tampilkan informasi optimasi"""
-    reduction_pct = ((len(original_df) - len(optimized_df)) / len(original_df)) * 100
+def show_diamond_pattern_info(df, x_col, y_col, size_col):
+    """Tampilkan informasi analisis diamond pattern"""
     
-    with st.expander("📊 Info Optimasi Performa", expanded=True):
-        col1, col2, col3, col4 = st.columns(4)
+    with st.expander("🔷 Diamond Pattern Analysis", expanded=True):
+        col1, col2, col3 = st.columns(3)
         
         with col1:
-            st.metric("Data Original", f"{len(original_df):,}")
+            st.metric("Total Data Points", len(df))
+        
         with col2:
-            st.metric("Data Ditampilkan", f"{len(optimized_df):,}")
+            if pd.api.types.is_numeric_dtype(df[x_col]) and pd.api.types.is_numeric_dtype(df[y_col]):
+                correlation = df[x_col].corr(df[y_col])
+                st.metric("Korelasi", f"{correlation:.3f}")
+        
         with col3:
-            st.metric("Reduksi", f"{reduction_pct:.1f}%")
-        with col4:
-            st.metric("Optimasi", optimization_level)
+            if pd.api.types.is_numeric_dtype(df[y_col]):
+                cv = df[y_col].std() / df[y_col].mean() if df[y_col].mean() != 0 else 0
+                st.metric("Coefficient of Variation", f"{cv:.3f}")
         
-        # Progress bar untuk visualisasi reduksi
-        st.progress(min(100, 100 - reduction_pct)/100, text="Tingkat Reduksi Data")
-        
-        st.markdown("""
-        **Strategi Optimasi:**
-        - ✅ **WebGL Rendering** untuk performa terbaik
-        - ✅ **Adaptive Sampling** berdasarkan tipe data
-        - ✅ **Smart Aggregation** untuk mempertahankan pattern
-        - ✅ **Minimal Hover Effects** untuk rendering cepat
-        """)
+        # Quadrant analysis untuk numeric data
+        if (pd.api.types.is_numeric_dtype(df[x_col]) and 
+            pd.api.types.is_numeric_dtype(df[y_col]) and 
+            len(df) > 0):
+            
+            x_mean = df[x_col].mean()
+            y_mean = df[y_col].mean()
+            
+            # Hitung points di setiap quadrant
+            q1 = len(df[(df[x_col] > x_mean) & (df[y_col] > y_mean)])
+            q2 = len(df[(df[x_col] < x_mean) & (df[y_col] > y_mean)])
+            q3 = len(df[(df[x_col] < x_mean) & (df[y_col] < y_mean)])
+            q4 = len(df[(df[x_col] > x_mean) & (df[y_col] < y_mean)])
+            
+            st.subheader("Quadrant Distribution")
+            quad_col1, quad_col2, quad_col3, quad_col4 = st.columns(4)
+            
+            with quad_col1:
+                st.metric("Q1 (High X, High Y)", q1)
+            with quad_col2:
+                st.metric("Q2 (Low X, High Y)", q2)
+            with quad_col3:
+                st.metric("Q3 (Low X, Low Y)", q3)
+            with quad_col4:
+                st.metric("Q4 (High X, Low Y)", q4)
 
-def create_fallback_chart(df, x_col, line_col, bar_col):
-    """Fallback method untuk data yang bermasalah"""
-    st.warning("Menggunakan metode fallback...")
+def create_diamond_fallback_chart(df, x_col, y_col, size_col):
+    """Fallback method untuk diamond chart"""
+    st.warning("Menggunakan metode fallback untuk diamond chart...")
     
     # Sample kecil untuk memastikan bisa render
-    sample_df = df[[x_col, line_col, bar_col]].dropna().head(1000)
+    sample_df = df[[x_col, y_col]].dropna().head(500)
+    if size_col and size_col != "None":
+        sample_df[size_col] = df[size_col]
     
     fig = go.Figure()
+    
+    marker_size = sample_df[size_col] if size_col and size_col != "None" else 15
+    
     fig.add_trace(go.Scatter(
-        x=sample_df[x_col], y=sample_df[line_col], 
-        mode='lines', name=line_col, yaxis='y1'
-    ))
-    fig.add_trace(go.Bar(
-        x=sample_df[x_col], y=sample_df[bar_col], 
-        name=bar_col, yaxis='y2', opacity=0.6
+        x=sample_df[x_col],
+        y=sample_df[y_col],
+        mode='markers',
+        marker=dict(
+            symbol='diamond',
+            size=marker_size,
+            color=sample_df[y_col] if pd.api.types.is_numeric_dtype(sample_df[y_col]) else 'blue',
+            colorscale='Viridis'
+        )
     ))
     
     fig.update_layout(
-        title=f"Fallback Chart: {line_col} vs {bar_col}",
-        yaxis=dict(title=line_col, side='left'),
-        yaxis2=dict(title=bar_col, side='right', overlaying='y'),
+        title=f"Diamond Chart: {y_col} vs {x_col}",
         height=400
     )
     
     st.plotly_chart(fig, use_container_width=True)
 
-# Versi ultra-ringan untuk data ekstrem (>1 juta rows)
-def create_combined_chart_ultralight(df, numeric_cols, non_numeric_cols):
-    """Versi ultra-ringan untuk data > 1 juta rows"""
+# Versi ultra-ringan untuk diamond chart
+def create_diamond_chart_ultralight(df, numeric_cols, non_numeric_cols):
+    """Versi ultra-ringan untuk diamond chart dengan data besar"""
     
     col1, col2, col3 = st.columns(3)
     
     with col1:
         x_col = st.selectbox("Sumbu X", 
                            [df.index.name if df.index.name else "index"] + non_numeric_cols[:3], 
-                           key="ultralight_x")
+                           key="ultralight_diamond_x")
     with col2:
-        line_col = st.selectbox("Garis", numeric_cols[:5], key="ultralight_line")
+        y_col = st.selectbox("Sumbu Y", numeric_cols[:5], key="ultralight_diamond_y")
     with col3:
-        bar_col = st.selectbox("Batang", numeric_cols[:5], key="ultralight_bar")
+        color_col = st.selectbox("Warna", numeric_cols[:5], key="ultralight_diamond_color")
     
-    if x_col and line_col and bar_col:
-        # Aggressive sampling - hanya 500 data points
-        if len(df) > 1000:
-            step = len(df) // 500
-            display_df = df.iloc[::step][[x_col, line_col, bar_col]].dropna()
+    if x_col and y_col:
+        # Aggressive sampling - hanya 300 data points untuk performa
+        if len(df) > 300:
+            step = len(df) // 300
+            display_df = df.iloc[::step][[x_col, y_col, color_col]].dropna()
         else:
-            display_df = df[[x_col, line_col, bar_col]].dropna()
+            display_df = df[[x_col, y_col, color_col]].dropna()
         
-        # Simple chart dengan WebGL
+        # Simple diamond chart dengan WebGL
         fig = go.Figure()
         fig.add_trace(go.Scattergl(
-            x=display_df[x_col], y=display_df[line_col],
-            mode='lines', name=line_col, line=dict(width=1)
-        ))
-        fig.add_trace(go.Scattergl(
-            x=display_df[x_col], y=display_df[bar_col],
-            mode='lines', name=bar_col, line=dict(width=1, dash='dot'),
-            yaxis='y2'
+            x=display_df[x_col],
+            y=display_df[y_col],
+            mode='markers',
+            marker=dict(
+                symbol='diamond',
+                size=10,
+                color=display_df[color_col],
+                colorscale='Plasma',
+                showscale=True
+            )
         ))
         
         fig.update_layout(
             height=400,
-            yaxis2=dict(side='right', overlaying='y'),
-            showlegend=True,
-            margin=dict(l=50, r=50, t=30, b=50)
+            title="Ultra-Light Diamond Chart",
+            showlegend=False
         )
         
         st.plotly_chart(fig, use_container_width=True, config={'displayModeBar': False})
-        st.info(f"Ultra-Light Mode: {len(display_df):,} points dari {len(df):,}")
+        st.info(f"Ultra-Light Diamond Mode: {len(display_df):,} points")
 
 def create_scatter_plot(df, numeric_cols, non_numeric_cols):
     
@@ -6188,483 +6429,942 @@ def create_ultra_fast_heatmap(df, numeric_cols):
         
         st.info(f"📊 Ultra-Fast Mode: 5,000 samples, {len(selected_cols)} variables")
 
-def create_multiple_line_chart(df, numeric_cols, non_numeric_cols):
+
+def create_ml_dl_analysis_dashboard(df, numeric_cols, non_numeric_cols):
+    """
+    Dashboard komprehensif untuk analisis Machine Learning dan Deep Learning
+    """
     
-    # Deteksi ukuran data
+    st.title("🤖 Advanced ML/DL Analysis Dashboard")
+    
+    # Deteksi tipe data
     data_size = len(df)
-    if data_size > 100000:
-        st.info(f"⚡ Mode Optimasi: Data besar ({data_size:,} rows) - Menggunakan sampling otomatis")
+    st.info(f"📊 Dataset: {data_size:,} samples, {len(numeric_cols)} features numerik, {len(non_numeric_cols)} features kategorikal")
     
-    col1, col2 = st.columns(2)
-    
-    with col1:
-        selected_lines = st.multiselect(
-            "Pilih kolom untuk garis", 
-            numeric_cols[:15],  # Batasi pilihan
-            default=numeric_cols[:min(5, len(numeric_cols))],
-            key="multi_line_select"
-        )
-    
-    with col2:
-        x_col = st.selectbox(
-            "Pilih kolom untuk sumbu X", 
-            [df.index.name if df.index.name else "index"] + non_numeric_cols + numeric_cols, 
-            key="multi_x_col"
-        )
-    
-    # Pengaturan optimasi
-    with st.expander("⚙️ Pengaturan Optimasi", expanded=False):
-        col3, col4, col5 = st.columns(3)
-        
-        with col3:
-            optimization_mode = st.selectbox(
-                "Mode Optimasi",
-                ["Auto", "Fast", "Balanced", "Detailed"],
-                index=0 if data_size > 50000 else 2,
-                key="multi_line_optim"
-            )
-        
-        with col4:
-            max_points = st.slider(
-                "Maksimum titik data per garis",
-                min_value=500,
-                max_value=10000,
-                value=2000 if data_size > 100000 else 5000,
-                key="multi_line_max_points"
-            )
-        
-        with col5:
-            line_style = st.selectbox(
-                "Style garis",
-                ["Solid", "Dashed", "Dotted", "Dash-Dot"],
-                key="multi_line_style"
-            )
-    
-    # Pengaturan lanjutan
-    with st.expander("🔧 Pengaturan Lanjutan", expanded=False):
-        col6, col7, col8 = st.columns(3)
-        
-        with col6:
-            aggregation_method = st.selectbox(
-                "Metode aggregasi",
-                ["none", "mean", "median", "max", "min"],
-                key="multi_line_agg"
-            )
-        
-        with col7:
-            show_confidence = st.checkbox(
-                "Tampilkan confidence band", 
-                value=False,
-                key="multi_line_confidence"
-            )
-        
-        with col8:
-            sync_axes = st.checkbox(
-                "Sinkronisasi sumbu Y", 
-                value=True,
-                key="multi_line_sync"
-            )
-    
-    if selected_lines and x_col:
-        try:
-            with st.spinner("🔄 Memproses multiple line chart..."):
-                # OPTIMASI 1: Persiapan data dasar
-                plot_data = prepare_multiline_data(df, selected_lines, x_col, data_size, optimization_mode)
-                
-                if plot_data is None or len(plot_data) == 0:
-                    st.warning("Tidak ada data valid untuk ditampilkan")
-                    return
-                
-                # OPTIMASI 2: Sampling dan aggregasi data
-                processed_data = optimize_multiline_data(plot_data, selected_lines, x_col, max_points, aggregation_method, optimization_mode)
-                
-                # OPTIMASI 3: Buat multiple line chart yang dioptimalkan
-                fig = create_optimized_multiline_chart(processed_data, selected_lines, x_col, line_style, show_confidence, sync_axes, data_size)
-                
-                # OPTIMASI 4: Konfigurasi plotly yang ringan
-                config = {
-                    'displayModeBar': True,
-                    'displaylogo': False,
-                    'modeBarButtonsToRemove': ['lasso2d', 'select2d', 'hoverClosestGl2d'],
-                    'scrollZoom': True,
-                    'responsive': True
-                }
-                
-                st.plotly_chart(fig, use_container_width=True, config=config)
-                
-                # Tampilkan statistik
-                display_multiline_statistics(processed_data, selected_lines, x_col)
-                
-                # Tampilkan info optimasi
-                show_multiline_optimization_info(data_size, len(processed_data), optimization_mode)
-                
-        except Exception as e:
-            st.error(f"Error membuat multiple line chart: {str(e)}")
-            # Fallback ke metode sederhana
-            create_simple_multiline_fallback(df, selected_lines, x_col)
-
-def prepare_multiline_data(df, selected_lines, x_col, data_size, optimization_mode):
-    """Persiapkan data untuk multiple line chart"""
-    
-    # Pilih kolom yang diperlukan
-    columns_needed = [x_col] + selected_lines
-    plot_data = df[columns_needed].replace([np.inf, -np.inf], np.nan).dropna()
-    
-    if len(plot_data) == 0:
-        return None
-    
-    # OPTIMASI: Sampling untuk data besar
-    if data_size > 100000:
-        target_sizes = {
-            "Auto": min(20000, data_size),
-            "Fast": min(5000, data_size),
-            "Balanced": min(30000, data_size),
-            "Detailed": min(50000, data_size)
-        }
-        
-        target_size = target_sizes[optimization_mode]
-        
-        if len(plot_data) > target_size:
-            if pd.api.types.is_datetime64_any_dtype(plot_data[x_col]):
-                # Untuk time series: systematic sampling dengan sorting
-                plot_data = plot_data.sort_values(x_col)
-                step = len(plot_data) // target_size
-                plot_data = plot_data.iloc[::step]
-            else:
-                # Untuk data non-time series: random sampling
-                plot_data = plot_data.sample(n=target_size, random_state=42)
-    
-    return plot_data
-
-def optimize_multiline_data(plot_data, selected_lines, x_col, max_points, aggregation_method, optimization_mode):
-    """Optimasi data untuk multiple line chart"""
-    
-    processed_data = plot_data.copy()
-    
-    # Jika masih terlalu banyak points, lakukan aggregasi
-    if len(processed_data) > max_points and aggregation_method != "none":
-        if pd.api.types.is_datetime64_any_dtype(processed_data[x_col]):
-            # Aggregasi time series
-            processed_data = processed_data.set_index(x_col)
-            
-            # Tentukan frekuensi resampling berdasarkan jumlah data
-            if len(processed_data) > 50000:
-                freq = '1H'
-            elif len(processed_data) > 20000:
-                freq = '30T'
-            else:
-                freq = '10T'
-            
-            try:
-                if aggregation_method == "mean":
-                    processed_data = processed_data.resample(freq).mean()
-                elif aggregation_method == "median":
-                    processed_data = processed_data.resample(freq).median()
-                elif aggregation_method == "max":
-                    processed_data = processed_data.resample(freq).max()
-                elif aggregation_method == "min":
-                    processed_data = processed_data.resample(freq).min()
-                
-                processed_data = processed_data.reset_index()
-                
-            except:
-                # Fallback: simple sampling
-                step = len(processed_data) // max_points
-                processed_data = processed_data.iloc[::step]
-        
-        else:
-            # Aggregasi non-time series: binning
-            n_bins = min(max_points, 1000)
-            processed_data['x_bins'] = pd.cut(processed_data[x_col], bins=n_bins)
-            
-            if aggregation_method == "mean":
-                aggregated = processed_data.groupby('x_bins').mean().reset_index()
-            elif aggregation_method == "median":
-                aggregated = processed_data.groupby('x_bins').median().reset_index()
-            elif aggregation_method == "max":
-                aggregated = processed_data.groupby('x_bins').max().reset_index()
-            elif aggregation_method == "min":
-                aggregated = processed_data.groupby('x_bins').min().reset_index()
-            
-            aggregated[x_col] = aggregated['x_bins'].apply(lambda x: x.mid)
-            processed_data = aggregated[[x_col] + selected_lines]
-    
-    # Batasi akhir jika masih terlalu banyak
-    if len(processed_data) > max_points:
-        processed_data = processed_data.head(max_points)
-    
-    return processed_data
-
-def create_optimized_multiline_chart(processed_data, selected_lines, x_col, line_style, show_confidence, sync_axes, original_size):
-    """Buat multiple line chart yang dioptimalkan"""
-    
-    fig = go.Figure()
-    
-    # Mapping line style
-    line_styles = {
-        "Solid": None,
-        "Dashed": "dash",
-        "Dotted": "dot",
-        "Dash-Dot": "dashdot"
-    }
-    
-    dash_pattern = line_styles[line_style]
-    
-    # Warna untuk multiple lines
-    colors = px.colors.qualitative.Set1 + px.colors.qualitative.Set2 + px.colors.qualitative.Set3
-    
-    # OPTIMASI: Gunakan scattergl untuk data banyak
-    use_webgl = len(processed_data) > 2000
-    
-    for i, col in enumerate(selected_lines):
-        clean_data = processed_data[[x_col, col]].dropna()
-        
-        if len(clean_data) > 0:
-            if use_webgl:
-                # WebGL untuk performa tinggi
-                trace = go.Scattergl(
-                    x=clean_data[x_col],
-                    y=clean_data[col],
-                    mode='lines',
-                    name=col,
-                    line=dict(
-                        color=colors[i % len(colors)],
-                        width=2,
-                        dash=dash_pattern
-                    ),
-                    hovertemplate=f'<b>{col}</b><br>{x_col}: %{{x}}<br>Nilai: %{{y:.2f}}<extra></extra>'
-                )
-            else:
-                # Regular scatter untuk data sedikit
-                trace = go.Scatter(
-                    x=clean_data[x_col],
-                    y=clean_data[col],
-                    mode='lines',
-                    name=col,
-                    line=dict(
-                        color=colors[i % len(colors)],
-                        width=2,
-                        dash=dash_pattern
-                    ),
-                    hovertemplate=f'<b>{col}</b><br>{x_col}: %{{x}}<br>Nilai: %{{y:.2f}}<extra></extra>'
-                )
-            
-            fig.add_trace(trace)
-            
-            # Tambahkan confidence band jika diminta
-            if show_confidence and len(clean_data) > 10:
-                try:
-                    y_mean = clean_data[col].mean()
-                    y_std = clean_data[col].std()
-                    
-                    fig.add_trace(go.Scatter(
-                        x=clean_data[x_col],
-                        y=y_mean + y_std,
-                        mode='lines',
-                        line=dict(width=0),
-                        showlegend=False,
-                        hoverinfo='skip'
-                    ))
-                    
-                    fig.add_trace(go.Scatter(
-                        x=clean_data[x_col],
-                        y=y_mean - y_std,
-                        mode='lines',
-                        line=dict(width=0),
-                        fill='tonexty',
-                        fillcolor=f'rgba{(*px.colors.hex_to_rgb(colors[i % len(colors)]), 0.2)}',
-                        showlegend=False,
-                        hoverinfo='skip'
-                    ))
-                except:
-                    pass  # Skip confidence band jika error
-    
-    # Layout yang dioptimalkan
-    layout_config = {
-        'title': f"Multiple Line Chart: {len(selected_lines)} Variables",
-        'xaxis_title': x_col,
-        'yaxis_title': "Nilai",
-        'hovermode': 'x unified',
-        'height': 500,
-        'showlegend': len(selected_lines) <= 10,  # Sembunyikan legend jika terlalu banyak lines
-        'margin': dict(l=50, r=50, t=80, b=50),
-        'plot_bgcolor': 'white'
-    }
-    
-    # Tambahkan range slider untuk time series
-    if pd.api.types.is_datetime64_any_dtype(processed_data[x_col]) and len(processed_data) > 1000:
-        layout_config['xaxis'] = dict(rangeslider=dict(visible=True, thickness=0.05))
-    
-    # Sinkronisasi sumbu Y jika diminta
-    if not sync_axes and len(selected_lines) > 1:
-        layout_config['yaxis'] = dict(title=selected_lines[0])
-        
-        # Tambahkan secondary axes untuk lines lainnya
-        for i, col in enumerate(selected_lines[1:], 2):
-            fig.update_layout(**{f'yaxis{i}': dict(
-                title=col,
-                side='right' if i % 2 == 0 else 'left',
-                overlaying='y',
-                position=0.95 if i % 2 == 0 else 0.05
-            )})
-            
-            # Assign trace ke axis yang sesuai
-            fig.data[i].update(yaxis=f'y{i}')
-    
-    fig.update_layout(**layout_config)
-    
-    return fig
-
-def display_multiline_statistics(processed_data, selected_lines, x_col):
-    """Tampilkan statistik multiple line chart"""
-    
-    with st.expander("📊 Statistik Multiple Lines", expanded=False):
-        # Statistik dasar
-        col1, col2, col3 = st.columns(3)
-        
-        with col1:
-            st.metric("Jumlah Garis", len(selected_lines))
-        with col2:
-            st.metric("Total Data Points", len(processed_data))
-        with col3:
-            st.metric("Rentang " + x_col, 
-                     f"{len(processed_data[x_col].unique())} unique values")
-        
-        # Tabel statistik per line
-        stats_data = []
-        for col in selected_lines:
-            clean_data = processed_data[col].dropna()
-            if len(clean_data) > 0:
-                stats_data.append({
-                    'Variable': col,
-                    'Mean': clean_data.mean(),
-                    'Std Dev': clean_data.std(),
-                    'Min': clean_data.min(),
-                    'Max': clean_data.max(),
-                    'Data Points': len(clean_data)
-                })
-        
-        if stats_data:
-            stats_df = pd.DataFrame(stats_data)
-            st.dataframe(
-                stats_df.style.format({
-                    'Mean': '{:.2f}',
-                    'Std Dev': '{:.2f}',
-                    'Min': '{:.2f}',
-                    'Max': '{:.2f}'
-                }),
-                use_container_width=True
-            )
-
-def show_multiline_optimization_info(original_size, processed_size, optimization_mode):
-    """Tampilkan informasi optimasi"""
-    
-    reduction_pct = ((original_size - processed_size) / original_size) * 100 if original_size > 0 else 0
-    
-    if reduction_pct > 10:
-        with st.expander("⚡ Info Optimasi Performa", expanded=False):
-            col1, col2, col3 = st.columns(3)
-            with col1:
-                st.metric("Data Original", f"{original_size:,}")
-            with col2:
-                st.metric("Data Diproses", f"{processed_size:,}")
-            with col3:
-                st.metric("Reduksi", f"{reduction_pct:.1f}%")
-            
-            optimization_strategies = {
-                "Fast": "• ✅ **Aggressive sampling**\n• ✅ **WebGL rendering**\n• ✅ **Minimal features**",
-                "Balanced": "• ✅ **Smart sampling**\n• ✅ **Optimized aggregation**\n• ✅ **Enhanced visuals**",
-                "Detailed": "• ✅ **Maximum data retention**\n• ✅ **Advanced features**\n• ✅ **Full analysis**"
-            }
-            
-            st.info(f"**Mode {optimization_mode}**: {optimization_strategies.get(optimization_mode, 'Custom optimization')}")
-
-def create_simple_multiline_fallback(df, selected_lines, x_col):
-    """Fallback method untuk data yang bermasalah"""
-    st.warning("Menggunakan metode fallback sederhana...")
-    
-    # Sample kecil untuk performa
-    sample_data = df[[x_col] + selected_lines].dropna().head(1000)
-    
-    if len(sample_data) == 0:
-        st.error("Tidak ada data valid")
-        return
-    
-    fig = go.Figure()
-    
-    colors = px.colors.qualitative.Set1
-    
-    for i, col in enumerate(selected_lines):
-        clean_data = sample_data[[x_col, col]].dropna()
-        if len(clean_data) > 0:
-            fig.add_trace(go.Scatter(
-                x=clean_data[x_col],
-                y=clean_data[col],
-                mode='lines',
-                name=col,
-                line=dict(color=colors[i % len(colors)], width=1.5)
-            ))
-    
-    fig.update_layout(
-        title=f"Simple Multiple Lines: {len(selected_lines)} Variables",
-        xaxis_title=x_col,
-        yaxis_title="Nilai",
-        height=400,
-        showlegend=True
+    # Sidebar untuk navigasi analisis
+    analysis_type = st.sidebar.selectbox(
+        "🎯 Pilih Tipe Analisis",
+        ["📈 EDA & Visualisasi", "🤖 Machine Learning", "🧠 Deep Learning", 
+         "📊 Model Comparison", "🔍 Feature Analysis"],
+        key="main_analysis_type"
     )
     
-    st.plotly_chart(fig, use_container_width=True)
+    if analysis_type == "📈 EDA & Visualisasi":
+        exploratory_data_analysis(df, numeric_cols, non_numeric_cols)
+    
+    elif analysis_type == "🤖 Machine Learning":
+        machine_learning_analysis(df, numeric_cols, non_numeric_cols)
+    
+    elif analysis_type == "🧠 Deep Learning":
+        deep_learning_analysis(df, numeric_cols, non_numeric_cols)
+    
+    elif analysis_type == "📊 Model Comparison":
+        model_comparison_analysis(df, numeric_cols, non_numeric_cols)
+    
+    elif analysis_type == "🔍 Feature Analysis":
+        feature_analysis_dashboard(df, numeric_cols, non_numeric_cols)
 
-# Versi ultra-ringan untuk data ekstrem
-def create_ultra_fast_multiline(df, numeric_cols, non_numeric_cols):
-    """Versi ultra-ringan untuk data > 500k rows"""
-    st.subheader("🚀 Multiple Line Chart Ultra-Fast")
+def exploratory_data_analysis(df, numeric_cols, non_numeric_cols):
+    """Analisis Data Eksploratif Lanjutan"""
+    
+    st.header("📈 Exploratory Data Analysis")
+    
+    # Statistik dasar
+    col1, col2, col3, col4 = st.columns(4)
+    with col1:
+        st.metric("Total Samples", f"{len(df):,}")
+    with col2:
+        st.metric("Numerical Features", len(numeric_cols))
+    with col3:
+        st.metric("Categorical Features", len(non_numeric_cols))
+    with col4:
+        missing_ratio = (df.isnull().sum().sum() / (len(df) * len(df.columns))) * 100
+        st.metric("Missing Data", f"{missing_ratio:.1f}%")
+    
+    # Tab untuk berbagai visualisasi
+    tab1, tab2, tab3, tab4 = st.tabs(["📊 Distribution", "📈 Trends", "🔥 Correlation", "🎯 Outliers"])
+    
+    with tab1:
+        create_distribution_analysis(df, numeric_cols, non_numeric_cols)
+    
+    with tab2:
+        create_trend_analysis(df, numeric_cols, non_numeric_cols)
+    
+    with tab3:
+        create_correlation_analysis(df, numeric_cols)
+    
+    with tab4:
+        create_outlier_analysis(df, numeric_cols)
+
+def create_distribution_analysis(df, numeric_cols, non_numeric_cols):
+    """Analisis distribusi data"""
+    
+    st.subheader("📊 Distribution Analysis")
     
     col1, col2 = st.columns(2)
+    
     with col1:
-        selected_lines = st.multiselect(
-            "Pilih garis", 
-            numeric_cols[:8],
-            default=numeric_cols[:min(4, len(numeric_cols))],
-            key="ultra_multi_lines"
-        )
+        target_col = st.selectbox("Pilih Feature", numeric_cols, key="dist_feature_select")
+        plot_type = st.selectbox("Jenis Plot", ["Histogram", "KDE", "Box Plot", "Violin Plot"], key="dist_plot_type")
+    
     with col2:
-        x_col = st.selectbox(
-            "Sumbu X", 
-            [df.index.name if df.index.name else "index"] + non_numeric_cols[:3] + numeric_cols[:3],
-            key="ultra_multi_x"
+        if non_numeric_cols:
+            hue_col = st.selectbox("Group by (optional)", [None] + non_numeric_cols, key="dist_hue_select")
+        else:
+            hue_col = None
+        
+        bins = st.slider("Number of Bins", 5, 100, 30, key="dist_bins_slider")
+    
+    if target_col and target_col in df.columns:
+        fig = go.Figure()
+        
+        if hue_col and hue_col in df.columns:
+            categories = df[hue_col].dropna().unique()[:8]  # Batasi kategori
+            colors = px.colors.qualitative.Set1
+            
+            for i, category in enumerate(categories):
+                subset = df[df[hue_col] == category][target_col].dropna()
+                
+                if len(subset) > 0:
+                    if plot_type == "Histogram":
+                        fig.add_trace(go.Histogram(
+                            x=subset, 
+                            name=str(category),
+                            opacity=0.7,
+                            nbinsx=bins,
+                            marker_color=colors[i % len(colors)]
+                        ))
+                    elif plot_type == "KDE":
+                        # Create KDE manually
+                        try:
+                            kde = gaussian_kde(subset)
+                            x_range = np.linspace(subset.min(), subset.max(), 100)
+                            fig.add_trace(go.Scatter(
+                                x=x_range, 
+                                y=kde(x_range),
+                                name=str(category),
+                                fill='tozeroy',
+                                opacity=0.6
+                            ))
+                        except:
+                            st.warning(f"Tidak dapat membuat KDE untuk kategori {category}")
+                    elif plot_type == "Box Plot":
+                        fig.add_trace(go.Box(y=subset, name=str(category)))
+                    elif plot_type == "Violin Plot":
+                        fig.add_trace(go.Violin(y=subset, name=str(category)))
+        else:
+            data = df[target_col].dropna()
+            if len(data) > 0:
+                if plot_type == "Histogram":
+                    fig.add_trace(go.Histogram(x=data, nbinsx=bins, name=target_col))
+                elif plot_type == "Box Plot":
+                    fig.add_trace(go.Box(y=data, name=target_col))
+                elif plot_type == "Violin Plot":
+                    fig.add_trace(go.Violin(y=data, name=target_col))
+                elif plot_type == "KDE":
+                    try:
+                        kde = gaussian_kde(data)
+                        x_range = np.linspace(data.min(), data.max(), 100)
+                        fig.add_trace(go.Scatter(
+                            x=x_range, 
+                            y=kde(x_range),
+                            name=target_col,
+                            fill='tozeroy'
+                        ))
+                    except:
+                        st.warning("Tidak dapat membuat KDE plot")
+        
+        if len(fig.data) > 0:
+            fig.update_layout(
+                title=f"{plot_type} of {target_col}" + (f" by {hue_col}" if hue_col else ""),
+                height=400,
+                showlegend=True if hue_col else False
+            )
+            st.plotly_chart(fig, use_container_width=True)
+            
+            # Statistik deskriptif
+            st.subheader("📋 Descriptive Statistics")
+            desc_stats = df[target_col].describe()
+            st.dataframe(desc_stats, use_container_width=True)
+        else:
+            st.warning("Tidak ada data yang valid untuk ditampilkan")
+
+def create_trend_analysis(df, numeric_cols, non_numeric_cols):
+    """Analisis tren time series atau sequential"""
+    
+    st.subheader("📈 Trend Analysis")
+    
+    col1, col2 = st.columns(2)
+    
+    with col1:
+        time_col = st.selectbox(
+            "Pilih Time/Sequence Column", 
+            [None] + non_numeric_cols + numeric_cols,
+            key="trend_time_col"
+        )
+        target_features = st.multiselect(
+            "Pilih Features untuk Analisis Tren",
+            numeric_cols,
+            default=numeric_cols[:min(3, len(numeric_cols))],
+            key="trend_features_select"
         )
     
-    if selected_lines and x_col:
-        # Sampling sangat agresif
-        sample_data = df[[x_col] + selected_lines].dropna()
-        if len(sample_data) > 2000:
-            sample_data = sample_data.sample(n=2000, random_state=42)
+    with col2:
+        if time_col:
+            aggregation = st.selectbox("Aggregation", ["raw", "daily", "weekly", "monthly"], key="trend_aggregation")
+            show_forecast = st.checkbox("Tampilkan Simple Forecast", key="trend_forecast_check")
+    
+    if time_col and target_features:
+        try:
+            # Convert to datetime jika memungkinkan
+            df_plot = df.copy()
+            if time_col in df_plot.columns:
+                try:
+                    df_plot[time_col] = pd.to_datetime(df_plot[time_col])
+                    is_datetime = True
+                except:
+                    is_datetime = False
+            else:
+                is_datetime = False
+            
+            # Aggregation
+            if aggregation != "raw" and is_datetime:
+                df_plot = df_plot.set_index(time_col)
+                if aggregation == "daily":
+                    df_plot = df_plot[target_features].resample('D').mean()
+                elif aggregation == "weekly":
+                    df_plot = df_plot[target_features].resample('W').mean()
+                elif aggregation == "monthly":
+                    df_plot = df_plot[target_features].resample('M').mean()
+                df_plot = df_plot.reset_index()
+            
+            fig = go.Figure()
+            
+            for feature in target_features:
+                if feature in df_plot.columns:
+                    valid_data = df_plot[[time_col, feature]].dropna()
+                    if len(valid_data) > 1:
+                        fig.add_trace(go.Scatter(
+                            x=valid_data[time_col],
+                            y=valid_data[feature],
+                            mode='lines',
+                            name=feature,
+                            hovertemplate=f"{feature}: %{{y:.2f}}<extra></extra>"
+                        ))
+                        
+                        # Simple forecast menggunakan linear regression
+                        if show_forecast and len(valid_data) > 10:
+                            try:
+                                # Convert time to numeric untuk forecasting
+                                if is_datetime:
+                                    x = (valid_data[time_col] - valid_data[time_col].min()).dt.total_seconds().values.reshape(-1, 1)
+                                else:
+                                    x = np.arange(len(valid_data)).reshape(-1, 1)
+                                
+                                y = valid_data[feature].values
+                                
+                                model = LinearRegression()
+                                model.fit(x, y)
+                                
+                                # Forecast 20% ke depan
+                                future_points = max(1, int(len(x) * 0.2))
+                                x_future = np.arange(len(x), len(x) + future_points).reshape(-1, 1)
+                                y_future = model.predict(x_future)
+                                
+                                if is_datetime:
+                                    last_date = valid_data[time_col].iloc[-1]
+                                    if aggregation == "daily":
+                                        freq = 'D'
+                                    elif aggregation == "weekly":
+                                        freq = 'W'
+                                    elif aggregation == "monthly":
+                                        freq = 'M'
+                                    else:
+                                        freq = 'D'
+                                    future_dates = pd.date_range(last_date, periods=future_points+1, freq=freq)[1:]
+                                else:
+                                    future_dates = range(len(x), len(x) + future_points)
+                                
+                                fig.add_trace(go.Scatter(
+                                    x=future_dates,
+                                    y=y_future,
+                                    mode='lines',
+                                    name=f"{feature} Forecast",
+                                    line=dict(dash='dash', color=fig.data[-1].line.color),
+                                    opacity=0.7
+                                ))
+                            except Exception as forecast_error:
+                                st.warning(f"Tidak dapat membuat forecast untuk {feature}: {str(forecast_error)}")
+            
+            if len(fig.data) > 0:
+                fig.update_layout(
+                    title=f"Trend Analysis dengan{' Forecast' if show_forecast else ''}",
+                    height=500,
+                    xaxis_title=time_col,
+                    yaxis_title="Value",
+                    hovermode='x unified'
+                )
+                st.plotly_chart(fig, use_container_width=True)
+            else:
+                st.warning("Tidak ada data yang valid untuk analisis tren")
+            
+        except Exception as e:
+            st.error(f"Error dalam trend analysis: {str(e)}")
+
+def create_correlation_analysis(df, numeric_cols):
+    """Analisis korelasi antar features"""
+    
+    st.subheader("🔥 Correlation Analysis")
+    
+    # Pilih features untuk analisis korelasi
+    selected_features = st.multiselect(
+        "Pilih Features untuk Correlation Analysis",
+        numeric_cols,
+        default=numeric_cols[:min(10, len(numeric_cols))],
+        key="corr_features_select"
+    )
+    
+    if len(selected_features) >= 2:
+        # Hitung correlation matrix
+        corr_matrix = df[selected_features].corr()
         
-        # WebGL rendering
-        fig = go.Figure()
-        colors = ['#1f77b4', '#ff7f0e', '#2ca02c', '#d62728']
+        # Heatmap correlation
+        fig = px.imshow(
+            corr_matrix,
+            text_auto=True,
+            aspect="auto",
+            color_continuous_scale="RdBu_r",
+            title="Correlation Matrix Heatmap"
+        )
+        fig.update_layout(height=500)
+        st.plotly_chart(fig, use_container_width=True)
         
-        for i, col in enumerate(selected_lines):
-            clean_data = sample_data[[x_col, col]].dropna()
-            if len(clean_data) > 0:
-                fig.add_trace(go.Scattergl(
-                    x=clean_data[x_col],
-                    y=clean_data[col],
-                    mode='lines',
-                    name=col,
-                    line=dict(color=colors[i % len(colors)], width=1)
+        # Cari correlation pairs yang tinggi
+        st.subheader("🎯 High Correlation Pairs")
+        corr_pairs = []
+        for i in range(len(corr_matrix.columns)):
+            for j in range(i+1, len(corr_matrix.columns)):
+                corr_val = corr_matrix.iloc[i, j]
+                if abs(corr_val) > 0.7:  # Threshold untuk high correlation
+                    corr_pairs.append({
+                        'Feature 1': corr_matrix.columns[i],
+                        'Feature 2': corr_matrix.columns[j],
+                        'Correlation': corr_val
+                    })
+        
+        if corr_pairs:
+            corr_df = pd.DataFrame(corr_pairs).sort_values('Correlation', key=abs, ascending=False)
+            st.dataframe(corr_df, use_container_width=True)
+        else:
+            st.info("Tidak ditemukan correlation pairs dengan nilai > 0.7")
+        
+        # Scatter matrix untuk features terpilih
+        if len(selected_features) <= 6:
+            st.subheader("📊 Scatter Matrix")
+            try:
+                fig = px.scatter_matrix(df[selected_features].dropna(), height=800)
+                st.plotly_chart(fig, use_container_width=True)
+            except Exception as e:
+                st.warning(f"Tidak dapat membuat scatter matrix: {str(e)}")
+
+def create_outlier_analysis(df, numeric_cols):
+    """Deteksi dan analisis outliers"""
+    
+    st.subheader("🎯 Outlier Detection Analysis")
+    
+    # Pilih method deteksi outliers
+    method = st.selectbox(
+        "Pilih Outlier Detection Method",
+        ["IQR", "Z-Score", "Isolation Forest", "Local Outlier Factor"],
+        key="outlier_method_select"
+    )
+    
+    target_features = st.multiselect(
+        "Pilih Features untuk Outlier Detection",
+        numeric_cols,
+        default=numeric_cols[:min(5, len(numeric_cols))],
+        key="outlier_features_select"
+    )
+    
+    if target_features:
+        # Deteksi outliers
+        outlier_results = {}
+        
+        for feature in target_features:
+            if feature in df.columns:
+                data = df[feature].dropna()
+                if len(data) > 0:
+                    data_values = data.values.reshape(-1, 1)
+                    
+                    if method == "IQR":
+                        Q1 = np.percentile(data_values, 25)
+                        Q3 = np.percentile(data_values, 75)
+                        IQR = Q3 - Q1
+                        if IQR > 0:
+                            lower_bound = Q1 - 1.5 * IQR
+                            upper_bound = Q3 + 1.5 * IQR
+                            outliers = (data_values < lower_bound) | (data_values > upper_bound)
+                        else:
+                            outliers = np.zeros_like(data_values, dtype=bool)
+                        
+                    elif method == "Z-Score":
+                        from scipy import stats
+                        try:
+                            z_scores = np.abs(stats.zscore(data_values))
+                            outliers = z_scores > 3
+                        except:
+                            outliers = np.zeros_like(data_values, dtype=bool)
+                        
+                    elif method == "Isolation Forest":
+                        try:
+                            clf = IsolationForest(contamination=0.1, random_state=42)
+                            outliers = clf.fit_predict(data_values) == -1
+                        except:
+                            outliers = np.zeros_like(data_values, dtype=bool)
+                            
+                    elif method == "Local Outlier Factor":
+                        try:
+                            lof = LocalOutlierFactor(n_neighbors=min(20, len(data_values)-1), contamination=0.1)
+                            outliers = lof.fit_predict(data_values) == -1
+                        except:
+                            outliers = np.zeros_like(data_values, dtype=bool)
+                    
+                    outlier_results[feature] = {
+                        'outlier_count': np.sum(outliers),
+                        'outlier_percentage': (np.sum(outliers) / len(data_values)) * 100,
+                        'outlier_indices': np.where(outliers)[0]
+                    }
+        
+        # Tampilkan results
+        if outlier_results:
+            results_data = []
+            for feature, results in outlier_results.items():
+                results_data.append({
+                    'Feature': feature,
+                    'Outliers Detected': results['outlier_count'],
+                    'Percentage': f"{results['outlier_percentage']:.2f}%"
+                })
+            
+            results_df = pd.DataFrame(results_data)
+            st.dataframe(results_df, use_container_width=True)
+            
+            # Visualisasi outliers untuk feature pertama
+            feature = target_features[0]
+            if feature in outlier_results:
+                fig = go.Figure()
+                
+                # Data normal
+                normal_data = df[feature].dropna()
+                outlier_indices = outlier_results[feature]['outlier_indices']
+                
+                fig.add_trace(go.Box(
+                    y=normal_data,
+                    name="Distribution",
+                    boxpoints='suspectedoutliers',
+                    jitter=0.3,
+                    pointpos=-1.8
                 ))
-        
-        fig.update_layout(
-            title=f"Ultra-Fast: {len(selected_lines)} Lines",
-            height=350,
-            showlegend=True,
-            margin=dict(l=50, r=50, t=50, b=50)
+                
+                fig.update_layout(
+                    title=f"Outlier Analysis untuk {feature} ({method})",
+                    height=400,
+                    yaxis_title=feature
+                )
+                st.plotly_chart(fig, use_container_width=True)
+
+def machine_learning_analysis(df, numeric_cols, non_numeric_cols):
+    """Analisis Machine Learning"""
+    
+    st.header("🤖 Machine Learning Analysis")
+    
+    # Preprocessing
+    st.subheader("🔧 Data Preprocessing")
+    
+    col1, col2 = st.columns(2)
+    
+    with col1:
+        all_columns = numeric_cols + non_numeric_cols
+        target_variable = st.selectbox(
+            "Pilih Target Variable",
+            all_columns,
+            key="ml_target_select"
         )
         
-        st.plotly_chart(fig, use_container_width=True, config={'displayModeBar': False})
-        st.info(f"📊 Ultra-Fast Mode: 2,000 samples, {len(selected_lines)} lines")
+        problem_type = st.selectbox(
+            "Jenis Problem",
+            ["Regression", "Classification"],
+            key="ml_problem_type"
+        )
+    
+    with col2:
+        test_size = st.slider("Test Size Ratio", 0.1, 0.5, 0.2, 0.05, key="ml_test_size")
+        random_state = st.number_input("Random State", value=42, key="ml_random_state")
+    
+    # Feature selection
+    st.subheader("🎯 Feature Selection")
+    available_features = [f for f in numeric_cols + non_numeric_cols if f != target_variable]
+    selected_features = st.multiselect(
+        "Pilih Features untuk Model",
+        available_features,
+        default=available_features[:min(10, len(available_features))],
+        key="ml_features_select"
+    )
+    
+    if target_variable and selected_features:
+        try:
+            # Prepare data
+            X = df[selected_features].copy()
+            y = df[target_variable]
+            
+            # Encode categorical features dan target untuk classification
+            le_dict = {}
+            for col in selected_features:
+                if col in non_numeric_cols:
+                    le = LabelEncoder()
+                    X[col] = le.fit_transform(X[col].astype(str))
+                    le_dict[col] = le
+            
+            # Encode target untuk classification
+            if problem_type == "Classification" and y.dtype == 'object':
+                le_target = LabelEncoder()
+                y = le_target.fit_transform(y.astype(str))
+            
+            # Handle missing values
+            X = X.fillna(X.mean(numeric_only=True))
+            
+            # Split data
+            X_train, X_test, y_train, y_test = train_test_split(
+                X, y, test_size=test_size, random_state=random_state, stratify=y if problem_type == "Classification" else None
+            )
+            
+            # Scale features
+            scaler = StandardScaler()
+            X_train_scaled = scaler.fit_transform(X_train)
+            X_test_scaled = scaler.transform(X_test)
+            
+            # Model selection berdasarkan problem type
+            st.subheader("🚀 Model Training & Evaluation")
+            
+            if problem_type == "Regression":
+                models = {
+                    "Linear Regression": LinearRegression(),
+                    "Ridge Regression": Ridge(random_state=random_state),
+                    "Random Forest": RandomForestRegressor(n_estimators=100, random_state=random_state)
+                }
+                
+            elif problem_type == "Classification":
+                models = {
+                    "Logistic Regression": LogisticRegression(random_state=random_state),
+                    "Random Forest": RandomForestClassifier(n_estimators=100, random_state=random_state),
+                    "SVM": SVC(random_state=random_state)
+                }
+            
+            # Train and evaluate models
+            results = {}
+            
+            for name, model in models.items():
+                with st.spinner(f"Training {name}..."):
+                    try:
+                        # Train model
+                        model.fit(X_train_scaled, y_train)
+                        y_pred = model.predict(X_test_scaled)
+                        
+                        # Calculate metrics
+                        if problem_type == "Regression":
+                            mse = mean_squared_error(y_test, y_pred)
+                            r2 = r2_score(y_test, y_pred)
+                            
+                            results[name] = {
+                                'MSE': mse,
+                                'R2 Score': r2,
+                                'predictions': y_pred,
+                                'model': model
+                            }
+                        
+                        elif problem_type == "Classification":
+                            accuracy = accuracy_score(y_test, y_pred)
+                            
+                            results[name] = {
+                                'Accuracy': accuracy,
+                                'predictions': y_pred,
+                                'model': model
+                            }
+                    except Exception as model_error:
+                        st.warning(f"Error training {name}: {str(model_error)}")
+            
+            # Display results
+            if results:
+                st.subheader("📊 Model Performance Comparison")
+                
+                if problem_type == "Regression":
+                    results_df = pd.DataFrame({
+                        'Model': list(results.keys()),
+                        'MSE': [results[name]['MSE'] for name in results.keys()],
+                        'R2 Score': [results[name]['R2 Score'] for name in results.keys()]
+                    })
+                else:
+                    results_df = pd.DataFrame({
+                        'Model': list(results.keys()),
+                        'Accuracy': [results[name]['Accuracy'] for name in results.keys()]
+                    })
+                
+                st.dataframe(results_df.sort_values(
+                    'R2 Score' if problem_type == "Regression" else 'Accuracy', 
+                    ascending=False
+                ), use_container_width=True)
+                
+                # Feature importance untuk tree-based models
+                st.subheader("🔍 Feature Importance")
+                for name, result in results.items():
+                    model = result['model']
+                    if hasattr(model, 'feature_importances_'):
+                        feature_importance = pd.DataFrame({
+                            'feature': selected_features,
+                            'importance': model.feature_importances_
+                        }).sort_values('importance', ascending=False)
+                        
+                        fig = px.bar(
+                            feature_importance.head(10),
+                            x='importance',
+                            y='feature',
+                            title=f"Feature Importance - {name}",
+                            orientation='h'
+                        )
+                        st.plotly_chart(fig, use_container_width=True)
+            else:
+                st.warning("Tidak ada model yang berhasil di-training")
+        
+        except Exception as e:
+            st.error(f"Error dalam ML analysis: {str(e)}")
+
+def deep_learning_analysis(df, numeric_cols, non_numeric_cols):
+    """Analisis Deep Learning"""
+    
+    st.header("🧠 Deep Learning Analysis")
+    
+    st.warning("⚠️ Fitur Deep Learning membutuhkan komputasi intensif dan dataset yang cukup besar")
+    
+    # DL Configuration
+    col1, col2 = st.columns(2)
+    
+    with col1:
+        dl_target = st.selectbox(
+            "Pilih Target Variable",
+            numeric_cols,
+            key="dl_target_select"
+        )
+        
+        dl_problem_type = st.selectbox(
+            "Jenis Problem DL",
+            ["Regression", "Binary Classification", "Multi-class Classification"],
+            key="dl_problem_type"
+        )
+    
+    with col2:
+        epochs = st.slider("Epochs", 10, 200, 50, key="dl_epochs")
+        batch_size = st.slider("Batch Size", 16, 256, 32, key="dl_batch_size")
+        learning_rate = st.selectbox("Learning Rate", [0.001, 0.01, 0.1, 0.0001], key="dl_learning_rate")
+    
+    # Feature selection untuk DL
+    dl_features = st.multiselect(
+        "Pilih Features untuk Deep Learning",
+        [f for f in numeric_cols if f != dl_target],
+        default=[f for f in numeric_cols if f != dl_target][:5],
+        key="dl_features_select"
+    )
+    
+    if dl_target and dl_features:
+        try:
+            import tensorflow as tf
+            
+            # Prepare data
+            X = df[dl_features].fillna(df[dl_features].mean())
+            y = df[dl_target]
+            
+            # Split data
+            X_train, X_test, y_train, y_test = train_test_split(
+                X, y, test_size=0.2, random_state=42
+            )
+            
+            # Scale features
+            scaler = StandardScaler()
+            X_train_scaled = scaler.fit_transform(X_train)
+            X_test_scaled = scaler.transform(X_test)
+            
+            # Model architecture
+            st.subheader("🏗️ Neural Network Architecture")
+            
+            col1, col2 = st.columns(2)
+            
+            with col1:
+                hidden_layers = st.slider("Jumlah Hidden Layers", 1, 5, 2, key="dl_hidden_layers")
+                units_per_layer = st.slider("Units per Layer", 16, 256, 64, key="dl_units")
+                activation = st.selectbox("Activation Function", ["relu", "tanh", "sigmoid"], key="dl_activation")
+            
+            with col2:
+                dropout_rate = st.slider("Dropout Rate", 0.0, 0.5, 0.2, 0.1, key="dl_dropout")
+                optimizer = st.selectbox("Optimizer", ["adam", "rmsprop", "sgd"], key="dl_optimizer")
+            
+            # Build model
+            model = tf.keras.Sequential()
+            
+            # Input layer
+            model.add(tf.keras.layers.Dense(units_per_layer, activation=activation, input_shape=(len(dl_features),)))
+            model.add(tf.keras.layers.Dropout(dropout_rate))
+            
+            # Hidden layers
+            for i in range(hidden_layers - 1):
+                model.add(tf.keras.layers.Dense(units_per_layer, activation=activation))
+                model.add(tf.keras.layers.Dropout(dropout_rate))
+            
+            # Output layer
+            if dl_problem_type == "Regression":
+                model.add(tf.keras.layers.Dense(1, activation='linear'))
+                loss = 'mse'
+                metrics = ['mae']
+            else:
+                num_classes = len(y.unique()) if dl_problem_type == "Multi-class Classification" else 1
+                activation_output = 'softmax' if dl_problem_type == "Multi-class Classification" else 'sigmoid'
+                model.add(tf.keras.layers.Dense(num_classes, activation=activation_output))
+                loss = 'sparse_categorical_crossentropy' if dl_problem_type == "Multi-class Classification" else 'binary_crossentropy'
+                metrics = ['accuracy']
+            
+            # Compile model
+            model.compile(
+                optimizer=optimizer,
+                loss=loss,
+                metrics=metrics
+            )
+            
+            # Display model summary
+            st.text("Model Summary:")
+            model_summary = []
+            model.summary(print_fn=lambda x: model_summary.append(x))
+            st.text("\n".join(model_summary))
+            
+            # Train model
+            if st.button("🚀 Train Deep Learning Model", key="dl_train_button"):
+                with st.spinner("Training neural network..."):
+                    # Callbacks
+                    early_stopping = tf.keras.callbacks.EarlyStopping(
+                        patience=10, restore_best_weights=True
+                    )
+                    
+                    # Train model
+                    history = model.fit(
+                        X_train_scaled, y_train,
+                        epochs=epochs,
+                        batch_size=batch_size,
+                        validation_split=0.2,
+                        callbacks=[early_stopping],
+                        verbose=0
+                    )
+                    
+                    # Plot training history
+                    fig = go.Figure()
+                    fig.add_trace(go.Scatter(
+                        y=history.history['loss'],
+                        mode='lines',
+                        name='Training Loss'
+                    ))
+                    if 'val_loss' in history.history:
+                        fig.add_trace(go.Scatter(
+                            y=history.history['val_loss'],
+                            mode='lines',
+                            name='Validation Loss'
+                        ))
+                    fig.update_layout(
+                        title="Training History - Loss",
+                        xaxis_title="Epoch",
+                        yaxis_title="Loss",
+                        height=400
+                    )
+                    st.plotly_chart(fig, use_container_width=True)
+                    
+                    # Evaluate model
+                    test_results = model.evaluate(X_test_scaled, y_test, verbose=0)
+                    st.success(f"✅ Model Training Complete!")
+                    st.metric("Test Loss", f"{test_results[0]:.4f}")
+                    if len(test_results) > 1:
+                        st.metric("Test Metric", f"{test_results[1]:.4f}")
+        
+        except ImportError:
+            st.error("❌ TensorFlow tidak terinstall. Install dengan: pip install tensorflow")
+        except Exception as e:
+            st.error(f"Error dalam DL analysis: {str(e)}")
+
+def model_comparison_analysis(df, numeric_cols, non_numeric_cols):
+    """Perbandingan model yang komprehensif"""
+    
+    st.header("📊 Model Comparison Dashboard")
+    
+    st.info("🔄 Fitur Model Comparison - Pilih model dari tab Machine Learning dan Deep Learning untuk perbandingan")
+    
+    # Placeholder untuk implementasi lengkap
+    col1, col2, col3 = st.columns(3)
+    
+    with col1:
+        st.metric("ML Models", "3")
+    with col2:
+        st.metric("Evaluation Metrics", "5+")
+    with col3:
+        st.metric("Feature Importance", "✓")
+
+def feature_analysis_dashboard(df, numeric_cols, non_numeric_cols):
+    """Dashboard analisis feature yang komprehensif"""
+    
+    st.header("🔍 Advanced Feature Analysis")
+    
+    # Feature importance analysis
+    st.subheader("🎯 Feature Importance Analysis")
+    
+    # Multiple methods untuk feature importance
+    importance_method = st.selectbox(
+        "Pilih Feature Importance Method",
+        ["Random Forest", "Permutation Importance"],
+        key="feature_importance_method"
+    )
+    
+    target_feature = st.selectbox(
+        "Pilih Target untuk Feature Importance",
+        numeric_cols,
+        key="feature_importance_target"
+    )
+    
+    if st.button("Hitung Feature Importance", key="feature_importance_button"):
+        with st.spinner("Menghitung feature importance..."):
+            # Implementasi feature importance calculation
+            try:
+                features = [f for f in numeric_cols if f != target_feature]
+                
+                X = df[features].fillna(df[features].mean())
+                y = df[target_feature]
+                
+                if importance_method == "Random Forest":
+                    model = RandomForestRegressor(n_estimators=100, random_state=42)
+                    model.fit(X, y)
+                    importances = model.feature_importances_
+                    
+                    importance_df = pd.DataFrame({
+                        'feature': features,
+                        'importance': importances
+                    }).sort_values('importance', ascending=False)
+                    
+                    fig = px.bar(
+                        importance_df.head(15),
+                        x='importance',
+                        y='feature',
+                        title="Random Forest Feature Importance",
+                        orientation='h'
+                    )
+                    st.plotly_chart(fig, use_container_width=True)
+                
+                elif importance_method == "Permutation Importance":
+                    model = RandomForestRegressor(n_estimators=100, random_state=42)
+                    model.fit(X, y)
+                    
+                    perm_importance = permutation_importance(
+                        model, X, y, n_repeats=5, random_state=42
+                    )
+                    
+                    importance_df = pd.DataFrame({
+                        'feature': features,
+                        'importance': perm_importance.importances_mean
+                    }).sort_values('importance', ascending=False)
+                    
+                    fig = px.bar(
+                        importance_df.head(15),
+                        x='importance',
+                        y='feature',
+                        title="Permutation Feature Importance",
+                        orientation='h'
+                    )
+                    st.plotly_chart(fig, use_container_width=True)
+            
+            except Exception as e:
+                st.error(f"Error dalam feature importance analysis: {str(e)}")
+
+# Fungsi untuk memuat data
+def load_data(uploaded_file):
+    """Memuat data dari file yang diupload"""
+    try:
+        if uploaded_file.name.endswith('.csv'):
+            df = pd.read_csv(uploaded_file)
+        elif uploaded_file.name.endswith(('.xls', '.xlsx')):
+            df = pd.read_excel(uploaded_file)
+        else:
+            st.error("Format file tidak didukung. Harap upload file CSV atau Excel.")
+            return None
+        return df
+    except Exception as e:
+        st.error(f"Error memuat file: {str(e)}")
+        return None
+
+# Fungsi utama untuk menjalankan dashboard
+def run_ml_dl_dashboard():
+    """
+    Fungsi utama untuk menjalankan dashboard ML/DL dengan upload file
+    """
+    st.title("🤖 Advanced ML/DL Analysis Dashboard")
+    
+    # File upload
+    st.sidebar.header("📁 Upload Dataset")
+    uploaded_file = st.sidebar.file_uploader(
+        "Pilih file CSV atau Excel", 
+        type=['csv', 'xls', 'xlsx'],
+        key="file_uploader"
+    )
+    
+    if uploaded_file is not None:
+        # Load data
+        df = load_data(uploaded_file)
+        
+        if df is not None:
+            st.sidebar.success(f"✅ File berhasil dimuat: {uploaded_file.name}")
+            st.sidebar.info(f"Shape: {df.shape[0]} baris × {df.shape[1]} kolom")
+            
+            # Tampilkan preview data
+            if st.sidebar.checkbox("Tampilkan Preview Data", key="preview_checkbox"):
+                st.subheader("📋 Data Preview")
+                st.dataframe(df.head(), use_container_width=True)
+                
+                st.subheader("📊 Data Info")
+                col1, col2 = st.columns(2)
+                
+                with col1:
+                    st.write("**Data Types:**")
+                    st.write(df.dtypes)
+                
+                with col2:
+                    st.write("**Missing Values:**")
+                    missing_data = df.isnull().sum()
+                    st.write(missing_data[missing_data > 0])
+            
+            # Identifikasi kolom numerik dan kategorikal
+            numeric_cols = df.select_dtypes(include=[np.number]).columns.tolist()
+            non_numeric_cols = df.select_dtypes(exclude=[np.number]).columns.tolist()
+            
+            # Jalankan dashboard utama
+            create_ml_dl_analysis_dashboard(df, numeric_cols, non_numeric_cols)
+    else:
+        st.info("👆 Silakan upload file CSV atau Excel untuk memulai analisis")
+        
+        # Contoh data untuk demonstrasi
+        if st.checkbox("Gunakan Sample Data untuk Demo", key="sample_data_checkbox"):
+            sample_data = pd.DataFrame({
+                'feature1': np.random.normal(0, 1, 1000),
+                'feature2': np.random.exponential(2, 1000),
+                'feature3': np.random.randint(0, 10, 1000),
+                'target_regression': np.random.normal(0, 1, 1000),
+                'target_classification': np.random.choice([0, 1], 1000),
+                'category': np.random.choice(['A', 'B', 'C'], 1000),
+                'timestamp': pd.date_range('2023-01-01', periods=1000, freq='H')
+            })
+            
+            st.success("✅ Menggunakan sample data untuk demonstrasi")
+            create_ml_dl_analysis_dashboard(sample_data, 
+                                          ['feature1', 'feature2', 'feature3', 'target_regression', 'target_classification'],
+                                          ['category', 'timestamp'])
 
 
 # Fungsi statistik yang dioptimalkan
@@ -10809,7 +11509,7 @@ st.markdown("""
 <div style="text-align: center; color: #666; padding: 20px;">
     <div style="display: flex; align-items: center; justify-content: center; gap: 20px; margin-bottom: 15px;">
         <div style="width: 80px; height: 80px; border-radius: 50%; overflow: hidden; border: 3px solid #636EFA;">
-            <img src="https://portofolio-dwi-bakti-n-dev-liard.vercel.app/user/royhtml.jpg" alt="Profile Picture" style="width: 100%; height: 100%; object-fit: cover;">
+            <img src="https://github.com/DwiDevelopes/gambar/raw/main/Desain%20tanpa%20judul%20(8).jpg" alt="Profile Picture" style="width: 100%; height: 100%; object-fit: cover;">
         </div>
         <div>
             <h3 style="margin-bottom: 10px;">Dashboard Statistik Lengkap</h3>
