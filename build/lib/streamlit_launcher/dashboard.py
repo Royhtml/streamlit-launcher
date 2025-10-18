@@ -34,6 +34,7 @@ from sklearn.preprocessing import StandardScaler, LabelEncoder
 from sklearn.metrics import mean_squared_error, r2_score, accuracy_score, classification_report, confusion_matrix
 from sklearn.inspection import permutation_importance
 from scipy.stats import gaussian_kde
+import streamlit.components.v1 as components
 
 # Konfigurasi untuk performa
 plt.style.use('default')
@@ -7958,6 +7959,29 @@ uploaded_files = st.sidebar.file_uploader(
     accept_multiple_files=True
 )
 
+# Pilihan website
+website_option = st.sidebar.selectbox(
+    "Pilih Website:",
+    ["https://streamlit-launcher.vercel.app/", "Custom URL"]
+)
+
+if website_option == "Custom URL":
+    custom_url = st.sidebar.text_input("Masukkan URL custom:")
+    if custom_url:
+        website_url = custom_url
+    else:
+        website_url = "https://streamlit-launcher.vercel.app/"
+else:
+    website_url = website_option
+
+# Tampilkan iframe
+if st.sidebar.button("🌐 Tampilkan Website"):
+    st.markdown(f"""
+    <div style="border: 2px solid #e0e0e0; border-radius: 10px; padding: 10px; margin: 10px 0;">
+        <iframe src="{website_url}" width="100%" height="600" style="border: none; border-radius: 8px;"></iframe>
+    </div>
+    """, unsafe_allow_html=True)
+
 merge_method = "concat"
 if uploaded_files and len(uploaded_files) > 1:
     merge_method = st.sidebar.selectbox(
@@ -7999,6 +8023,15 @@ if df is not None:
     
     with tab9:
             st.header("📁 Upload File & Analisis Lengkap SQL Style")
+            with st.expander("📜 Ketarangan Dalam Statistik Dan Analisis", expanded=False):
+                st.markdown("""
+                **Penjelasan Penting 📛**
+                
+                ### 🚀 Ketrangan Lengkap Dalam Analisis Dan Statistik Pada SQL Style
+                - SQL ini masih tahap pemgembangan dan perbaikan, jadi mohon bersabar jika ada kekurangan
+                - dan kami akan segera update SQL Style ini agar lebih baik lagi kedepannya.
+                - Terima kasih atas pengertian dan dukungannya.
+                """)
             
             # Upload file
             uploaded_file = st.file_uploader(
@@ -8417,7 +8450,13 @@ if df is not None:
             type=['csv', 'xlsx', 'xls'],
             key="stock_uploader"
         )
-        
+        with st.expander("📜 Ketarangan Lengkap Tentang Aalisis Saham", expanded=False):
+            st.markdown("""
+            **Penjelasan Penting 📛**
+            
+            ### 🧾 Pengambangan Saham
+            - Saham Ini Masih Tahap Pengembangan Dan Masih Tahap Uji Coba Dan kalian bisa menggunakan model yang ada
+            """)
         if uploaded_file is not None:
             try:
                 # Baca file berdasarkan tipe
