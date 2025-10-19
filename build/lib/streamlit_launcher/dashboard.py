@@ -35,6 +35,37 @@ from sklearn.metrics import mean_squared_error, r2_score, accuracy_score, classi
 from sklearn.inspection import permutation_importance
 from scipy.stats import gaussian_kde
 import streamlit.components.v1 as components
+import tensorflow as tf
+import numpy as np
+import pandas as pd
+from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import StandardScaler, LabelEncoder
+from sklearn.metrics import mean_squared_error, mean_absolute_error, r2_score
+from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score
+from sklearn.metrics import confusion_matrix, classification_report
+import plotly.express as px
+import plotly.graph_objects as go
+from plotly.subplots import make_subplots
+import xgboost as xgb
+from sklearn.ensemble import GradientBoostingRegressor, GradientBoostingClassifier
+from sklearn.feature_selection import mutual_info_regression, mutual_info_classif
+import plotly.graph_objects as go
+from plotly.subplots import make_subplots
+import time
+import warnings
+warnings.filterwarnings('ignore')
+from sklearn.ensemble import RandomForestRegressor, RandomForestClassifier
+from sklearn.ensemble import GradientBoostingRegressor, GradientBoostingClassifier
+from xgboost import XGBRegressor, XGBClassifier
+from sklearn.ensemble import VotingRegressor, VotingClassifier
+from sklearn.ensemble import StackingRegressor, StackingClassifier
+from sklearn.model_selection import cross_validate, GridSearchCV
+from sklearn.metrics import get_scorer
+from sklearn.preprocessing import StandardScaler, LabelEncoder, OneHotEncoder
+from sklearn.compose import ColumnTransformer
+from sklearn.impute import SimpleImputer
+from sklearn.pipeline import Pipeline
+
 
 # Konfigurasi untuk performa
 plt.style.use('default')
@@ -6435,8 +6466,13 @@ def create_ml_dl_analysis_dashboard(df, numeric_cols, non_numeric_cols):
     """
     Dashboard komprehensif untuk analisis Machine Learning dan Deep Learning
     """
-    
-    st.title("🤖 Advanced ML/DL Analysis Dashboard")
+    st.markdown("""
+    <div style='text-align: center; padding: 10px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); 
+                border-radius: 10px; margin: 10px 0;'>
+        <h3 style='color: white; margin: 0;'>🧠 dwibaktindev AI</h3>
+        <p style='color: white; margin: 0;'>Sasha • Alisa • dwibaktindev Models</p>
+    </div>
+    """, unsafe_allow_html=True)
     
     # Deteksi tipe data
     data_size = len(df)
@@ -6874,10 +6910,25 @@ def create_outlier_analysis(df, numeric_cols):
                 st.plotly_chart(fig, use_container_width=True)
 
 def machine_learning_analysis(df, numeric_cols, non_numeric_cols):
-    """Analisis Machine Learning"""
+    """Analisis Machine Learning dengan Optimasi untuk Dataset Besar"""
     
     st.header("🤖 Machine Learning Analysis")
     
+    # Informasi dataset
+    st.subheader("📊 Dataset Info")
+    col1, col2, col3 = st.columns(3)
+    with col1:
+        st.metric("Total Rows", f"{len(df):,}")
+    with col2:
+        st.metric("Total Columns", f"{len(df.columns):,}")
+    with col3:
+        st.metric("Memory Usage", f"{df.memory_usage(deep=True).sum() / 1024**2:.2f} MB")
+    
+    # Optimasi memory usage
+    if st.checkbox("Optimize Memory Usage", value=True):
+        df = optimize_memory_usage(df)
+        st.success("Memory usage optimized!")
+
     # Preprocessing
     st.subheader("🔧 Data Preprocessing")
     
@@ -6893,162 +6944,407 @@ def machine_learning_analysis(df, numeric_cols, non_numeric_cols):
         
         problem_type = st.selectbox(
             "Jenis Problem",
-            ["Regression", "Classification"],
+            ["Regression", "Classification", "Auto Detect"],
             key="ml_problem_type"
         )
+        
+        # Auto detect problem type
+        if problem_type == "Auto Detect":
+            if target_variable in numeric_cols:
+                problem_type = "Regression"
+            else:
+                problem_type = "Classification"
+            st.info(f"Auto-detected: {problem_type}")
     
     with col2:
         test_size = st.slider("Test Size Ratio", 0.1, 0.5, 0.2, 0.05, key="ml_test_size")
         random_state = st.number_input("Random State", value=42, key="ml_random_state")
-    
-    # Feature selection
-    st.subheader("🎯 Feature Selection")
-    available_features = [f for f in numeric_cols + non_numeric_cols if f != target_variable]
-    selected_features = st.multiselect(
-        "Pilih Features untuk Model",
-        available_features,
-        default=available_features[:min(10, len(available_features))],
-        key="ml_features_select"
-    )
-    
-    if target_variable and selected_features:
-        try:
-            # Prepare data
-            X = df[selected_features].copy()
-            y = df[target_variable]
-            
-            # Encode categorical features dan target untuk classification
-            le_dict = {}
-            for col in selected_features:
-                if col in non_numeric_cols:
-                    le = LabelEncoder()
-                    X[col] = le.fit_transform(X[col].astype(str))
-                    le_dict[col] = le
-            
-            # Encode target untuk classification
-            if problem_type == "Classification" and y.dtype == 'object':
-                le_target = LabelEncoder()
-                y = le_target.fit_transform(y.astype(str))
-            
-            # Handle missing values
-            X = X.fillna(X.mean(numeric_only=True))
-            
-            # Split data
-            X_train, X_test, y_train, y_test = train_test_split(
-                X, y, test_size=test_size, random_state=random_state, stratify=y if problem_type == "Classification" else None
-            )
-            
-            # Scale features
-            scaler = StandardScaler()
-            X_train_scaled = scaler.fit_transform(X_train)
-            X_test_scaled = scaler.transform(X_test)
-            
-            # Model selection berdasarkan problem type
-            st.subheader("🚀 Model Training & Evaluation")
-            
-            if problem_type == "Regression":
-                models = {
-                    "Linear Regression": LinearRegression(),
-                    "Ridge Regression": Ridge(random_state=random_state),
-                    "Random Forest": RandomForestRegressor(n_estimators=100, random_state=random_state)
-                }
-                
-            elif problem_type == "Classification":
-                models = {
-                    "Logistic Regression": LogisticRegression(random_state=random_state),
-                    "Random Forest": RandomForestClassifier(n_estimators=100, random_state=random_state),
-                    "SVM": SVC(random_state=random_state)
-                }
-            
-            # Train and evaluate models
-            results = {}
-            
-            for name, model in models.items():
-                with st.spinner(f"Training {name}..."):
-                    try:
-                        # Train model
-                        model.fit(X_train_scaled, y_train)
-                        y_pred = model.predict(X_test_scaled)
-                        
-                        # Calculate metrics
-                        if problem_type == "Regression":
-                            mse = mean_squared_error(y_test, y_pred)
-                            r2 = r2_score(y_test, y_pred)
-                            
-                            results[name] = {
-                                'MSE': mse,
-                                'R2 Score': r2,
-                                'predictions': y_pred,
-                                'model': model
-                            }
-                        
-                        elif problem_type == "Classification":
-                            accuracy = accuracy_score(y_test, y_pred)
-                            
-                            results[name] = {
-                                'Accuracy': accuracy,
-                                'predictions': y_pred,
-                                'model': model
-                            }
-                    except Exception as model_error:
-                        st.warning(f"Error training {name}: {str(model_error)}")
-            
-            # Display results
-            if results:
-                st.subheader("📊 Model Performance Comparison")
-                
-                if problem_type == "Regression":
-                    results_df = pd.DataFrame({
-                        'Model': list(results.keys()),
-                        'MSE': [results[name]['MSE'] for name in results.keys()],
-                        'R2 Score': [results[name]['R2 Score'] for name in results.keys()]
-                    })
-                else:
-                    results_df = pd.DataFrame({
-                        'Model': list(results.keys()),
-                        'Accuracy': [results[name]['Accuracy'] for name in results.keys()]
-                    })
-                
-                st.dataframe(results_df.sort_values(
-                    'R2 Score' if problem_type == "Regression" else 'Accuracy', 
-                    ascending=False
-                ), use_container_width=True)
-                
-                # Feature importance untuk tree-based models
-                st.subheader("🔍 Feature Importance")
-                for name, result in results.items():
-                    model = result['model']
-                    if hasattr(model, 'feature_importances_'):
-                        feature_importance = pd.DataFrame({
-                            'feature': selected_features,
-                            'importance': model.feature_importances_
-                        }).sort_values('importance', ascending=False)
-                        
-                        fig = px.bar(
-                            feature_importance.head(10),
-                            x='importance',
-                            y='feature',
-                            title=f"Feature Importance - {name}",
-                            orientation='h'
-                        )
-                        st.plotly_chart(fig, use_container_width=True)
-            else:
-                st.warning("Tidak ada model yang berhasil di-training")
         
-        except Exception as e:
-            st.error(f"Error dalam ML analysis: {str(e)}")
+        # Sampling untuk dataset besar
+        sample_size = st.slider("Sample Size (untuk dataset besar)", 
+                               min_value=1000, 
+                               max_value=min(50000, len(df)), 
+                               value=min(10000, len(df)), 
+                               step=1000,
+                               key="ml_sample_size")
+    
+    # Feature selection dengan advanced options
+    st.subheader("🎯 Feature Selection")
+    
+    available_features = [f for f in numeric_cols + non_numeric_cols if f != target_variable]
+    
+    col1, col2 = st.columns([2, 1])
+    
+    with col1:
+        feature_selection_method = st.radio(
+            "Feature Selection Method",
+            ["Manual Selection", "Auto Select Top Features"],
+            key="feature_selection_method"
+        )
+        
+        if feature_selection_method == "Manual Selection":
+            selected_features = st.multiselect(
+                "Pilih Features untuk Model",
+                available_features,
+                default=available_features[:min(10, len(available_features))],
+                key="ml_features_select"
+            )
+        else:
+            top_k = st.slider("Number of Top Features", 5, 50, 15, key="top_k_features")
+            selected_features = available_features[:top_k]
+            st.info(f"Auto-selected top {top_k} features")
+    
+    with col2:
+        # Advanced options
+        st.write("**Advanced Options:**")
+        use_feature_engineering = st.checkbox("Feature Engineering", value=False)
+        remove_high_correlation = st.checkbox("Remove High Correlation", value=True)
+        correlation_threshold = st.slider("Correlation Threshold", 0.7, 0.99, 0.9, 0.01)
 
-def deep_learning_analysis(df, numeric_cols, non_numeric_cols):
-    """Analisis Deep Learning"""
+    if not target_variable or not selected_features:
+        st.warning("Pilih target variable dan features terlebih dahulu")
+        return
+
+    try:
+        # Sampling untuk dataset besar
+        if len(df) > sample_size:
+            st.info(f"Using sample of {sample_size} records for faster processing")
+            df_sampled = df.sample(n=sample_size, random_state=random_state)
+        else:
+            df_sampled = df
+
+        # Progress tracking
+        progress_bar = st.progress(0)
+        status_text = st.empty()
+
+        # Prepare data
+        status_text.text("Preparing data...")
+        X = df_sampled[selected_features].copy()
+        y = df_sampled[target_variable]
+        progress_bar.progress(20)
+
+        # Handle large dataset - incremental processing
+        chunk_size = min(1000, len(X))
+        
+        # Encode categorical features
+        status_text.text("Encoding categorical features...")
+        le_dict = {}
+        categorical_columns = [col for col in selected_features if col in non_numeric_cols]
+        
+        for col in categorical_columns:
+            # Untuk dataset besar, gunakan categorical encoding yang lebih efisien
+            if X[col].nunique() > 100:  # Jika terlalu banyak kategori, gunakan frequency encoding
+                freq_encoding = X[col].value_counts().to_dict()
+                X[col] = X[col].map(freq_encoding)
+                X[col].fillna(0, inplace=True)
+            else:
+                le = LabelEncoder()
+                X[col] = le.fit_transform(X[col].astype(str))
+                le_dict[col] = le
+        progress_bar.progress(40)
+
+        # Encode target variable
+        status_text.text("Encoding target variable...")
+        le_target = None
+        if problem_type == "Classification" and y.dtype == 'object':
+            le_target = LabelEncoder()
+            y = le_target.fit_transform(y.astype(str))
+        
+        # Remove high correlation features
+        if remove_high_correlation and len(selected_features) > 1:
+            status_text.text("Removing highly correlated features...")
+            X = remove_correlated_features(X, correlation_threshold)
+        
+        progress_bar.progress(60)
+
+        # Handle missing values dengan metode yang lebih robust
+        status_text.text("Handling missing values...")
+        for col in X.columns:
+            if X[col].isnull().sum() > 0:
+                if X[col].dtype in ['int64', 'float64']:
+                    X[col].fillna(X[col].median(), inplace=True)
+                else:
+                    X[col].fillna(X[col].mode()[0] if len(X[col].mode()) > 0 else 0, inplace=True)
+
+        progress_bar.progress(80)
+
+        # Split data
+        status_text.text("Splitting data...")
+        X_train, X_test, y_train, y_test = train_test_split(
+            X, y, 
+            test_size=test_size, 
+            random_state=random_state, 
+            stratify=y if problem_type == "Classification" else None
+        )
+
+        # Scale features - gunakan StandardScaler yang lebih efisien
+        scaler = StandardScaler()
+        X_train_scaled = scaler.fit_transform(X_train)
+        X_test_scaled = scaler.transform(X_test)
+        progress_bar.progress(100)
+
+        # Model selection dengan progress tracking
+        st.subheader("🚀 Model Training & Evaluation")
+        
+        # Pilihan model berdasarkan problem type dan dataset size
+        if problem_type == "Regression":
+            models = {
+                "Linear Regression": LinearRegression(),
+                "Ridge Regression": Ridge(random_state=random_state),
+                "Random Forest": RandomForestRegressor(
+                    n_estimators=50,  # Kurangi untuk dataset besar
+                    random_state=random_state,
+                    n_jobs=-1  # Gunakan semua core CPU
+                ),
+                "Gradient Boosting": GradientBoostingRegressor(
+                    n_estimators=50,
+                    random_state=random_state
+                )
+            }
+        elif problem_type == "Classification":
+            models = {
+                "Logistic Regression": LogisticRegression(
+                    random_state=random_state,
+                    n_jobs=-1,
+                    max_iter=1000
+                ),
+                "Random Forest": RandomForestClassifier(
+                    n_estimators=50,
+                    random_state=random_state,
+                    n_jobs=-1
+                ),
+                "Gradient Boosting": GradientBoostingClassifier(
+                    n_estimators=50,
+                    random_state=random_state
+                ),
+                "XGBoost": xgb.XGBClassifier(
+                    n_estimators=50,
+                    random_state=random_state,
+                    n_jobs=-1,
+                    verbosity=0
+                ) if 'xgb' in globals() else None
+            }
+            # Remove None models
+            models = {k: v for k, v in models.items() if v is not None}
+
+        # Train and evaluate models dengan progress bar
+        results = {}
+        model_progress = st.progress(0)
+        total_models = len(models)
+        
+        for i, (name, model) in enumerate(models.items()):
+            status_text.text(f"Training {name}...")
+            
+            try:
+                # Train model
+                model.fit(X_train_scaled, y_train)
+                y_pred = model.predict(X_test_scaled)
+                
+                # Calculate metrics
+                if problem_type == "Regression":
+                    mse = mean_squared_error(y_test, y_pred)
+                    rmse = np.sqrt(mse)
+                    mae = mean_absolute_error(y_test, y_pred)
+                    r2 = r2_score(y_test, y_pred)
+                    
+                    results[name] = {
+                        'MSE': mse,
+                        'RMSE': rmse,
+                        'MAE': mae,
+                        'R2 Score': r2,
+                        'predictions': y_pred,
+                        'model': model
+                    }
+                
+                elif problem_type == "Classification":
+                    accuracy = accuracy_score(y_test, y_pred)
+                    precision = precision_score(y_test, y_pred, average='weighted', zero_division=0)
+                    recall = recall_score(y_test, y_pred, average='weighted', zero_division=0)
+                    f1 = f1_score(y_test, y_pred, average='weighted', zero_division=0)
+                    
+                    results[name] = {
+                        'Accuracy': accuracy,
+                        'Precision': precision,
+                        'Recall': recall,
+                        'F1-Score': f1,
+                        'predictions': y_pred,
+                        'model': model
+                    }
+                
+                st.success(f"✅ {name} trained successfully")
+                
+            except Exception as model_error:
+                st.warning(f"⚠️ Error training {name}: {str(model_error)}")
+            
+            model_progress.progress((i + 1) / total_models)
+
+        status_text.text("Completed!")
+        
+        # Display results
+        if results:
+            display_ml_results(results, problem_type, X_test, y_test, selected_features, le_target)
+        else:
+            st.error("❌ Tidak ada model yang berhasil di-training")
+
+    except Exception as e:
+        st.error(f"❌ Error dalam ML analysis: {str(e)}")
+        st.info("💡 Tips: Coba kurangi jumlah features atau gunakan sample size yang lebih kecil")
+
+def optimize_memory_usage(df):
+    """Optimize memory usage of dataframe"""
+    for col in df.columns:
+        if df[col].dtype == 'object':
+            df[col] = df[col].astype('category')
+        elif df[col].dtype in ['int64', 'int32']:
+            c_min = df[col].min()
+            c_max = df[col].max()
+            if c_min > np.iinfo(np.int8).min and c_max < np.iinfo(np.int8).max:
+                df[col] = df[col].astype(np.int8)
+            elif c_min > np.iinfo(np.int16).min and c_max < np.iinfo(np.int16).max:
+                df[col] = df[col].astype(np.int16)
+            elif c_min > np.iinfo(np.int32).min and c_max < np.iinfo(np.int32).max:
+                df[col] = df[col].astype(np.int32)
+        elif df[col].dtype in ['float64', 'float32']:
+            c_min = df[col].min()
+            c_max = df[col].max()
+            if c_min > np.finfo(np.float32).min and c_max < np.finfo(np.float32).max:
+                df[col] = df[col].astype(np.float32)
+    return df
+
+def remove_correlated_features(X, threshold=0.9):
+    """Remove highly correlated features"""
+    corr_matrix = X.corr().abs()
+    upper = corr_matrix.where(np.triu(np.ones(corr_matrix.shape), k=1).astype(bool))
+    to_drop = [column for column in upper.columns if any(upper[column] > threshold)]
+    return X.drop(columns=to_drop)
+
+def display_ml_results(results, problem_type, X_test, y_test, selected_features, le_target):
+    """Display ML results with comprehensive visualizations"""
     
-    st.header("🧠 Deep Learning Analysis")
+    st.subheader("📊 Model Performance Comparison")
     
-    st.warning("⚠️ Fitur Deep Learning membutuhkan komputasi intensif dan dataset yang cukup besar")
+    # Create results dataframe
+    if problem_type == "Regression":
+        metrics_df = pd.DataFrame({
+            'Model': list(results.keys()),
+            'MSE': [results[name]['MSE'] for name in results.keys()],
+            'RMSE': [results[name]['RMSE'] for name in results.keys()],
+            'MAE': [results[name]['MAE'] for name in results.keys()],
+            'R2 Score': [results[name]['R2 Score'] for name in results.keys()]
+        })
+        sort_metric = 'R2 Score'
+    else:
+        metrics_df = pd.DataFrame({
+            'Model': list(results.keys()),
+            'Accuracy': [results[name]['Accuracy'] for name in results.keys()],
+            'Precision': [results[name]['Precision'] for name in results.keys()],
+            'Recall': [results[name]['Recall'] for name in results.keys()],
+            'F1-Score': [results[name]['F1-Score'] for name in results.keys()]
+        })
+        sort_metric = 'Accuracy'
     
-    # DL Configuration
+    # Display metrics table
+    st.dataframe(metrics_df.sort_values(sort_metric, ascending=False), use_container_width=True)
+    
+    # Visualization
     col1, col2 = st.columns(2)
     
     with col1:
+        # Performance comparison chart
+        if problem_type == "Regression":
+            fig = px.bar(metrics_df, x='Model', y='R2 Score', title="R2 Score Comparison")
+        else:
+            fig = px.bar(metrics_df, x='Model', y='Accuracy', title="Accuracy Comparison")
+        st.plotly_chart(fig, use_container_width=True)
+    
+    with col2:
+        # Actual vs Predicted untuk model terbaik
+        best_model_name = metrics_df.loc[metrics_df[sort_metric].idxmax(), 'Model']
+        best_result = results[best_model_name]
+        
+        if problem_type == "Regression":
+            fig = px.scatter(
+                x=y_test, 
+                y=best_result['predictions'],
+                labels={'x': 'Actual', 'y': 'Predicted'},
+                title=f"Actual vs Predicted - {best_model_name}"
+            )
+            fig.add_trace(px.line(x=[y_test.min(), y_test.max()], y=[y_test.min(), y_test.max()]).data[0])
+        else:
+            # Confusion matrix
+            cm = confusion_matrix(y_test, best_result['predictions'])
+            fig = px.imshow(
+                cm,
+                labels=dict(x="Predicted", y="Actual", color="Count"),
+                title=f"Confusion Matrix - {best_model_name}"
+            )
+        st.plotly_chart(fig, use_container_width=True)
+    
+    # Feature importance
+    st.subheader("🔍 Feature Importance")
+    for name, result in results.items():
+        model = result['model']
+        if hasattr(model, 'feature_importances_'):
+            feature_importance = pd.DataFrame({
+                'feature': selected_features[:len(model.feature_importances_)],
+                'importance': model.feature_importances_
+            }).sort_values('importance', ascending=False)
+            
+            fig = px.bar(
+                feature_importance.head(10),
+                x='importance',
+                y='feature',
+                title=f"Top 10 Feature Importance - {name}",
+                orientation='h'
+            )
+            st.plotly_chart(fig, use_container_width=True)
+
+def deep_learning_analysis(df, numeric_cols, non_numeric_cols):
+    """Analisis Deep Learning Lengkap - Optimized for Large Datasets"""
+    
+    st.header("🧠 Deep Learning Analysis - High Performance")
+    
+    # Validasi dataset
+    if df.empty:
+        st.error("❌ Dataset kosong! Silakan upload data terlebih dahulu.")
+        return
+        
+    if len(numeric_cols) < 2:
+        st.error("❌ Diperuhkan minimal 2 kolom numerik untuk analisis Deep Learning")
+        return
+    
+    # Configuration untuk kecepatan
+    st.subheader("⚡ Konfigurasi Kecepatan & Performa")
+    
+    col1, col2, col3 = st.columns(3)
+    
+    with col1:
+        processing_speed = st.selectbox(
+            "Kecepatan Processing",
+            ["🚀 Very Fast", "⚡ Fast", "✅ Balanced", "🐢 Comprehensive"],
+            index=0,
+            key="processing_speed"
+        )
+        
+        # Set parameters berdasarkan kecepatan
+        if processing_speed == "🚀 Very Fast":
+            sample_size = 0.3
+            epochs = 20
+            batch_size = 128
+        elif processing_speed == "⚡ Fast":
+            sample_size = 0.5
+            epochs = 30
+            batch_size = 64
+        elif processing_speed == "✅ Balanced":
+            sample_size = 0.7
+            epochs = 50
+            batch_size = 32
+        else:
+            sample_size = 1.0
+            epochs = 80
+            batch_size = 16
+    
+    with col2:
         dl_target = st.selectbox(
             "Pilih Target Variable",
             numeric_cols,
@@ -7061,30 +7357,76 @@ def deep_learning_analysis(df, numeric_cols, non_numeric_cols):
             key="dl_problem_type"
         )
     
-    with col2:
-        epochs = st.slider("Epochs", 10, 200, 50, key="dl_epochs")
-        batch_size = st.slider("Batch Size", 16, 256, 32, key="dl_batch_size")
-        learning_rate = st.selectbox("Learning Rate", [0.001, 0.01, 0.1, 0.0001], key="dl_learning_rate")
+    with col3:
+        epochs = st.slider("Epochs", 10, 200, epochs, key="dl_epochs")
+        batch_size = st.slider("Batch Size", 16, 256, batch_size, key="dl_batch_size")
+        learning_rate = st.selectbox("Learning Rate", [0.001, 0.01, 0.0001, 0.00001], 
+                                   index=0, key="dl_learning_rate")
     
-    # Feature selection untuk DL
+    # Optimasi dataset besar
+    st.info(f"**Mode {processing_speed}** - Sample size: {sample_size*100}% - Dataset: {len(df):,} rows")
+    
+    # Feature selection dengan optimasi
+    available_features = [f for f in numeric_cols if f != dl_target]
     dl_features = st.multiselect(
         "Pilih Features untuk Deep Learning",
-        [f for f in numeric_cols if f != dl_target],
-        default=[f for f in numeric_cols if f != dl_target][:5],
+        available_features,
+        default=available_features[:min(6, len(available_features))],
         key="dl_features_select"
     )
     
-    if dl_target and dl_features:
-        try:
-            import tensorflow as tf
+    if not dl_target or not dl_features:
+        st.info("📝 Pilih target variable dan features untuk memulai analisis DL")
+        return
+    
+    try:
+        
+        # Check GPU availability
+        gpu_available = len(tf.config.experimental.list_physical_devices('GPU')) > 0
+        if gpu_available:
+            st.success("🎯 GPU tersedia - Training akan dipercepat!")
+        else:
+            st.info("💡 GPU tidak tersedia - Training menggunakan CPU")
+        
+        # Optimasi memory untuk dataset besar
+        @st.cache_data(show_spinner=False)
+        def prepare_data_optimized(_df, features, target, sample_frac=1.0, problem_type="Regression"):
+            """Prepare data dengan optimasi memory"""
+            # Sampling untuk dataset besar
+            if sample_frac < 1.0:
+                _df = _df.sample(frac=sample_frac, random_state=42)
             
-            # Prepare data
-            X = df[dl_features].fillna(df[dl_features].mean())
-            y = df[dl_target]
+            X = _df[features].fillna(_df[features].mean())
+            y = _df[target]
+            
+            # Preprocessing target untuk classification
+            if problem_type != "Regression":
+                if problem_type == "Binary Classification":
+                    # Pastikan binary classification
+                    unique_vals = y.unique()
+                    if len(unique_vals) > 2:
+                        st.warning(f"⚠️ Target memiliki {len(unique_vals)} kelas. Menggunakan 2 kelas terbanyak.")
+                        top_2_classes = y.value_counts().head(2).index
+                        mask = y.isin(top_2_classes)
+                        X = X[mask]
+                        y = y[mask]
+                        y = LabelEncoder().fit_transform(y)
+                    else:
+                        y = LabelEncoder().fit_transform(y)
+                else:
+                    # Multi-class classification
+                    y = LabelEncoder().fit_transform(y)
+            
+            return X, y
+        
+        # Prepare data dengan optimasi
+        with st.spinner("🔄 Memproses data dengan optimasi kecepatan..."):
+            X, y = prepare_data_optimized(df, dl_features, dl_target, sample_size, dl_problem_type)
             
             # Split data
             X_train, X_test, y_train, y_test = train_test_split(
-                X, y, test_size=0.2, random_state=42
+                X, y, test_size=0.2, random_state=42, 
+                stratify=y if dl_problem_type != "Regression" else None
             )
             
             # Scale features
@@ -7092,198 +7434,1532 @@ def deep_learning_analysis(df, numeric_cols, non_numeric_cols):
             X_train_scaled = scaler.fit_transform(X_train)
             X_test_scaled = scaler.transform(X_test)
             
-            # Model architecture
-            st.subheader("🏗️ Neural Network Architecture")
+            # Convert to TensorFlow datasets untuk performa tinggi
+            train_dataset = tf.data.Dataset.from_tensor_slices((X_train_scaled, y_train))
+            train_dataset = train_dataset.batch(batch_size).prefetch(tf.data.AUTOTUNE)
             
+            val_dataset = tf.data.Dataset.from_tensor_slices((X_test_scaled, y_test))
+            val_dataset = val_dataset.batch(batch_size).prefetch(tf.data.AUTOTUNE)
+        
+        # Tampilkan info dataset
+        st.success(f"✅ Data siap: {len(X_train):,} training samples, {len(X_test):,} test samples")
+        
+        # Model architecture dengan optimasi
+        st.subheader("🏗️ Neural Network Architecture - Optimized")
+        
+        col1, col2 = st.columns(2)
+        
+        with col1:
+            hidden_layers = st.slider("Jumlah Hidden Layers", 1, 5, 2, key="dl_hidden_layers")
+            units_per_layer = st.slider("Units per Layer", 32, 512, 64, key="dl_units")
+            activation = st.selectbox("Activation Function", ["relu", "elu", "tanh", "selu"], 
+                                    index=0, key="dl_activation")
+        
+        with col2:
+            dropout_rate = st.slider("Dropout Rate", 0.0, 0.5, 0.2, 0.1, key="dl_dropout")
+            optimizer = st.selectbox("Optimizer", ["adam", "rmsprop", "nadam", "sgd"], 
+                                   index=0, key="dl_optimizer")
+            use_batch_norm = st.checkbox("Gunakan Batch Normalization", value=True, key="dl_batchnorm")
+            use_early_stopping = st.checkbox("Gunakan Early Stopping", value=True, key="dl_earlystop")
+        
+        # Advanced configuration
+        with st.expander("⚙️ Konfigurasi Lanjutan"):
             col1, col2 = st.columns(2)
-            
             with col1:
-                hidden_layers = st.slider("Jumlah Hidden Layers", 1, 5, 2, key="dl_hidden_layers")
-                units_per_layer = st.slider("Units per Layer", 16, 256, 64, key="dl_units")
-                activation = st.selectbox("Activation Function", ["relu", "tanh", "sigmoid"], key="dl_activation")
-            
+                weight_initializer = st.selectbox(
+                    "Weight Initializer",
+                    ["glorot_uniform", "he_normal", "lecun_uniform"],
+                    index=0
+                )
+                use_l2_reg = st.checkbox("Gunakan L2 Regularization", value=False)
+                l2_rate = st.slider("L2 Rate", 0.0001, 0.01, 0.001, 0.0001) if use_l2_reg else 0.0
+                
             with col2:
-                dropout_rate = st.slider("Dropout Rate", 0.0, 0.5, 0.2, 0.1, key="dl_dropout")
-                optimizer = st.selectbox("Optimizer", ["adam", "rmsprop", "sgd"], key="dl_optimizer")
-            
-            # Build model
+                learning_rate_schedule = st.selectbox(
+                    "Learning Rate Schedule",
+                    ["Constant", "ExponentialDecay", "CosineDecay"],
+                    index=0
+                )
+        
+        # Build optimized model
+        with st.spinner("🔄 Membangun model neural network..."):
             model = tf.keras.Sequential()
             
             # Input layer
-            model.add(tf.keras.layers.Dense(units_per_layer, activation=activation, input_shape=(len(dl_features),)))
+            if use_l2_reg:
+                model.add(tf.keras.layers.Dense(
+                    units_per_layer, 
+                    activation=activation, 
+                    input_shape=(len(dl_features),),
+                    kernel_initializer=weight_initializer,
+                    kernel_regularizer=tf.keras.regularizers.l2(l2_rate)
+                ))
+            else:
+                model.add(tf.keras.layers.Dense(
+                    units_per_layer, 
+                    activation=activation, 
+                    input_shape=(len(dl_features),),
+                    kernel_initializer=weight_initializer
+                ))
+                
+            if use_batch_norm:
+                model.add(tf.keras.layers.BatchNormalization())
             model.add(tf.keras.layers.Dropout(dropout_rate))
             
-            # Hidden layers
+            # Hidden layers dengan optimasi
             for i in range(hidden_layers - 1):
-                model.add(tf.keras.layers.Dense(units_per_layer, activation=activation))
+                # Reduce units in deeper layers untuk efisiensi
+                units = max(32, units_per_layer // (2 ** (i + 1)))
+                
+                if use_l2_reg:
+                    model.add(tf.keras.layers.Dense(
+                        units, 
+                        activation=activation,
+                        kernel_regularizer=tf.keras.regularizers.l2(l2_rate)
+                    ))
+                else:
+                    model.add(tf.keras.layers.Dense(units, activation=activation))
+                    
+                if use_batch_norm:
+                    model.add(tf.keras.layers.BatchNormalization())
                 model.add(tf.keras.layers.Dropout(dropout_rate))
             
             # Output layer
             if dl_problem_type == "Regression":
                 model.add(tf.keras.layers.Dense(1, activation='linear'))
                 loss = 'mse'
-                metrics = ['mae']
+                metrics = ['mae', 'mse']
+                monitor_metric = 'val_loss'
             else:
-                num_classes = len(y.unique()) if dl_problem_type == "Multi-class Classification" else 1
+                num_classes = len(np.unique(y)) if dl_problem_type == "Multi-class Classification" else 1
                 activation_output = 'softmax' if dl_problem_type == "Multi-class Classification" else 'sigmoid'
-                model.add(tf.keras.layers.Dense(num_classes, activation=activation_output))
+                output_units = num_classes if dl_problem_type == "Multi-class Classification" else 1
+                model.add(tf.keras.layers.Dense(output_units, activation=activation_output))
                 loss = 'sparse_categorical_crossentropy' if dl_problem_type == "Multi-class Classification" else 'binary_crossentropy'
                 metrics = ['accuracy']
-            
-            # Compile model
-            model.compile(
-                optimizer=optimizer,
-                loss=loss,
-                metrics=metrics
-            )
-            
-            # Display model summary
-            st.text("Model Summary:")
-            model_summary = []
-            model.summary(print_fn=lambda x: model_summary.append(x))
-            st.text("\n".join(model_summary))
-            
-            # Train model
-            if st.button("🚀 Train Deep Learning Model", key="dl_train_button"):
-                with st.spinner("Training neural network..."):
-                    # Callbacks
-                    early_stopping = tf.keras.callbacks.EarlyStopping(
-                        patience=10, restore_best_weights=True
-                    )
-                    
-                    # Train model
-                    history = model.fit(
-                        X_train_scaled, y_train,
-                        epochs=epochs,
-                        batch_size=batch_size,
-                        validation_split=0.2,
-                        callbacks=[early_stopping],
-                        verbose=0
-                    )
-                    
-                    # Plot training history
-                    fig = go.Figure()
-                    fig.add_trace(go.Scatter(
-                        y=history.history['loss'],
-                        mode='lines',
-                        name='Training Loss'
-                    ))
-                    if 'val_loss' in history.history:
-                        fig.add_trace(go.Scatter(
-                            y=history.history['val_loss'],
-                            mode='lines',
-                            name='Validation Loss'
-                        ))
-                    fig.update_layout(
-                        title="Training History - Loss",
-                        xaxis_title="Epoch",
-                        yaxis_title="Loss",
-                        height=400
-                    )
-                    st.plotly_chart(fig, use_container_width=True)
-                    
-                    # Evaluate model
-                    test_results = model.evaluate(X_test_scaled, y_test, verbose=0)
-                    st.success(f"✅ Model Training Complete!")
-                    st.metric("Test Loss", f"{test_results[0]:.4f}")
-                    if len(test_results) > 1:
-                        st.metric("Test Metric", f"{test_results[1]:.4f}")
+                monitor_metric = 'val_accuracy'
         
-        except ImportError:
-            st.error("❌ TensorFlow tidak terinstall. Install dengan: pip install tensorflow")
-        except Exception as e:
-            st.error(f"Error dalam DL analysis: {str(e)}")
+        # Learning rate schedule
+        if learning_rate_schedule == "ExponentialDecay":
+            lr_schedule = tf.keras.optimizers.schedules.ExponentialDecay(
+                initial_learning_rate=learning_rate,
+                decay_steps=1000,
+                decay_rate=0.9
+            )
+        elif learning_rate_schedule == "CosineDecay":
+            lr_schedule = tf.keras.optimizers.schedules.CosineDecay(
+                initial_learning_rate=learning_rate,
+                decay_steps=epochs * len(X_train) // batch_size
+            )
+        else:
+            lr_schedule = learning_rate
+        
+        # Compile model dengan learning rate
+        if optimizer == "adam":
+            optimizer_obj = tf.keras.optimizers.Adam(learning_rate=lr_schedule)
+        elif optimizer == "rmsprop":
+            optimizer_obj = tf.keras.optimizers.RMSprop(learning_rate=lr_schedule)
+        elif optimizer == "nadam":
+            optimizer_obj = tf.keras.optimizers.Nadam(learning_rate=lr_schedule)
+        else:
+            optimizer_obj = tf.keras.optimizers.SGD(learning_rate=lr_schedule, momentum=0.9)
+        
+        model.compile(optimizer=optimizer_obj, loss=loss, metrics=metrics)
+        
+        # Display model summary
+        st.subheader("📊 Model Summary")
+
+        # Tangkap output summary dari model
+        model_summary = []
+        model.summary(print_fn=lambda x: model_summary.append(x))
+        summary_text = "\n".join(model_summary)
+
+        # Tambahkan CSS styling
+        st.markdown("""
+            <style>
+            .model-summary-box {
+                background-color: #fff; /* Warna gelap seperti terminal */
+                color: #000; /* Warna teks hijau neon */
+                border-radius: 10px;
+                padding: 15px;
+                font-family: 'Courier New', monospace;
+                font-size: 14px;
+                line-height: 1.5;
+                white-space: pre-wrap;
+                box-shadow: 0 0 8px rgba(0,255,179,0.3);
+                border: 1px solid rgba(0,255,179,0.4);
+                overflow-x: auto;
+            }
+            </style>
+        """, unsafe_allow_html=True)
+
+        # Gunakan expander untuk dropdown
+        with st.expander("🧠 Lihat / Sembunyikan Model Summary"):
+            st.markdown(f"<div class='model-summary-box'>{summary_text}</div>", unsafe_allow_html=True)
+        
+        # Calculate total parameters
+        total_params = model.count_params()
+        st.info(f"📈 Total Parameters: {total_params:,}")
+        
+        # Training section
+        st.subheader("🚀 Pelatihan Model")
+        
+        if st.button("🎯 Mulai Pelatihan Deep Learning", type="primary", key="dl_train_button"):
+            start_time = time.time()
+            
+            with st.spinner("🧠 Training neural network... Mohon tunggu..."):
+                # Callbacks untuk training lebih cepat
+                callbacks = []
+                
+                if use_early_stopping:
+                    early_stopping = tf.keras.callbacks.EarlyStopping(
+                        monitor=monitor_metric,
+                        patience=10,
+                        restore_best_weights=True,
+                        mode='min' if dl_problem_type == "Regression" else 'max',
+                        verbose=1
+                    )
+                    callbacks.append(early_stopping)
+                
+                reduce_lr = tf.keras.callbacks.ReduceLROnPlateau(
+                    monitor='val_loss',
+                    factor=0.5,
+                    patience=5,
+                    min_lr=0.00001,
+                    verbose=1
+                )
+                callbacks.append(reduce_lr)
+                
+                # TensorBoard callback (optional)
+                # callbacks.append(tf.keras.callbacks.TensorBoard(log_dir='./logs'))
+                
+                # Train model dengan progress bar
+                progress_bar = st.progress(0)
+                status_text = st.empty()
+                time_estimator = st.empty()
+                metrics_display = st.empty()
+                
+                class TrainingCallback(tf.keras.callbacks.Callback):
+                    def on_epoch_begin(self, epoch, logs=None):
+                        self.epoch_start_time = time.time()
+                    
+                    def on_epoch_end(self, epoch, logs=None):
+                        progress = (epoch + 1) / epochs
+                        progress_bar.progress(min(progress, 1.0))
+                        
+                        # Metrics display
+                        if dl_problem_type == "Regression":
+                            metrics_str = f"Loss: {logs['loss']:.4f}, Val Loss: {logs['val_loss']:.4f}, MAE: {logs['mae']:.4f}"
+                        else:
+                            metrics_str = f"Loss: {logs['loss']:.4f}, Val Loss: {logs['val_loss']:.4f}, Acc: {logs['accuracy']:.4f}"
+                        
+                        status_text.text(f"Epoch {epoch+1}/{epochs}")
+                        metrics_display.text(f"📊 {metrics_str}")
+                        
+                        # Time estimation
+                        elapsed = time.time() - start_time
+                        epoch_time = time.time() - self.epoch_start_time
+                        remaining = epoch_time * (epochs - epoch - 1)
+                        
+                        time_estimator.text(f"⏱️ Elapsed: {elapsed:.1f}s | Est. remaining: {remaining:.1f}s")
+                
+                callbacks.append(TrainingCallback())
+                
+                # Train model
+                history = model.fit(
+                    train_dataset,
+                    epochs=epochs,
+                    validation_data=val_dataset,
+                    callbacks=callbacks,
+                    verbose=0
+                )
+                
+                training_time = time.time() - start_time
+                progress_bar.progress(1.0)
+                status_text.text(f"✅ Pelatihan Selesai! Waktu: {training_time:.1f} detik")
+                time_estimator.text("")
+                metrics_display.text("")
+                
+                # ==================== EVALUASI DETAIL ====================
+                st.subheader("📈 Hasil Evaluasi Detail")
+                
+                # Predictions
+                y_pred = model.predict(X_test_scaled, verbose=0)
+                
+                # 1. PERFORMANCE METRICS COMPREHENSIVE
+                st.subheader("🎯 Dashboard Performa Model")
+                
+                if dl_problem_type == "Regression":
+                    # Regression metrics
+                    y_pred_flat = y_pred.flatten()
+                    mse = mean_squared_error(y_test, y_pred_flat)
+                    mae = mean_absolute_error(y_test, y_pred_flat)
+                    r2 = r2_score(y_test, y_pred_flat)
+                    rmse = np.sqrt(mse)
+                    
+                    # Additional metrics
+                    mape = np.mean(np.abs((y_test - y_pred_flat) / np.where(y_test != 0, y_test, 1))) * 100
+                    accuracy_percentage = max(0, min(100, (1 - mae / (y_test.max() - y_test.min())) * 100))
+                    
+                    # Display metrics
+                    col1, col2, col3, col4 = st.columns(4)
+                    
+                    with col1:
+                        st.metric("R² Score", f"{r2:.4f}", 
+                                 delta="Excellent" if r2 > 0.8 else "Good" if r2 > 0.6 else "Needs Improvement")
+                    with col2:
+                        st.metric("MAE", f"{mae:.4f}")
+                    with col3:
+                        st.metric("RMSE", f"{rmse:.4f}")
+                    with col4:
+                        st.metric("MAPE", f"{mape:.2f}%")
+                    
+                else:
+                    # Classification metrics
+                    if dl_problem_type == "Binary Classification":
+                        y_pred_class = (y_pred > 0.5).astype(int).flatten()
+                    else:
+                        y_pred_class = np.argmax(y_pred, axis=1)
+                    
+                    accuracy = accuracy_score(y_test, y_pred_class)
+                    precision = precision_score(y_test, y_pred_class, average='weighted', zero_division=0)
+                    recall = recall_score(y_test, y_pred_class, average='weighted', zero_division=0)
+                    f1 = f1_score(y_test, y_pred_class, average='weighted', zero_division=0)
+                    
+                    # Display metrics
+                    col1, col2, col3, col4 = st.columns(4)
+                    
+                    with col1:
+                        st.metric("Accuracy", f"{accuracy:.4f}",
+                                 delta="Excellent" if accuracy > 0.9 else "Good" if accuracy > 0.8 else "Needs Improvement")
+                    with col2:
+                        st.metric("Precision", f"{precision:.4f}")
+                    with col3:
+                        st.metric("Recall", f"{recall:.4f}")
+                    with col4:
+                        st.metric("F1-Score", f"{f1:.4f}")
+                
+                # 2. VISUALISASI LENGKAP
+                st.subheader("📊 Visualisasi Komprehensif")
+                
+                # Training history visualization
+                fig_history = make_subplots(
+                    rows=1, cols=2,
+                    subplot_titles=('Loss Progression', 'Metrics Progression'),
+                    specs=[[{"secondary_y": False}, {"secondary_y": False}]]
+                )
+                
+                # Loss plot
+                fig_history.add_trace(
+                    go.Scatter(x=list(range(1, len(history.history['loss'])+1)), 
+                              y=history.history['loss'],
+                              name='Training Loss', line=dict(color='blue')),
+                    row=1, col=1
+                )
+                fig_history.add_trace(
+                    go.Scatter(x=list(range(1, len(history.history['val_loss'])+1)), 
+                              y=history.history['val_loss'],
+                              name='Validation Loss', line=dict(color='red')),
+                    row=1, col=1
+                )
+                
+                # Metrics plot
+                if dl_problem_type == "Regression":
+                    fig_history.add_trace(
+                        go.Scatter(x=list(range(1, len(history.history['mae'])+1)), 
+                                  y=history.history['mae'],
+                                  name='Training MAE', line=dict(color='green')),
+                        row=1, col=2
+                    )
+                    if 'val_mae' in history.history:
+                        fig_history.add_trace(
+                            go.Scatter(x=list(range(1, len(history.history['val_mae'])+1)), 
+                                      y=history.history['val_mae'],
+                                      name='Validation MAE', line=dict(color='orange')),
+                            row=1, col=2
+                        )
+                else:
+                    fig_history.add_trace(
+                        go.Scatter(x=list(range(1, len(history.history['accuracy'])+1)), 
+                                  y=history.history['accuracy'],
+                                  name='Training Accuracy', line=dict(color='green')),
+                        row=1, col=2
+                    )
+                    fig_history.add_trace(
+                        go.Scatter(x=list(range(1, len(history.history['val_accuracy'])+1)), 
+                                  y=history.history['val_accuracy'],
+                                  name='Validation Accuracy', line=dict(color='orange')),
+                        row=1, col=2
+                    )
+                
+                fig_history.update_layout(height=400, title_text="Training History")
+                st.plotly_chart(fig_history, use_container_width=True)
+                
+                # 3. PREDICTION VISUALIZATION
+                if dl_problem_type == "Regression":
+                    # Regression plots
+                    col1, col2 = st.columns(2)
+                    
+                    with col1:
+                        # Actual vs Predicted
+                        fig_actual_pred = px.scatter(
+                            x=y_test, y=y_pred_flat,
+                            title="Actual vs Predicted",
+                            labels={'x': 'Actual', 'y': 'Predicted'},
+                            trendline="lowess"
+                        )
+                        fig_actual_pred.add_trace(
+                            go.Scatter(x=[y_test.min(), y_test.max()], 
+                                      y=[y_test.min(), y_test.max()],
+                                      mode='lines', name='Perfect Prediction',
+                                      line=dict(color='red', dash='dash'))
+                        )
+                        st.plotly_chart(fig_actual_pred, use_container_width=True)
+                    
+                    with col2:
+                        # Residual plot
+                        residuals = y_test - y_pred_flat
+                        fig_residual = px.scatter(
+                            x=y_pred_flat, y=residuals,
+                            title="Residual Plot",
+                            labels={'x': 'Predicted', 'y': 'Residuals'},
+                            trendline="lowess"
+                        )
+                        fig_residual.add_hline(y=0, line_dash="dash", line_color="red")
+                        st.plotly_chart(fig_residual, use_container_width=True)
+                
+                else:
+                    # Classification plots
+                    col1, col2 = st.columns(2)
+                    
+                    with col1:
+                        # Confusion Matrix
+                        cm = confusion_matrix(y_test, y_pred_class)
+                        fig_cm = px.imshow(
+                            cm,
+                            text_auto=True,
+                            title="Confusion Matrix",
+                            color_continuous_scale='Blues',
+                            aspect="auto"
+                        )
+                        st.plotly_chart(fig_cm, use_container_width=True)
+                    
+                    with col2:
+                        # Classification report heatmap
+                        report = classification_report(y_test, y_pred_class, output_dict=True)
+                        report_df = pd.DataFrame(report).transpose().iloc[:-1, :3]
+                        fig_report = px.imshow(
+                            report_df.values,
+                            x=report_df.columns,
+                            y=report_df.index,
+                            text_auto=".2f",
+                            title="Classification Report",
+                            color_continuous_scale='Viridis',
+                            aspect="auto"
+                        )
+                        st.plotly_chart(fig_report, use_container_width=True)
+                
+                # 4. FEATURE IMPORTANCE ANALYSIS
+                st.subheader("🔍 Analisis Feature Importance")
+                
+                try:
+                    # Simplified feature importance using permutation
+                    @st.cache_data
+                    def calculate_feature_importance(model, X_test_scaled, y_test, feature_names, problem_type):
+                        baseline_score = model.evaluate(X_test_scaled, y_test, verbose=0)
+                        baseline_loss = baseline_score[0] if problem_type == "Regression" else 1 - baseline_score[1]
+                        
+                        importance_scores = []
+                        for i in range(len(feature_names)):
+                            X_permuted = X_test_scaled.copy()
+                            np.random.shuffle(X_permuted[:, i])
+                            permuted_score = model.evaluate(X_permuted, y_test, verbose=0)
+                            permuted_loss = permuted_score[0] if problem_type == "Regression" else 1 - permuted_score[1]
+                            importance = max(0, baseline_loss - permuted_loss)
+                            importance_scores.append(importance)
+                        
+                        return pd.DataFrame({
+                            'Feature': feature_names,
+                            'Importance': importance_scores
+                        }).sort_values('Importance', ascending=False)
+                    
+                    feature_importance_df = calculate_feature_importance(
+                        model, X_test_scaled, y_test, dl_features, dl_problem_type
+                    )
+                    
+                    col1, col2 = st.columns(2)
+                    
+                    with col1:
+                        fig_importance = px.bar(
+                            feature_importance_df,
+                            x='Importance',
+                            y='Feature',
+                            orientation='h',
+                            title="Feature Importance",
+                            color='Importance',
+                            color_continuous_scale='Viridis'
+                        )
+                        st.plotly_chart(fig_importance, use_container_width=True)
+                    
+                    with col2:
+                        fig_importance_pie = px.pie(
+                            feature_importance_df,
+                            values='Importance',
+                            names='Feature',
+                            title="Feature Importance Distribution"
+                        )
+                        st.plotly_chart(fig_importance_pie, use_container_width=True)
+                        
+                except Exception as e:
+                    st.warning(f"⚠️ Feature importance calculation skipped: {str(e)}")
+                
+                # 5. MODEL PERFORMANCE GAUGE
+                st.subheader("📈 Performance Summary")
+                
+                if dl_problem_type == "Regression":
+                    performance_score = min(100, max(0, (r2 + (1 - mae/y_test.std())) * 50))
+                    performance_level = "Sangat Baik" if performance_score > 85 else \
+                                      "Baik" if performance_score > 70 else \
+                                      "Cukup" if performance_score > 60 else "Perlu Improvement"
+                else:
+                    performance_score = accuracy * 100
+                    performance_level = "Sangat Baik" if performance_score > 90 else \
+                                      "Baik" if performance_score > 80 else \
+                                      "Cukup" if performance_score > 70 else "Perlu Improvement"
+                
+                # Gauge chart
+                fig_gauge = go.Figure(go.Indicator(
+                    mode = "gauge+number+delta",
+                    value = performance_score,
+                    domain = {'x': [0, 1], 'y': [0, 1]},
+                    title = {'text': f"Model Performance: {performance_level}"},
+                    gauge = {
+                        'axis': {'range': [None, 100]},
+                        'bar': {'color': "darkblue"},
+                        'steps': [
+                            {'range': [0, 60], 'color': "red"},
+                            {'range': [60, 75], 'color': "yellow"},
+                            {'range': [75, 90], 'color': "lightgreen"},
+                            {'range': [90, 100], 'color': "green"}],
+                        'threshold': {
+                            'line': {'color': "red", 'width': 4},
+                            'thickness': 0.75,
+                            'value': 90}}
+                ))
+                st.plotly_chart(fig_gauge, use_container_width=True)
+                
+                # 6. DOWNLOAD DAN EXPORT MODEL
+                st.subheader("💾 Export Model")
+                
+                col1, col2 = st.columns(2)
+                
+                with col1:
+                    # Save model
+                    if st.button("💾 Save TensorFlow Model"):
+                        model.save('saved_model.h5')
+                        with open('saved_model.h5', 'rb') as f:
+                            st.download_button(
+                                label="📥 Download Model",
+                                data=f,
+                                file_name="deep_learning_model.h5",
+                                mime="application/octet-stream"
+                            )
+                
+                with col2:
+                    # Export predictions
+                    predictions_df = pd.DataFrame({
+                        'Actual': y_test,
+                        'Predicted': y_pred.flatten() if dl_problem_type == "Regression" else y_pred_class
+                    })
+                    csv = predictions_df.to_csv(index=False)
+                    st.download_button(
+                        label="📥 Download Predictions",
+                        data=csv,
+                        file_name="model_predictions.csv",
+                        mime="text/csv"
+                    )
+                
+                # 7. RECOMMENDATIONS AND INSIGHTS
+                st.subheader("💡 Insights & Rekomendasi")
+                
+                # Training insights
+                final_epoch = len(history.history['loss'])
+                final_loss = history.history['loss'][-1]
+                final_val_loss = history.history['val_loss'][-1]
+                
+                col1, col2, col3 = st.columns(3)
+                with col1:
+                    st.metric("Final Training Loss", f"{final_loss:.4f}")
+                with col2:
+                    st.metric("Final Validation Loss", f"{final_val_loss:.4f}")
+                with col3:
+                    st.metric("Training Time", f"{training_time:.1f}s")
+                
+                # Recommendations based on performance
+                st.info("""
+                **🎯 Rekomendasi Improvement:**
+                - **Data Quality**: Periksa missing values dan outliers
+                - **Feature Engineering**: Tambahkan feature yang lebih relevan
+                - **Hyperparameter Tuning**: Eksperimen dengan architecture berbeda
+                - **Regularization**: Adjust dropout dan L2 regularization
+                - **Learning Rate**: Coba learning rate scheduling
+                """)
+                
+                # Performance tips
+                if performance_score < 70:
+                    st.warning("""
+                    **⚠️ Area Improvement:**
+                    - Pertimbangkan feature selection yang lebih baik
+                    - Coba model architecture yang lebih dalam/lebar
+                    - Gunakan lebih banyak data training
+                    - Eksperimen dengan different optimizers
+                    """)
+                else:
+                    st.success("""
+                    **✅ Performa Baik!**
+                    - Model sudah menunjukkan hasil yang promising
+                    - Pertimbangkan deployment untuk penggunaan real-time
+                    - Monitor model performance secara berkala
+                    """)
+    
+    except Exception as e:
+        st.error(f"❌ Error dalam DL analysis: {str(e)}")
+        st.info("""
+        💡 Tips Troubleshooting:
+        - Pastikan dataset cukup besar (>100 samples)
+        - Gunakan mode kecepatan lebih tinggi untuk dataset besar
+        - Kurangi jumlah features jika memory error
+        - Pastikan target variable sesuai dengan problem type
+        - Coba learning rate yang lebih kecil
+        """)
+
+# Tambahkan fungsi utility jika diperlukan
+def validate_tensorflow_installation():
+    """Validate TensorFlow installation"""
+    try:
+        import tensorflow as tf
+        version = tf.__version__
+        gpu_available = tf.config.list_physical_devices('GPU')
+        return True, version, len(gpu_available) > 0
+    except ImportError:
+        return False, None, False
 
 def model_comparison_analysis(df, numeric_cols, non_numeric_cols):
-    """Perbandingan model yang komprehensif"""
+    """Analisis komparatif data yang komprehensif tanpa model machine learning"""
     
-    st.header("📊 Model Comparison Dashboard")
+    st.header("📊 Advanced Data Analysis Dashboard")
     
-    st.info("🔄 Fitur Model Comparison - Pilih model dari tab Machine Learning dan Deep Learning untuk perbandingan")
+    # Informasi dataset
+    st.subheader("📋 Dataset Overview")
+    col1, col2, col3, col4 = st.columns(4)
+    with col1:
+        st.metric("Total Samples", f"{len(df):,}")
+    with col2:
+        st.metric("Features", f"{len(numeric_cols) + len(non_numeric_cols):,}")
+    with col3:
+        st.metric("Numeric", f"{len(numeric_cols):,}")
+    with col4:
+        st.metric("Categorical", f"{len(non_numeric_cols):,}")
     
-    # Placeholder untuk implementasi lengkap
-    col1, col2, col3 = st.columns(3)
+    # Configuration section
+    st.subheader("⚙️ Analysis Configuration")
+    
+    col1, col2 = st.columns(2)
     
     with col1:
-        st.metric("ML Models", "3")
+        # Target selection untuk analisis
+        target_variable = st.selectbox(
+            "dwibaktindev AI",
+            numeric_cols + non_numeric_cols,
+            key="analysis_target"
+        )
+        
+        # Analysis type
+        analysis_type = st.selectbox(
+            "Alisa AI",
+            ["Descriptive Statistics", "Correlation Analysis", "Distribution Analysis", 
+             "Relationship Analysis", "Comparative Analysis"],
+            key="analysis_type"
+        )
+    
     with col2:
-        st.metric("Evaluation Metrics", "5+")
-    with col3:
-        st.metric("Feature Importance", "✓")
+        # Feature selection
+        available_features = [f for f in numeric_cols + non_numeric_cols if f != target_variable]
+        selected_features = st.multiselect(
+            "Sasha AI",
+            available_features,
+            default=available_features[:min(10, len(available_features))],
+            key="analysis_features"
+        )
+        
+        # Sample size untuk visualisasi
+        sample_size = st.slider("Sample Size for Visualization", 100, len(df), 
+                               min(1000, len(df)), 100, key="sample_size")
+
+    if st.button("🚀 Start Model AI", type="primary", key="start_analysis"):
+        if not target_variable or not selected_features:
+            st.error("❌ Please select target variable and features")
+            return
+        
+        try:
+            # Lakukan analisis berdasarkan jenis
+            with st.spinner("🔄 Performing analysis..."):
+                if analysis_type == "Descriptive Statistics":
+                    perform_descriptive_analysis(df, target_variable, selected_features)
+                
+                elif analysis_type == "Correlation Analysis":
+                    perform_correlation_analysis(df, target_variable, selected_features)
+                
+                elif analysis_type == "Distribution Analysis":
+                    perform_distribution_analysis(df, target_variable, selected_features, sample_size)
+                
+                elif analysis_type == "Relationship Analysis":
+                    perform_relationship_analysis(df, target_variable, selected_features, sample_size)
+                
+                elif analysis_type == "Comparative Analysis":
+                    perform_comparative_analysis(df, target_variable, selected_features)
+            
+            st.success("✅ Analysis completed!")
+        
+        except Exception as e:
+            st.error(f"❌ Error in data analysis: {str(e)}")
+
+def perform_descriptive_analysis(df, target, features):
+    """Analisis statistik deskriptif"""
+    import pandas as pd
+    import numpy as np
+    
+    st.subheader("📊 Descriptive Statistics")
+    
+    # Statistik untuk target variable
+    st.write(f"### Target Variable: `{target}`")
+    
+    if pd.api.types.is_numeric_dtype(df[target]):
+        col1, col2, col3, col4 = st.columns(4)
+        
+        with col1:
+            st.metric("Mean", f"{df[target].mean():.2f}")
+        with col2:
+            st.metric("Median", f"{df[target].median():.2f}")
+        with col3:
+            st.metric("Std Dev", f"{df[target].std():.2f}")
+        with col4:
+            st.metric("Missing", f"{df[target].isnull().sum()}")
+        
+        # Detailed statistics
+        st.dataframe(df[target].describe(), use_container_width=True)
+        
+    else:
+        col1, col2, col3 = st.columns(3)
+        
+        with col1:
+            st.metric("Unique Values", df[target].nunique())
+        with col2:
+            st.metric("Most Frequent", df[target].mode().iloc[0] if not df[target].mode().empty else "N/A")
+        with col3:
+            st.metric("Missing", f"{df[target].isnull().sum()}")
+        
+        # Value counts
+        value_counts = df[target].value_counts()
+        st.write("**Value Distribution:**")
+        st.dataframe(value_counts, use_container_width=True)
+    
+    # Statistik untuk features numerik
+    numeric_features = [f for f in features if pd.api.types.is_numeric_dtype(df[f])]
+    if numeric_features:
+        st.write("### Numeric Features Summary")
+        st.dataframe(df[numeric_features].describe(), use_container_width=True)
+    
+    # Statistik untuk features kategorik
+    categorical_features = [f for f in features if not pd.api.types.is_numeric_dtype(df[f])]
+    if categorical_features:
+        st.write("### Categorical Features Summary")
+        for feature in categorical_features:
+            with st.expander(f"`{feature}`"):
+                value_counts = df[feature].value_counts()
+                st.dataframe(value_counts, use_container_width=True)
+
+def perform_correlation_analysis(df, target, features):
+    """Analisis korelasi"""
+    import pandas as pd
+    import numpy as np
+    import plotly.express as px
+    import plotly.graph_objects as go
+    
+    st.subheader("🔗 Correlation Analysis")
+    
+    # Pilih hanya features numerik untuk korelasi
+    numeric_features = [f for f in features if pd.api.types.is_numeric_dtype(df[f])]
+    
+    if pd.api.types.is_numeric_dtype(df[target]):
+        numeric_features.append(target)
+    
+    if len(numeric_features) < 2:
+        st.warning("⚠️ Need at least 2 numeric features for correlation analysis")
+        return
+    
+    correlation_df = df[numeric_features].corr()
+    
+    # Heatmap korelasi
+    st.write("### Correlation Heatmap")
+    fig = px.imshow(correlation_df,
+                   title="Feature Correlation Heatmap",
+                   color_continuous_scale="RdBu_r",
+                   aspect="auto")
+    st.plotly_chart(fig, use_container_width=True)
+    
+    # Korelasi dengan target
+    if pd.api.types.is_numeric_dtype(df[target]):
+        st.write("### Correlation with Target")
+        target_corr = correlation_df[target].drop(target).sort_values(ascending=False)
+        
+        col1, col2 = st.columns(2)
+        
+        with col1:
+            fig = px.bar(x=target_corr.values, y=target_corr.index,
+                        orientation='h',
+                        title=f"Correlation with {target}",
+                        labels={'x': 'Correlation', 'y': 'Feature'})
+            st.plotly_chart(fig, use_container_width=True)
+        
+        with col2:
+            # Tabel korelasi
+            st.dataframe(target_corr.round(4), use_container_width=True)
+
+def perform_distribution_analysis(df, target, features, sample_size):
+    """Analisis distribusi"""
+    import pandas as pd
+    import plotly.express as px
+    import plotly.graph_objects as go
+    from plotly.subplots import make_subplots
+    
+    st.subheader("📈 Distribution Analysis")
+    
+    # Sample data untuk performa visualisasi
+    sample_df = df.sample(min(sample_size, len(df)), random_state=42)
+    
+    # Distribusi target variable
+    st.write(f"### Target Variable Distribution: `{target}`")
+    
+    if pd.api.types.is_numeric_dtype(df[target]):
+        col1, col2 = st.columns(2)
+        
+        with col1:
+            # Histogram
+            fig = px.histogram(df, x=target, 
+                              title=f"Distribution of {target}",
+                              nbins=50)
+            st.plotly_chart(fig, use_container_width=True)
+        
+        with col2:
+            # Box plot
+            fig = px.box(df, y=target, 
+                        title=f"Box Plot of {target}")
+            st.plotly_chart(fig, use_container_width=True)
+    else:
+        # Untuk variabel kategorik
+        value_counts = df[target].value_counts()
+        fig = px.pie(values=value_counts.values, 
+                    names=value_counts.index,
+                    title=f"Distribution of {target}")
+        st.plotly_chart(fig, use_container_width=True)
+    
+    # Distribusi features numerik
+    numeric_features = [f for f in features if pd.api.types.is_numeric_dtype(df[f])]
+    if numeric_features:
+        st.write("### Numeric Features Distribution")
+        
+        # Pilih features untuk ditampilkan
+        selected_numeric = st.multiselect(
+            "Select numeric features to visualize:",
+            numeric_features,
+            default=numeric_features[:min(3, len(numeric_features))]
+        )
+        
+        if selected_numeric:
+            # Histogram multiple
+            fig = make_subplots(rows=len(selected_numeric), cols=1,
+                              subplot_titles=selected_numeric)
+            
+            for i, feature in enumerate(selected_numeric, 1):
+                fig.add_trace(
+                    go.Histogram(x=df[feature], name=feature, nbinsx=30),
+                    row=i, col=1
+                )
+            
+            fig.update_layout(height=300*len(selected_numeric), 
+                            title_text="Distribution of Numeric Features")
+            st.plotly_chart(fig, use_container_width=True)
+    
+    # Distribusi features kategorik
+    categorical_features = [f for f in features if not pd.api.types.is_numeric_dtype(df[f])]
+    if categorical_features:
+        st.write("### Categorical Features Distribution")
+        
+        selected_categorical = st.multiselect(
+            "Select categorical features to visualize:",
+            categorical_features,
+            default=categorical_features[:min(2, len(categorical_features))]
+        )
+        
+        if selected_categorical:
+            for feature in selected_categorical:
+                value_counts = df[feature].value_counts().head(10)  # Top 10 saja
+                fig = px.bar(x=value_counts.values, y=value_counts.index,
+                            orientation='h',
+                            title=f"Top 10 Values in {feature}")
+                st.plotly_chart(fig, use_container_width=True)
+
+def perform_relationship_analysis(df, target, features, sample_size):
+    """Analisis hubungan antara variabel"""
+    import pandas as pd
+    import plotly.express as px
+    import plotly.graph_objects as go
+    
+    st.subheader("🔄 Relationship Analysis")
+    
+    sample_df = df.sample(min(sample_size, len(df)), random_state=42)
+    
+    # Pilih features numerik untuk scatter plot
+    numeric_features = [f for f in features if pd.api.types.is_numeric_dtype(df[f])]
+    
+    if pd.api.types.is_numeric_dtype(df[target]) and len(numeric_features) >= 1:
+        st.write("### Scatter Plots with Target")
+        
+        col1, col2 = st.columns(2)
+        
+        with col1:
+            x_feature = st.selectbox("X-axis feature:", numeric_features, key="scatter_x")
+        
+        with col2:
+            color_feature = st.selectbox("Color by (optional):", 
+                                       [None] + [f for f in features if f != x_feature],
+                                       key="scatter_color")
+        
+        if x_feature:
+            fig = px.scatter(sample_df, x=x_feature, y=target,
+                           color=color_feature if color_feature else None,
+                           title=f"{target} vs {x_feature}",
+                           opacity=0.6)
+            st.plotly_chart(fig, use_container_width=True)
+    
+    # Pair plot untuk multiple numeric features
+    if len(numeric_features) >= 2:
+        st.write("### Pairwise Relationships")
+        
+        selected_for_pairplot = st.multiselect(
+            "Select features for pair plot:",
+            numeric_features + ([target] if pd.api.types.is_numeric_dtype(df[target]) else []),
+            default=(numeric_features + [target])[:min(4, len(numeric_features) + 1)]
+        )
+        
+        if len(selected_for_pairplot) >= 2:
+            fig = px.scatter_matrix(sample_df[selected_for_pairplot],
+                                  dimensions=selected_for_pairplot,
+                                  height=800)
+            st.plotly_chart(fig, use_container_width=True)
+    
+    # Analisis hubungan kategorik-numerik
+    categorical_features = [f for f in features if not pd.api.types.is_numeric_dtype(df[f])]
+    if categorical_features and pd.api.types.is_numeric_dtype(df[target]):
+        st.write("### Categorical vs Numerical Analysis")
+        
+        cat_feature = st.selectbox("Select categorical feature:", categorical_features)
+        num_feature = st.selectbox("Select numerical feature:", 
+                                 [target] + numeric_features)
+        
+        if cat_feature and num_feature:
+            col1, col2 = st.columns(2)
+            
+            with col1:
+                # Box plot
+                fig = px.box(df, x=cat_feature, y=num_feature,
+                           title=f"{num_feature} by {cat_feature}")
+                st.plotly_chart(fig, use_container_width=True)
+            
+            with col2:
+                # Violin plot
+                fig = px.violin(df, x=cat_feature, y=num_feature,
+                              title=f"Distribution of {num_feature} by {cat_feature}")
+                st.plotly_chart(fig, use_container_width=True)
+
+def perform_comparative_analysis(df, target, features):
+    """Analisis komparatif"""
+    import pandas as pd
+    import plotly.express as px
+    import plotly.graph_objects as go
+    
+    st.subheader("⚖️ Comparative Analysis")
+    
+    # Group by analysis
+    st.write("### Group-wise Analysis")
+    
+    group_feature = st.selectbox(
+        "Group by feature:",
+        [None] + [f for f in features if not pd.api.types.is_numeric_dtype(df[f])]
+    )
+    
+    if group_feature:
+        if pd.api.types.is_numeric_dtype(df[target]):
+            # Untuk target numerik
+            summary = df.groupby(group_feature)[target].agg(['mean', 'median', 'std', 'count']).round(2)
+            st.dataframe(summary, use_container_width=True)
+            
+            # Visualisasi
+            col1, col2 = st.columns(2)
+            
+            with col1:
+                fig = px.bar(summary.reset_index(), x=group_feature, y='mean',
+                           title=f"Average {target} by {group_feature}")
+                st.plotly_chart(fig, use_container_width=True)
+            
+            with col2:
+                fig = px.box(df, x=group_feature, y=target,
+                           title=f"Distribution of {target} by {group_feature}")
+                st.plotly_chart(fig, use_container_width=True)
+        
+        else:
+            # Untuk target kategorik
+            cross_tab = pd.crosstab(df[group_feature], df[target], normalize='index') * 100
+            st.write("**Percentage Distribution:**")
+            st.dataframe(cross_tab.round(2), use_container_width=True)
+            
+            # Stacked bar chart
+            fig = px.bar(cross_tab.reset_index(), 
+                        x=group_feature,
+                        y=cross_tab.columns.tolist(),
+                        title=f"Distribution of {target} by {group_feature}",
+                        barmode='stack')
+            st.plotly_chart(fig, use_container_width=True)
+    
+    # Time series analysis (jika ada kolom datetime)
+    datetime_columns = df.select_dtypes(include=['datetime64']).columns.tolist()
+    if datetime_columns and pd.api.types.is_numeric_dtype(df[target]):
+        st.write("### Time Series Analysis")
+        
+        date_col = st.selectbox("Select date column:", datetime_columns)
+        
+        if date_col:
+            # Aggregasi berdasarkan waktu
+            df_sorted = df.sort_values(date_col)
+            
+            # Pilih frekuensi aggregasi
+            freq = st.selectbox("Aggregation frequency:", 
+                              ['D', 'W', 'M', 'Q'], 
+                              format_func=lambda x: {'D': 'Daily', 'W': 'Weekly', 
+                                                   'M': 'Monthly', 'Q': 'Quarterly'}[x])
+            
+            time_series = df_sorted.set_index(date_col)[target].resample(freq).mean()
+            
+            fig = px.line(time_series.reset_index(), 
+                         x=date_col, y=target,
+                         title=f"{target} Over Time")
+            st.plotly_chart(fig, use_container_width=True)
 
 def feature_analysis_dashboard(df, numeric_cols, non_numeric_cols):
-    """Dashboard analisis feature yang komprehensif"""
+    """Dashboard analisis feature yang komprehensif dengan optimasi dataset besar"""
     
     st.header("🔍 Advanced Feature Analysis")
     
+    # Informasi dataset
+    st.subheader("📊 Dataset Overview")
+    col1, col2, col3 = st.columns(3)
+    with col1:
+        st.metric("Total Features", f"{len(numeric_cols) + len(non_numeric_cols):,}")
+    with col2:
+        st.metric("Numeric Features", f"{len(numeric_cols):,}")
+    with col3:
+        st.metric("Categorical Features", f"{len(non_numeric_cols):,}")
+    
+    # Optimasi memory
+    if st.checkbox("Optimize Memory Usage", value=True, key="feature_optimize_mem"):
+        df = optimize_memory_usage_feature(df)
+        st.success("✅ Memory usage optimized!")
+
+    # Performance configuration
+    st.subheader("⚡ Performance Configuration")
+    
+    col1, col2 = st.columns(2)
+    
+    with col1:
+        # Sampling options untuk dataset besar
+        use_sampling = st.checkbox("Use Sampling for Large Dataset", value=len(df) > 10000, 
+                                 key="feature_use_sampling")
+        
+        if use_sampling:
+            sample_size = st.slider(
+                "Sample Size", 
+                min_value=1000, 
+                max_value=min(50000, len(df)), 
+                value=min(20000, len(df)), 
+                step=1000,
+                key="feature_sample_size"
+            )
+            st.info(f"🎯 Using {sample_size} samples from {len(df):,} total records")
+        
+        # Processing speed control
+        processing_speed = st.select_slider(
+            "Processing Speed",
+            options=["Fast", "Balanced", "Comprehensive"],
+            value="Balanced",
+            key="feature_processing_speed"
+        )
+        
+        # Configure parameters based on speed selection
+        speed_config = {
+            "Fast": {"n_estimators": 50, "n_repeats": 3, "max_features": 20},
+            "Balanced": {"n_estimators": 100, "n_repeats": 5, "max_features": 30},
+            "Comprehensive": {"n_estimators": 200, "n_repeats": 10, "max_features": 50}
+        }
+        config = speed_config[processing_speed]
+    
+    with col2:
+        # Advanced options
+        st.write("**Advanced Options:**")
+        
+        max_features_display = st.slider(
+            "Max Features to Display", 
+            5, 50, 15, 
+            key="max_features_display"
+        )
+        
+        remove_high_corr = st.checkbox(
+            "Remove Highly Correlated Features", 
+            value=True, 
+            key="feature_remove_corr"
+        )
+        
+        correlation_threshold = st.slider(
+            "Correlation Threshold", 
+            0.7, 0.99, 0.9, 0.01,
+            key="feature_corr_threshold"
+        )
+        
+        random_state = st.number_input(
+            "Random State", 
+            value=42, 
+            key="feature_random_state"
+        )
+
     # Feature importance analysis
     st.subheader("🎯 Feature Importance Analysis")
     
-    # Multiple methods untuk feature importance
-    importance_method = st.selectbox(
-        "Pilih Feature Importance Method",
-        ["Random Forest", "Permutation Importance"],
-        key="feature_importance_method"
-    )
+    col1, col2 = st.columns(2)
     
-    target_feature = st.selectbox(
-        "Pilih Target untuk Feature Importance",
-        numeric_cols,
-        key="feature_importance_target"
-    )
+    with col1:
+        # Multiple methods untuk feature importance
+        importance_method = st.selectbox(
+            "Pilih Feature Importance Method",
+            ["Random Forest", "Permutation Importance", "Mutual Information", "All Methods"],
+            key="feature_importance_method"
+        )
+        
+        # Problem type selection
+        problem_type = st.radio(
+            "Problem Type",
+            ["Regression", "Classification", "Auto Detect"],
+            key="feature_problem_type"
+        )
     
-    if st.button("Hitung Feature Importance", key="feature_importance_button"):
-        with st.spinner("Menghitung feature importance..."):
-            # Implementasi feature importance calculation
-            try:
-                features = [f for f in numeric_cols if f != target_feature]
-                
-                X = df[features].fillna(df[features].mean())
-                y = df[target_feature]
-                
-                if importance_method == "Random Forest":
-                    model = RandomForestRegressor(n_estimators=100, random_state=42)
-                    model.fit(X, y)
-                    importances = model.feature_importances_
-                    
-                    importance_df = pd.DataFrame({
-                        'feature': features,
-                        'importance': importances
-                    }).sort_values('importance', ascending=False)
-                    
-                    fig = px.bar(
-                        importance_df.head(15),
-                        x='importance',
-                        y='feature',
-                        title="Random Forest Feature Importance",
-                        orientation='h'
-                    )
-                    st.plotly_chart(fig, use_container_width=True)
-                
-                elif importance_method == "Permutation Importance":
-                    model = RandomForestRegressor(n_estimators=100, random_state=42)
-                    model.fit(X, y)
-                    
-                    perm_importance = permutation_importance(
-                        model, X, y, n_repeats=5, random_state=42
-                    )
-                    
-                    importance_df = pd.DataFrame({
-                        'feature': features,
-                        'importance': perm_importance.importances_mean
-                    }).sort_values('importance', ascending=False)
-                    
-                    fig = px.bar(
-                        importance_df.head(15),
-                        x='importance',
-                        y='feature',
-                        title="Permutation Feature Importance",
-                        orientation='h'
-                    )
-                    st.plotly_chart(fig, use_container_width=True)
+    with col2:
+        target_feature = st.selectbox(
+            "Pilih Target untuk Feature Importance",
+            numeric_cols + non_numeric_cols,
+            key="feature_importance_target"
+        )
+        
+        # Feature selection
+        available_features = [f for f in numeric_cols + non_numeric_cols if f != target_feature]
+        
+        if len(available_features) > config["max_features"]:
+            st.warning(f"⚠️ Showing first {config['max_features']} features. Use comprehensive mode for more.")
+            available_features = available_features[:config["max_features"]]
+        
+        selected_features = st.multiselect(
+            "Pilih Features untuk Analysis",
+            available_features,
+            default=available_features[:min(10, len(available_features))],
+            key="feature_analysis_features"
+        )
+
+    if not target_feature or not selected_features:
+        st.warning("📝 Pilih target feature dan features untuk analysis")
+        return
+
+    # Progress tracking
+    progress_bar = st.progress(0)
+    status_text = st.empty()
+
+    if st.button("🚀 Hitung Feature Importance", key="feature_importance_button"):
+        try:
+            # Apply sampling jika diperlukan
+            if use_sampling and len(df) > sample_size:
+                df_analysis = df.sample(n=sample_size, random_state=random_state)
+                st.info(f"🔬 Analyzing {sample_size:,} sampled records")
+            else:
+                df_analysis = df
             
-            except Exception as e:
-                st.error(f"Error dalam feature importance analysis: {str(e)}")
+            status_text.text("🔄 Preparing data...")
+            progress_bar.progress(10)
+
+            # Prepare features and target
+            X = df_analysis[selected_features].copy()
+            y = df_analysis[target_feature]
+            
+            # Auto-detect problem type
+            if problem_type == "Auto Detect":
+                if target_feature in numeric_cols:
+                    problem_type_detected = "Regression"
+                else:
+                    problem_type_detected = "Classification"
+                st.info(f"🔍 Auto-detected: {problem_type_detected}")
+            else:
+                problem_type_detected = problem_type
+            
+            progress_bar.progress(20)
+
+            # Preprocessing dengan optimasi
+            status_text.text("🔧 Preprocessing features...")
+            X_processed, feature_names = preprocess_features_optimized(
+                X, numeric_cols, non_numeric_cols, remove_high_corr, correlation_threshold
+            )
+            
+            progress_bar.progress(40)
+
+            # Encode target variable jika classification
+            le_target = None
+            if problem_type_detected == "Classification" and y.dtype == 'object':
+                le_target = LabelEncoder()
+                y = le_target.fit_transform(y.astype(str))
+                st.info(f"🎯 Target encoded: {len(le_target.classes_)} classes")
+            
+            progress_bar.progress(50)
+
+            # Handle missing values
+            X_processed = handle_missing_values_optimized(X_processed)
+            
+            progress_bar.progress(60)
+
+            # Calculate feature importance berdasarkan method yang dipilih
+            status_text.text("📊 Calculating feature importance...")
+            
+            results = {}
+            
+            if importance_method in ["Random Forest", "All Methods"]:
+                results["Random Forest"] = calculate_rf_importance(
+                    X_processed, y, problem_type_detected, config, random_state
+                )
+                progress_bar.progress(70)
+            
+            if importance_method in ["Permutation Importance", "All Methods"]:
+                results["Permutation"] = calculate_permutation_importance(
+                    X_processed, y, problem_type_detected, config, random_state
+                )
+                progress_bar.progress(80)
+            
+            if importance_method in ["Mutual Information", "All Methods"]:
+                results["Mutual Info"] = calculate_mutual_info(
+                    X_processed, y, problem_type_detected
+                )
+                progress_bar.progress(90)
+
+            progress_bar.progress(95)
+
+            # Display results
+            status_text.text("📈 Displaying results...")
+            display_feature_importance_results(
+                results, feature_names, max_features_display, problem_type_detected
+            )
+            
+            progress_bar.progress(100)
+            status_text.text("✅ Analysis completed!")
+            
+            # Additional insights
+            show_feature_analysis_insights(results, X_processed, y, problem_type_detected)
+
+        except Exception as e:
+            st.error(f"❌ Error dalam feature importance analysis: {str(e)}")
+            st.info("💡 Tips: Coba kurangi jumlah features, gunakan sampling, atau pilih mode 'Fast'")
+
+def optimize_memory_usage_feature(df):
+    """Optimize memory usage for feature analysis"""
+    start_mem = df.memory_usage(deep=True).sum() / 1024**2
+    
+    for col in df.columns:
+        col_type = df[col].dtype
+        
+        if col_type == 'object':
+            if df[col].nunique() / len(df) < 0.5:  # Jika cardinality tidak terlalu tinggi
+                df[col] = df[col].astype('category')
+        elif col_type in ['int64', 'int32']:
+            c_min = df[col].min()
+            c_max = df[col].max()
+            if c_min > np.iinfo(np.int8).min and c_max < np.iinfo(np.int8).max:
+                df[col] = df[col].astype(np.int8)
+            elif c_min > np.iinfo(np.int16).min and c_max < np.iinfo(np.int16).max:
+                df[col] = df[col].astype(np.int16)
+            elif c_min > np.iinfo(np.int32).min and c_max < np.iinfo(np.int32).max:
+                df[col] = df[col].astype(np.int32)
+        elif col_type in ['float64', 'float32']:
+            c_min = df[col].min()
+            c_max = df[col].max()
+            if c_min > np.finfo(np.float16).min and c_max < np.finfo(np.float16).max:
+                df[col] = df[col].astype(np.float16)
+            elif c_min > np.finfo(np.float32).min and c_max < np.finfo(np.float32).max:
+                df[col] = df[col].astype(np.float32)
+    
+    end_mem = df.memory_usage(deep=True).sum() / 1024**2
+    st.success(f"💾 Memory reduced: {start_mem:.2f}MB → {end_mem:.2f}MB ({((start_mem - end_mem) / start_mem * 100):.1f}% reduction)")
+    
+    return df
+
+def preprocess_features_optimized(X, numeric_cols, non_numeric_cols, remove_high_corr, threshold):
+    """Preprocess features dengan optimasi untuk dataset besar"""
+    
+    X_processed = X.copy()
+    feature_names = list(X.columns)
+    
+    # Encode categorical features dengan metode yang efisien
+    categorical_columns = [col for col in X.columns if col in non_numeric_cols]
+    
+    for col in categorical_columns:
+        if X_processed[col].nunique() > 50:  # Untuk categorical dengan banyak unique values
+            # Gunakan frequency encoding
+            freq_map = X_processed[col].value_counts().to_dict()
+            X_processed[col] = X_processed[col].map(freq_map)
+            X_processed[col].fillna(0, inplace=True)
+        else:
+            # Gunakan label encoding
+            le = LabelEncoder()
+            X_processed[col] = le.fit_transform(X_processed[col].astype(str))
+    
+    # Remove highly correlated features
+    if remove_high_corr and len(X_processed.columns) > 1:
+        numeric_features = [col for col in X_processed.columns if col in numeric_cols or col in categorical_columns]
+        if len(numeric_features) > 1:
+            X_numeric = X_processed[numeric_features]
+            corr_matrix = X_numeric.corr().abs()
+            
+            # Hapus feature yang highly correlated
+            upper_triangle = corr_matrix.where(np.triu(np.ones(corr_matrix.shape), k=1).astype(bool))
+            to_drop = [column for column in upper_triangle.columns if any(upper_triangle[column] > threshold)]
+            
+            if to_drop:
+                X_processed = X_processed.drop(columns=to_drop)
+                feature_names = [f for f in feature_names if f not in to_drop]
+                st.info(f"🗑️ Removed {len(to_drop)} highly correlated features")
+    
+    return X_processed, feature_names
+
+def handle_missing_values_optimized(X):
+    """Handle missing values dengan metode yang optimal"""
+    X_processed = X.copy()
+    
+    for col in X_processed.columns:
+        if X_processed[col].isnull().sum() > 0:
+            if X_processed[col].dtype in ['int8', 'int16', 'int32', 'int64', 'float16', 'float32', 'float64']:
+                # Untuk numeric, gunakan median (lebih robust terhadap outliers)
+                X_processed[col].fillna(X_processed[col].median(), inplace=True)
+            else:
+                # Untuk categorical, gunakan mode
+                if len(X_processed[col].mode()) > 0:
+                    X_processed[col].fillna(X_processed[col].mode()[0], inplace=True)
+                else:
+                    X_processed[col].fillna(0, inplace=True)
+    
+    return X_processed
+
+def calculate_rf_importance(X, y, problem_type, config, random_state):
+    """Calculate Random Forest feature importance"""
+    if problem_type == "Regression":
+        model = RandomForestRegressor(
+            n_estimators=config["n_estimators"],
+            random_state=random_state,
+            n_jobs=-1  # Parallel processing
+        )
+    else:
+        model = RandomForestClassifier(
+            n_estimators=config["n_estimators"],
+            random_state=random_state,
+            n_jobs=-1
+        )
+    
+    model.fit(X, y)
+    importances = model.feature_importances_
+    
+    return {
+        'importances': importances,
+        'model': model
+    }
+
+def calculate_permutation_importance(X, y, problem_type, config, random_state):
+    """Calculate permutation importance"""
+    if problem_type == "Regression":
+        model = RandomForestRegressor(
+            n_estimators=config["n_estimators"],
+            random_state=random_state,
+            n_jobs=-1
+        )
+    else:
+        model = RandomForestClassifier(
+            n_estimators=config["n_estimators"],
+            random_state=random_state,
+            n_jobs=-1
+        )
+    
+    model.fit(X, y)
+    
+    # Untuk dataset besar, gunakan subsample
+    if len(X) > 10000:
+        X_subsample = X.sample(n=10000, random_state=random_state)
+        y_subsample = y.loc[X_subsample.index]
+    else:
+        X_subsample = X
+        y_subsample = y
+    
+    perm_importance = permutation_importance(
+        model, X_subsample, y_subsample,
+        n_repeats=config["n_repeats"],
+        random_state=random_state,
+        n_jobs=-1  # Parallel processing
+    )
+    
+    return {
+        'importances': perm_importance.importances_mean,
+        'std': perm_importance.importances_std
+    }
+
+def calculate_mutual_info(X, y, problem_type):
+    """Calculate mutual information"""
+    if problem_type == "Regression":
+        mi = mutual_info_regression(X, y, random_state=42, n_jobs=-1)
+    else:
+        mi = mutual_info_classif(X, y, random_state=42, n_jobs=-1)
+    
+    return {
+        'importances': mi
+    }
+
+def display_feature_importance_results(results, feature_names, max_display, problem_type):
+    """Display feature importance results dengan visualisasi yang komprehensif"""
+    
+    st.subheader("📊 Feature Importance Results")
+    
+    # Tampilkan semua methods dalam tabs
+    tabs = st.tabs(list(results.keys()))
+    
+    for tab, (method_name, result) in zip(tabs, results.items()):
+        with tab:
+            importances = result['importances']
+            
+            # Create importance dataframe
+            importance_df = pd.DataFrame({
+                'feature': feature_names,
+                'importance': importances
+            }).sort_values('importance', ascending=False)
+            
+            # Display top features
+            st.write(f"**Top {min(max_display, len(importance_df))} Features - {method_name}**")
+            
+            col1, col2 = st.columns([2, 1])
+            
+            with col1:
+                # Bar chart
+                fig = px.bar(
+                    importance_df.head(max_display),
+                    x='importance',
+                    y='feature',
+                    title=f"{method_name} Feature Importance",
+                    orientation='h',
+                    color='importance',
+                    color_continuous_scale='viridis'
+                )
+                fig.update_layout(showlegend=False)
+                st.plotly_chart(fig, use_container_width=True)
+            
+            with col2:
+                # Table view
+                st.dataframe(
+                    importance_df.head(10)[['feature', 'importance']].round(4),
+                    use_container_width=True
+                )
+            
+            # Additional info untuk permutation importance
+            if method_name == "Permutation" and 'std' in result:
+                st.write("**Permutation Importance with Std Dev:**")
+                perm_df = pd.DataFrame({
+                    'feature': feature_names,
+                    'importance': importances,
+                    'std': result['std']
+                }).sort_values('importance', ascending=False)
+                
+                fig = px.bar(
+                    perm_df.head(max_display),
+                    x='importance',
+                    y='feature',
+                    error_x='std',
+                    title="Permutation Importance ± Std Dev",
+                    orientation='h'
+                )
+                st.plotly_chart(fig, use_container_width=True)
+
+def show_feature_analysis_insights(results, X, y, problem_type):
+    """Show additional insights dari feature analysis"""
+    
+    st.subheader("💡 Analysis Insights")
+    
+    col1, col2 = st.columns(2)
+    
+    with col1:
+        st.write("**Dataset Characteristics:**")
+        st.write(f"- Total samples: {len(X):,}")
+        st.write(f"- Total features: {len(X.columns)}")
+        st.write(f"- Problem type: {problem_type}")
+        
+        if problem_type == "Classification":
+            st.write(f"- Number of classes: {len(np.unique(y))}")
+        else:
+            st.write(f"- Target range: {y.min():.2f} to {y.max():.2f}")
+    
+    with col2:
+        st.write("**Feature Importance Consensus:**")
+        
+        # Hitung consensus dari semua methods
+        consensus_scores = {}
+        for method_name, result in results.items():
+            importances = result['importances']
+            for i, feature in enumerate(X.columns):
+                if feature not in consensus_scores:
+                    consensus_scores[feature] = []
+                consensus_scores[feature].append(importances[i])
+        
+        # Rata-rata score across methods
+        avg_scores = {feature: np.mean(scores) for feature, scores in consensus_scores.items()}
+        top_features = sorted(avg_scores.items(), key=lambda x: x[1], reverse=True)[:5]
+        
+        for feature, score in top_features:
+            st.write(f"- {feature}: {score:.4f}")
+    
+    # Correlation analysis untuk top features
+    if len(results) > 0:
+        st.write("**Top Features Correlation Matrix:**")
+        
+        # Ambil top 8 features dari method pertama
+        first_method = list(results.values())[0]
+        top_indices = np.argsort(first_method['importances'])[-8:][::-1]
+        top_features_corr = [X.columns[i] for i in top_indices if i < len(X.columns)]
+        
+        if len(top_features_corr) > 1:
+            corr_matrix = X[top_features_corr].corr()
+            
+            fig = px.imshow(
+                corr_matrix,
+                text_auto=True,
+                aspect="auto",
+                color_continuous_scale="RdBu_r",
+                title="Correlation Matrix of Top Features"
+            )
+            st.plotly_chart(fig, use_container_width=True)
 
 # Fungsi untuk memuat data
 def load_data(uploaded_file):
@@ -8006,439 +9682,1033 @@ if uploaded_files:
         else:
             df = merge_datasets(datasets, merge_method)
 
+try:
+    from stl import mesh
+    import trimesh
+    import os
+except ImportError:
+    st.warning("Beberapa library 3D tidak terinstall. Install dengan: pip install numpy-stl trimesh plotly")
 REMOVE_BG_API_KEY = "xQH5KznYiupRrywK5yPcjeyi"
 PIXELS_API_KEY = "LH59shPdj1xO0lolnHPsClH23qsnHE4NjkCFBhKEXvR0CbqwkrXbqBnw"
 if df is not None:
-    tab1, tab2, tab3, tab4, tab5, tab6, tab7, tab8, tab9 = st.tabs([
+    tab1, tab2, tab3, tab4, tab5, tab6, tab7, tab8, tab9, tab10 = st.tabs([
         "📊 Statistik", 
         "📈 Visualisasi", 
         "💾 Data", 
         "ℹ️ Informasi", 
         "🧮 Kalkulator",
         "🖼️ Vitures",
-        "📍 Flowchart",
+        "📍 Flowchart", 
         "📊 Grafik Saham",
-        "🗃️ SQL Style"
+        "🗃️ SQL Style",
+        "🔄 3D Model & Analisis"
     ])
-    
-    with tab9:
-            st.header("📁 Upload File & Analisis Lengkap SQL Style")
-            with st.expander("📜 Ketarangan Dalam Statistik Dan Analisis", expanded=False):
-                st.markdown("""
-                **Penjelasan Penting 📛**
+
+    with tab10:
+        st.header("🔄 Konversi Gambar ke 3D Model dengan Analisis")
+        
+        # Upload gambar
+        uploaded_file = st.file_uploader("Unggah gambar untuk dikonversi ke 3D", 
+                                    type=['png', 'jpg', 'jpeg'], 
+                                    key="3d_converter")
+        
+        col1, col2 = st.columns(2)
+        
+        with col1:
+            if uploaded_file is not None:
+                # Display original image
+                st.subheader("🖼️ Gambar Asli")
+                st.image(uploaded_file, use_column_width=True)
                 
-                ### 🚀 Ketrangan Lengkap Dalam Analisis Dan Statistik Pada SQL Style
-                - SQL ini masih tahap pemgembangan dan perbaikan, jadi mohon bersabar jika ada kekurangan
-                - dan kami akan segera update SQL Style ini agar lebih baik lagi kedepannya.
-                - Terima kasih atas pengertian dan dukungannya.
-                """)
+                # Image analysis
+                st.subheader("📊 Analisis Gambar")
+                
+                # Convert to numpy array for analysis
+                import numpy as np
+                from PIL import Image
+                
+                image = Image.open(uploaded_file)
+                img_array = np.array(image)
+                
+                # Basic image statistics
+                st.write(f"**Dimensi Gambar:** {img_array.shape}")
+                st.write(f"**Tipe Data:** {img_array.dtype}")
+                st.write(f"**Range Nilai:** {img_array.min()} - {img_array.max()}")
+                
+                # Color distribution
+                if len(img_array.shape) == 3:  # Color image
+                    st.write("**Distribusi Warna RGB:**")
+                    colors = ['Red', 'Green', 'Blue']
+                    for i, color in enumerate(colors):
+                        channel_data = img_array[:, :, i]
+                        st.write(f"{color}: Mean={channel_data.mean():.2f}, Std={channel_data.std():.2f}")
+        
+        with col2:
+            if uploaded_file is not None:
+                st.subheader("📈 Chart Analisis")
+                
+                # Create some sample 3D data based on image
+                height, width = img_array.shape[0], img_array.shape[1]
+                
+                # Generate 3D surface data from image intensity
+                if len(img_array.shape) == 3:
+                    gray_img = np.mean(img_array, axis=2)  # Convert to grayscale
+                else:
+                    gray_img = img_array
+                
+                # Downsample for performance
+                downsample_factor = max(1, gray_img.shape[0] // 50)
+                gray_img_small = gray_img[::downsample_factor, ::downsample_factor]
+                
+                # Create 3D surface plot
+                fig_3d = go.Figure(data=[go.Surface(z=gray_img_small)])
+                fig_3d.update_layout(
+                    title='3D Surface dari Gambar',
+                    scene=dict(
+                        xaxis_title='X',
+                        yaxis_title='Y', 
+                        zaxis_title='Intensitas'
+                    )
+                )
+                st.plotly_chart(fig_3d, use_container_width=True)
+                
+                # 2D Histogram of intensities
+                fig_hist = px.histogram(x=gray_img.flatten(), 
+                                    title='Distribusi Intensitas Pixel',
+                                    labels={'x': 'Intensitas', 'y': 'Frekuensi'})
+                st.plotly_chart(fig_hist, use_container_width=True)
+        
+        # Additional analysis section
+        if uploaded_file is not None:
+            st.subheader("🔍 Analisis Detail")
             
-            # Upload file
-            uploaded_file = st.file_uploader(
-                "Pilih file CSV atau Excel", 
-                type=['csv', 'xlsx', 'xls'],
-                help="Upload file data untuk dianalisis"
+            col3, col4 = st.columns(2)
+            
+            with col3:
+                # Edge detection simulation
+                st.write("**Deteksi Tepi (Simulasi):**")
+                
+                # Simple edge detection using gradient
+                from scipy import ndimage
+                
+                # Calculate gradients
+                grad_x = ndimage.sobel(gray_img, axis=0)
+                grad_y = ndimage.sobel(gray_img, axis=1)
+                gradient_magnitude = np.hypot(grad_x, grad_y)
+                
+                # Display edge map
+                fig_edges = px.imshow(gradient_magnitude, 
+                                    title='Peta Tepi',
+                                    color_continuous_scale='gray')
+                st.plotly_chart(fig_edges, use_container_width=True)
+            
+            with col4:
+                # Statistical summary
+                st.write("**Ringkasan Statistik:**")
+                
+                stats_data = {
+                    'Metrik': ['Mean', 'Median', 'Std Dev', 'Varians', 'Entropi'],
+                    'Nilai': [
+                        f"{gray_img.mean():.2f}",
+                        f"{np.median(gray_img):.2f}", 
+                        f"{gray_img.std():.2f}",
+                        f"{gray_img.var():.2f}",
+                        f"{-np.sum(gray_img * np.log2(gray_img + 1e-8)):.2f}"
+                    ]
+                }
+                
+                st.dataframe(stats_data, use_container_width=True)
+                
+                # Date selection for analysis
+                analysis_date = st.date_input("Pilih Tanggal Analisis", 
+                                            value=datetime.now().date(),
+                                            key="3d_analysis_date")
+                
+                st.write(f"**Analisis untuk tanggal:** {analysis_date}")
+        
+        # Model conversion options
+        if uploaded_file is not None:
+            st.subheader("⚙️ Opsi Konversi 3D")
+            
+            conversion_type = st.selectbox(
+                "Pilih tipe model 3D:",
+                ["Surface Mesh", "Point Cloud", "Voxel Grid", "Height Map"]
             )
             
-            if uploaded_file is not None:
-                try:
-                    # Baca file berdasarkan tipe
-                    if uploaded_file.name.endswith('.csv'):
-                        df = pd.read_csv(uploaded_file)
-                    else:
-                        df = pd.read_excel(uploaded_file)
-                    
-                    st.success(f"File berhasil diupload! Shape: {df.shape}")
-                    
-                    # Tampilkan preview data
-                    st.subheader("📋 Preview Data")
-                    st.dataframe(df.head())
-                    
-                    # Informasi dasar dataset
-                    st.subheader("📊 Informasi Dataset")
-                    col1, col2, col3 = st.columns(3)
-                    
-                    with col1:
-                        st.metric("Jumlah Baris", df.shape[0])
-                    with col2:
-                        st.metric("Jumlah Kolom", df.shape[1])
-                    with col3:
-                        st.metric("Missing Values", df.isnull().sum().sum())
-                    
-                    # Tampilkan ERD (Entity Relationship Diagram) sederhana
-                    st.subheader("🔗 Entity Relationship Diagram (ERD)")
-
-                    # Analisis relasi antar kolom
-                    st.write("**Relasi antar Kolom:**")
-                    numeric_cols = df.select_dtypes(include=[np.number]).columns.tolist()
-                    categorical_cols = df.select_dtypes(include=['object']).columns.tolist()
-
-                    col1, col2 = st.columns(2)
-
-                    with col1:
-                        st.write("**Kolom Numerik:**")
-                        df_numeric = pd.DataFrame({"Nama Kolom": numeric_cols})
-                        st.table(df_numeric)
-
-                    with col2:
-                        st.write("**Kolom Kategorikal:**")
-                        df_categorical = pd.DataFrame({"Nama Kolom": categorical_cols})
-                        st.table(df_categorical)
-
-                    # --- Visualisasi ERD yang Sesungguhnya ---
-                    st.write("---")
-                    st.subheader("🗄️ Entity Relationship Diagram Visualization")
-
-                    # Buat struktur entitas dan relasi
-                    st.write("**Struktur Tabel Database:**")
-
-                    # Generate SQL CREATE TABLE statements
-                    st.markdown("### 📝 SQL Schema Definition")
-
-                    # Buat diagram ERD menggunakan graphviz
+            resolution = st.slider("Resolusi Model 3D", 10, 100, 50)
+            height_scale = st.slider("Skala Tinggi 3D", 0.1, 5.0, 1.0)
+            
+            if st.button("🚀 Generate Model 3D", type="primary"):
+                with st.spinner("Membuat model 3D..."):
                     try:
-                        import graphviz
+                        # Progress bar
+                        progress_bar = st.progress(0)
                         
-                        # Buat graph untuk ERD
-                        dot = graphviz.Digraph(comment='Database ERD')
-                        dot.attr(rankdir='TB', size='8,8')
+                        # Convert image to grayscale and normalize
+                        if len(img_array.shape) == 3:
+                            gray_img = np.mean(img_array, axis=2)
+                        else:
+                            gray_img = img_array
                         
-                        # Buat node untuk tabel utama
+                        # Normalize to 0-1
+                        gray_img_normalized = gray_img.astype(np.float32) / 255.0
+                        
+                        progress_bar.progress(25)
+                        
+                        # Downsample image based on resolution
+                        downsample = max(1, gray_img_normalized.shape[0] // resolution)
+                        height_map = gray_img_normalized[::downsample, ::downsample]
+                        
+                        progress_bar.progress(50)
+                        
+                        # Generate 3D mesh from height map
+                        x, y = np.mgrid[0:height_map.shape[0], 0:height_map.shape[1]]
+                        z = height_map * height_scale
+                        
+                        progress_bar.progress(75)
+                        
+                        # Create vertices and faces for the mesh
+                        vertices = []
+                        faces = []
+                        
+                        # Create vertices
+                        for i in range(z.shape[0]):
+                            for j in range(z.shape[1]):
+                                vertices.append([i, j, z[i, j]])
+                        
+                        # Create faces
+                        for i in range(z.shape[0]-1):
+                            for j in range(z.shape[1]-1):
+                                # Two triangles per quad
+                                v1 = i * z.shape[1] + j
+                                v2 = v1 + 1
+                                v3 = (i + 1) * z.shape[1] + j
+                                v4 = v3 + 1
+                                
+                                # First triangle
+                                faces.append([v1, v2, v3])
+                                # Second triangle
+                                faces.append([v2, v4, v3])
+                        
+                        progress_bar.progress(90)
+                        
+                        # Convert to numpy arrays
+                        vertices = np.array(vertices)
+                        faces = np.array(faces)
+                        
+                        # Create STL mesh
+                        from stl import mesh
+                        
+                        # Create the mesh object
+                        stl_mesh = mesh.Mesh(np.zeros(faces.shape[0], dtype=mesh.Mesh.dtype))
+                        
+                        # Assign vertices to mesh
+                        for i, face in enumerate(faces):
+                            for j in range(3):
+                                stl_mesh.vectors[i][j] = vertices[face[j]]
+                        
+                        progress_bar.progress(100)
+                        
+                        # Save STL file to temporary file
+                        import tempfile
+                        import os
+                        
+                        with tempfile.NamedTemporaryFile(delete=False, suffix='.stl') as tmp_file:
+                            stl_mesh.save(tmp_file.name)
+                            
+                            # Read the file data for download
+                            with open(tmp_file.name, 'rb') as f:
+                                stl_data = f.read()
+                        
+                        # Clean up temporary file
+                        os.unlink(tmp_file.name)
+                        
+                        st.success("✅ Model 3D berhasil dibuat!")
+                        
+                        # Display results
+                        st.info(f"**Model 3D tipe:** {conversion_type}")
+                        st.info(f"**Resolusi:** {resolution}")
+                        st.info(f"**Dimensi Mesh:** {len(vertices)} vertices, {len(faces)} faces")
+                        st.info(f"**Skala Tinggi:** {height_scale}")
+                        
+                        # Download button for 3D model
+                        st.download_button(
+                            label="📥 Download Model 3D (STL)",
+                            data=stl_data,
+                            file_name=f"3d_model_{uploaded_file.name.split('.')[0]}.stl",
+                            mime="application/octet-stream"
+                        )
+                        
+                        # Display mesh information
+                        col5, col6 = st.columns(2)
+                        
+                        with col5:
+                            st.write("**Informasi Mesh:**")
+                            mesh_info = {
+                                'Parameter': ['Jumlah Vertex', 'Jumlah Face', 'Dimensi X', 'Dimensi Y', 'Tinggi Maks'],
+                                'Nilai': [
+                                    len(vertices),
+                                    len(faces),
+                                    f"{z.shape[0]} points",
+                                    f"{z.shape[1]} points", 
+                                    f"{z.max():.3f}"
+                                ]
+                            }
+                            st.dataframe(mesh_info)
+                        
+                        with col6:
+                            # Display 3D preview using plotly
+                            st.write("**Preview 3D:**")
+                            
+                            # Create simplified mesh for preview
+                            preview_downsample = max(1, len(vertices) // 1000)
+                            preview_vertices = vertices[::preview_downsample]
+                            
+                            fig_3d_preview = go.Figure(data=[go.Mesh3d(
+                                x=preview_vertices[:, 0],
+                                y=preview_vertices[:, 1],
+                                z=preview_vertices[:, 2],
+                                opacity=0.7,
+                                color='lightblue'
+                            )])
+                            
+                            fig_3d_preview.update_layout(
+                                title='Preview Model 3D',
+                                scene=dict(
+                                    xaxis_title='X',
+                                    yaxis_title='Y',
+                                    zaxis_title='Z'
+                                )
+                            )
+                            
+                            st.plotly_chart(fig_3d_preview, use_container_width=True)
+                    
+                    except Exception as e:
+                        st.error(f"❌ Error dalam membuat model 3D: {str(e)}")
+                        st.info("Pastikan library numpy-stl dan trimesh terinstall: `pip install numpy-stl trimesh`")
+    
+    
+    with tab9:
+        st.header("📁 Upload File & Analisis Lengkap Database SQL")
+        with st.expander("📜 Keterangan Dalam Statistik Dan Analisis", expanded=False):
+            st.markdown(
+                """
+                <img src="https://media.finebi.com/strapi/Annual_Sales_Summary_59110fda60.jpg" class="responsive-img">
+                """,
+                unsafe_allow_html=True
+            )
+            st.markdown("""
+
+            ### 🚀 Keterangan Lengkap Dalam Analisis Dan Statistik Pada SQL Style
+            - Akankah Hal Gila Dapat Terjadi Dan Ini lah yang Mungkin Menjadi Kenyataan Pada SQL Style?
+            - Dengan adanya fitur analisis data pada SQL Style, kini Anda dapat dengan mudah mengunggah file CSV atau Excel berisi data dari database SQL Anda untuk dianalisis secara menyeluruh.
+            - Fitur ini dirancang untuk memberikan wawasan mendalam tentang struktur data Anda, termasuk deteksi kolom tanggal, analisis statistik dasar, dan visualisasi data yang informatif.
+            - Setelah mengunggah file, SQL Style akan secara otomatis mendeteksi kolom tanggal dan melakukan analisis mendalam terhadap data tersebut.
+            - Anda akan mendapatkan statistik dasar seperti jumlah baris dan kolom, nilai unik, serta informasi tentang missing values.
+            - Selain itu, fitur visualisasi data akan membantu Anda memahami distribusi data, tren waktu, dan pola musiman dengan grafik yang mudah dipahami.
+            - Fitur ini sangat berguna bagi para analis data, pengembang database, dan siapa saja yang ingin mendapatkan pemahaman lebih baik tentang data mereka.
+            - Kami terus berupaya untuk meningkatkan fitur ini agar dapat memberikan pengalaman analisis data yang lebih baik dan lebih komprehensif.
+            - dan kami akan segera update SQL Style ini agar lebih baik lagi kedepannya.
+            - Terima kasih atas pengertian dan dukungannya.
+            """)
+        
+        # Upload file
+        uploaded_file = st.file_uploader(
+            "Pilih file CSV atau Excel", 
+            type=['csv', 'xlsx', 'xls'],
+            help="Upload file data untuk dianalisis"
+        )
+        
+        if uploaded_file is not None:
+            try:
+                # Baca file berdasarkan tipe
+                if uploaded_file.name.endswith('.csv'):
+                    df = pd.read_csv(uploaded_file)
+                else:
+                    df = pd.read_excel(uploaded_file)
+                
+                # Clean dataframe - handle mixed types and object dtypes
+                def clean_dataframe(df):
+                    df_clean = df.copy()
+                    
+                    # Convert object columns to appropriate types
+                    for col in df_clean.columns:
+                        # Skip if column is already numeric or datetime
+                        if pd.api.types.is_numeric_dtype(df_clean[col]):
+                            continue
+                        if pd.api.types.is_datetime64_any_dtype(df_clean[col]):
+                            continue
+                        
+                        # Try to convert to numeric first
+                        try:
+                            df_clean[col] = pd.to_numeric(df_clean[col], errors='ignore')
+                        except:
+                            pass
+                        
+                        # If still object, try to convert to datetime
+                        if df_clean[col].dtype == 'object':
+                            try:
+                                df_clean[col] = pd.to_datetime(df_clean[col], errors='ignore')
+                            except:
+                                pass
+                        
+                        # Handle ObjectDType specifically
+                        if hasattr(df_clean[col].dtype, 'name') and df_clean[col].dtype.name == 'object':
+                            # Convert to string to avoid ObjectDType issues
+                            df_clean[col] = df_clean[col].astype(str)
+                    
+                    return df_clean
+                
+                df = clean_dataframe(df)
+                
+                st.success(f"File berhasil diupload! Shape: {df.shape}")
+                
+                # Tampilkan preview data
+                st.subheader("📋 Preview Data")
+                st.dataframe(df.head())
+                
+                # Informasi dasar dataset
+                st.subheader("📊 Informasi Dataset")
+                col1, col2, col3, col4 = st.columns(4)
+                
+                with col1:
+                    st.metric("Jumlah Baris", df.shape[0])
+                with col2:
+                    st.metric("Jumlah Kolom", df.shape[1])
+                with col3:
+                    st.metric("Missing Values", df.isnull().sum().sum())
+                with col4:
+                    st.metric("Duplikat", df.duplicated().sum())
+                
+                # --- ANALISIS STRUKTUR DATA UNTUK ERD DINAMIS ---
+                st.subheader("🔍 Analisis Struktur Data untuk ERD")
+                
+                # Fungsi untuk deteksi tipe data yang aman
+                def safe_dtype_detection(df):
+                    numeric_cols = []
+                    categorical_cols = []
+                    date_cols = []
+                    bool_cols = []
+                    other_cols = []
+                    
+                    for col in df.columns:
+                        col_dtype = str(df[col].dtype)
+                        
+                        # Check numeric
+                        if pd.api.types.is_numeric_dtype(df[col]):
+                            numeric_cols.append(col)
+                        # Check datetime
+                        elif pd.api.types.is_datetime64_any_dtype(df[col]):
+                            date_cols.append(col)
+                        # Check boolean
+                        elif pd.api.types.is_bool_dtype(df[col]):
+                            bool_cols.append(col)
+                        # Check categorical (object but limited unique values)
+                        elif df[col].dtype == 'object':
+                            if df[col].nunique() <= 50:  # Consider as categorical if <= 50 unique values
+                                categorical_cols.append(col)
+                            else:
+                                other_cols.append(col)
+                        else:
+                            other_cols.append(col)
+                    
+                    return numeric_cols, categorical_cols, date_cols, bool_cols, other_cols
+                
+                numeric_cols, categorical_cols, date_cols, bool_cols, other_cols = safe_dtype_detection(df)
+                
+                # Fungsi analisis yang lebih robust
+                def robust_column_analysis(df):
+                    column_analysis = {}
+                    
+                    for col in df.columns:
+                        try:
+                            col_data = df[col]
+                            
+                            # Handle ObjectDType and other problematic types
+                            if hasattr(col_data.dtype, 'name') and col_data.dtype.name == 'object':
+                                # Convert to string for analysis
+                                col_data = col_data.astype(str)
+                            
+                            analysis = {
+                                'dtype': str(col_data.dtype),
+                                'unique_count': col_data.nunique(),
+                                'null_count': col_data.isnull().sum(),
+                                'null_percentage': (col_data.isnull().sum() / len(col_data)) * 100,
+                                'sample_values': col_data.dropna().head(3).tolist() if not col_data.empty else []
+                            }
+                            
+                            # Safe sample values conversion
+                            safe_samples = []
+                            for val in analysis['sample_values']:
+                                try:
+                                    safe_samples.append(str(val))
+                                except:
+                                    safe_samples.append('N/A')
+                            analysis['sample_values'] = safe_samples
+                            
+                            # Deteksi tipe kolom untuk ERD
+                            col_lower = str(col).lower()
+                            
+                            # Primary Key detection
+                            if (analysis['unique_count'] == len(col_data) and 
+                                analysis['null_count'] == 0 and
+                                any(keyword in col_lower for keyword in ['id', 'pk', 'key', 'code'])):
+                                analysis['role'] = 'PRIMARY_KEY'
+                                analysis['icon'] = '🔑'
+                            
+                            # Foreign Key detection
+                            elif (any(keyword in col_lower for keyword in ['id', 'fk', 'ref', 'code']) and
+                                analysis['unique_count'] < len(col_data) * 0.8):
+                                analysis['role'] = 'FOREIGN_KEY'
+                                analysis['icon'] = '🔗'
+                            
+                            # Measurement columns
+                            elif any(keyword in col_lower for keyword in ['amount', 'price', 'value', 'total', 'sum', 'avg', 'quantity']):
+                                analysis['role'] = 'MEASUREMENT'
+                                analysis['icon'] = '💰'
+                            
+                            # Date/Time columns
+                            elif any(keyword in col_lower for keyword in ['date', 'time', 'year', 'month', 'day']):
+                                analysis['role'] = 'TEMPORAL'
+                                analysis['icon'] = '📅'
+                            
+                            # Category columns
+                            elif (analysis['unique_count'] <= 20 and 
+                                analysis['unique_count'] > 1 and
+                                str(col_data.dtype) == 'object'):
+                                analysis['role'] = 'CATEGORY'
+                                analysis['icon'] = '🏷️'
+                            
+                            # Description columns
+                            elif (str(col_data.dtype) == 'object' and 
+                                col_data.astype(str).str.len().mean() > 20):
+                                analysis['role'] = 'DESCRIPTION'
+                                analysis['icon'] = '📝'
+                            
+                            # Numeric metrics
+                            elif pd.api.types.is_numeric_dtype(col_data):
+                                analysis['role'] = 'METRIC'
+                                analysis['icon'] = '📊'
+                            
+                            else:
+                                analysis['role'] = 'ATTRIBUTE'
+                                analysis['icon'] = '📄'
+                            
+                            column_analysis[col] = analysis
+                        
+                        except Exception as e:
+                            # Fallback analysis for problematic columns
+                            column_analysis[col] = {
+                                'dtype': 'unknown',
+                                'role': 'ATTRIBUTE',
+                                'icon': '❓',
+                                'unique_count': 0,
+                                'null_count': len(df[col]),
+                                'null_percentage': 100.0,
+                                'sample_values': ['Error in analysis']
+                            }
+                    
+                    return column_analysis
+                
+                # Analisis kolom
+                column_analysis = robust_column_analysis(df)
+                
+                # Tampilkan analisis kolom
+                st.write("**Analisis Detail Kolom:**")
+                analysis_data = []
+                for col, analysis in column_analysis.items():
+                    analysis_data.append({
+                        'Kolom': col,
+                        'Tipe': analysis['dtype'],
+                        'Role': analysis['role'],
+                        'Icon': analysis['icon'],
+                        'Unique': analysis['unique_count'],
+                        'Null %': f"{analysis['null_percentage']:.1f}%"
+                    })
+                
+                analysis_df = pd.DataFrame(analysis_data)
+                st.dataframe(analysis_df, use_container_width=True)
+                
+                # --- ERD DINAMIS YANG LEBIH AKURAT ---
+                st.subheader("🗄️ Entity Relationship Diagram (ERD) Dinamis")
+                
+                # Konfigurasi ERD
+                col1, col2, col3 = st.columns(3)
+                
+                with col1:
+                    erd_style = st.selectbox(
+                        "Style ERD:",
+                        ['Vertical', 'Horizontal', 'Circular'],
+                        index=0
+                    )
+                
+                with col2:
+                    show_relationships = st.checkbox("Tampilkan Relasi", value=True)
+                
+                with col3:
+                    max_tables = st.slider("Max Tabel", 3, 15, 8)
+                
+                try:
+                    import graphviz
+                    
+                    # Buat graph ERD
+                    dot = graphviz.Digraph(comment='Dynamic Database ERD')
+                    
+                    # Atur layout
+                    if erd_style == 'Vertical':
+                        dot.attr(rankdir='TB', size='12,16')
+                    elif erd_style == 'Horizontal':
+                        dot.attr(rankdir='LR', size='16,12')
+                    else:  # Circular
+                        dot.attr(rankdir='LR', size='14,14', layout='circo')
+                    
+                    # Kelompokkan kolom berdasarkan role untuk membuat tabel
+                    main_table_cols = []
+                    reference_tables = {}
+                    
+                    for col, analysis in column_analysis.items():
+                        if analysis['role'] == 'FOREIGN_KEY':
+                            # Buat tabel referensi untuk foreign key
+                            ref_table_name = f"ref_{col}"
+                            if ref_table_name not in reference_tables:
+                                ref_display_name = col.replace('_id', '').replace('ID', '').replace('_', ' ').title()
+                                reference_tables[ref_table_name] = {
+                                    'name': ref_display_name,
+                                    'columns': []
+                                }
+                            reference_tables[ref_table_name]['columns'].append(col)
+                        else:
+                            main_table_cols.append((col, analysis))
+                    
+                    # Batasi jumlah tabel yang ditampilkan
+                    tables_to_show = min(max_tables, len(reference_tables) + 1)
+                    
+                    # Buat tabel utama
+                    if main_table_cols and tables_to_show > 0:
                         with dot.subgraph(name='cluster_main') as c:
-                            c.attr(label='Tabel Utama: dataset_table', style='filled', color='lightblue', fontsize='12')
+                            table_name = uploaded_file.name.split('.')[0]  # Remove extension
+                            c.attr(label=f'📊 {table_name}', style='filled', 
+                                color='lightblue', fontsize='14', fontname='Arial Bold')
                             
-                            # Header tabel
-                            c.node('table_header', f'📊 dataset_table', shape='plaintext', fontsize='14', fontname='Arial bold')
-                            
-                            # Field-field dalam tabel
                             fields = []
+                            for col, analysis in main_table_cols[:12]:  # Batasi kolom per tabel
+                                field_type = ""
+                                if pd.api.types.is_numeric_dtype(df[col]):
+                                    field_type = "NUMERIC"
+                                elif pd.api.types.is_datetime64_any_dtype(df[col]):
+                                    field_type = "DATETIME"
+                                elif df[col].dtype == 'object':
+                                    try:
+                                        max_len = df[col].astype(str).str.len().max()
+                                        field_type = f"VARCHAR({min(255, max(50, int(max_len)))})"
+                                    except:
+                                        field_type = "TEXT"
+                                elif df[col].dtype == 'bool':
+                                    field_type = "BOOLEAN"
+                                else:
+                                    field_type = "TEXT"
+                                
+                                constraint = ""
+                                if analysis['role'] == 'PRIMARY_KEY':
+                                    constraint = " [PK]"
+                                elif analysis['role'] == 'FOREIGN_KEY':
+                                    constraint = " [FK]"
+                                
+                                fields.append(f"<TR><TD ALIGN='LEFT'>{analysis['icon']} {col}</TD><TD ALIGN='LEFT'>{field_type}{constraint}</TD></TR>")
                             
-                            # Primary keys (asumsikan kolom pertama sebagai PK)
-                            if len(df.columns) > 0:
-                                pk_field = f"<TR><TD ALIGN='LEFT'><B>🔑 {df.columns[0]}</B></TD><TD ALIGN='LEFT'>[PK]</TD></TR>"
-                                fields.append(pk_field)
-                            
-                            # Numeric fields
-                            for col in numeric_cols[:5]:  # Batasi agar tidak terlalu panjang
-                                if col != df.columns[0]:
-                                    fields.append(f"<TR><TD ALIGN='LEFT'>📈 {col}</TD><TD ALIGN='LEFT'>NUMERIC</TD></TR>")
-                            
-                            # Categorical fields  
-                            for col in categorical_cols[:3]:  # Batasi agar tidak terlalu panjang
-                                fields.append(f"<TR><TD ALIGN='LEFT'>📝 {col}</TD><TD ALIGN='LEFT'>VARCHAR</TD></TR>")
-                            
-                            # Jika ada field lebih dari yang ditampilkan
-                            total_fields = len(numeric_cols) + len(categorical_cols)
-                            if total_fields > 8:
-                                fields.append(f"<TR><TD ALIGN='LEFT'>...</TD><TD ALIGN='LEFT'>+{total_fields-8} fields</TD></TR>")
+                            # Tambahkan indicator jika ada kolom yang tidak ditampilkan
+                            if len(main_table_cols) > 12:
+                                fields.append(f"<TR><TD ALIGN='LEFT'>...</TD><TD ALIGN='LEFT'>+{len(main_table_cols)-12} more</TD></TR>")
                             
                             table_html = f'''<
                                 <TABLE BORDER="1" CELLBORDER="0" CELLSPACING="0" CELLPADDING="4">
-                                <TR><TD ALIGN="CENTER"><B>COLUMN</B></TD><TD ALIGN="CENTER"><B>TYPE</B></TD></TR>
+                                <TR><TD ALIGN="CENTER" BGCOLOR="#e6f3ff"><B>COLUMN</B></TD><TD ALIGN="CENTER" BGCOLOR="#e6f3ff"><B>TYPE</B></TD></TR>
                                 {''.join(fields)}
                                 </TABLE>
                             >'''
                             
                             c.node('main_table', table_html, shape='none', fontname='Arial')
+                    
+                    # Buat tabel referensi
+                    colors = ['#e6ffe6', '#fff0e6', '#e6f9ff', '#ffe6ff', '#ffffe6', '#f0e6ff']
+                    for i, (ref_name, ref_info) in enumerate(list(reference_tables.items())[:tables_to_show-1]):
+                        color = colors[i % len(colors)]
+                        with dot.subgraph(name=f'cluster_{ref_name}') as c:
+                            c.attr(label=f'📁 {ref_info["name"]}', style='filled', 
+                                color=color, fontsize='12', fontname='Arial')
+                            
+                            fields = []
+                            # Primary key untuk tabel referensi
+                            for fk_col in ref_info['columns']:
+                                fields.append(f"<TR><TD ALIGN='LEFT'><B>🔑 {fk_col}</B></TD><TD ALIGN='LEFT'>[PK]</TD></TR>")
+                            
+                            # Tambahkan kolom umum untuk tabel referensi
+                            fields.append(f"<TR><TD ALIGN='LEFT'>📝 Name</TD><TD ALIGN='LEFT'>VARCHAR(100)</TD></TR>")
+                            fields.append(f"<TR><TD ALIGN='LEFT'>📝 Description</TD><TD ALIGN='LEFT'>VARCHAR(255)</TD></TR>")
+                            fields.append(f"<TR><TD ALIGN='LEFT'>📅 Created_Date</TD><TD ALIGN='LEFT'>DATETIME</TD></TR>")
+                            fields.append(f"<TR><TD ALIGN='LEFT'>✅ Is_Active</TD><TD ALIGN='LEFT'>BOOLEAN</TD></TR>")
+                            
+                            table_html = f'''<
+                                <TABLE BORDER="1" CELLBORDER="0" CELLSPACING="0" CELLPADDING="3">
+                                <TR><TD ALIGN="CENTER" BGCOLOR="{color}"><B>COLUMN</B></TD><TD ALIGN="CENTER" BGCOLOR="{color}"><B>TYPE</B></TD></TR>
+                                {''.join(fields)}
+                                </TABLE>
+                            >'''
+                            
+                            c.node(ref_name, table_html, shape='none', fontname='Arial')
                         
-                        # Tampilkan graph
-                        st.graphviz_chart(dot)
+                        # Tambahkan relasi
+                        if show_relationships:
+                            for fk_col in ref_info['columns']:
+                                dot.edge(ref_name, 'main_table', label='1:N', style='dashed', color='#666666')
+                    
+                    # Tampilkan ERD
+                    st.graphviz_chart(dot)
+                    
+                    # Legenda
+                    st.markdown("""
+                    **📋 Legenda ERD:**
+                    - 🔑 Primary Key | 🔗 Foreign Key | 📊 Metric      | 💰 Measurement 
+                    - 📅 Temporal    | 🏷️ Category    | 📝 Description | 📄 Attribute
+                    - **Warna berbeda**: Tabel yang berbeda domain
+                    """)
+                    
+                except ImportError:
+                    st.warning("Graphviz tidak terinstall. Menggunakan visualisasi alternatif...")
+                    
+                    # Visualisasi alternatif yang lebih sederhana
+                    import plotly.graph_objects as go
+                    
+                    # Hitung posisi node secara dinamis
+                    num_tables = min(8, len(reference_tables) + 1)
+                    angles = np.linspace(0, 2*np.pi, num_tables, endpoint=False)
+                    radius = 0.4
+                    
+                    fig = go.Figure()
+                    
+                    # Node positions
+                    node_x = [0.5]  # Main table di center
+                    node_y = [0.5]
+                    node_text = ["MAIN"]
+                    node_colors = ['#3366CC']
+                    
+                    # Reference tables di sekeliling
+                    for i, (ref_name, ref_info) in enumerate(list(reference_tables.items())[:num_tables-1]):
+                        angle = angles[i]
+                        x = 0.5 + radius * np.cos(angle)
+                        y = 0.5 + radius * np.sin(angle)
                         
-                    except ImportError:
-                        st.warning("Graphviz tidak terinstall. Menggunakan visualisasi alternatif...")
-                        
-                        # Visualisasi alternatif dengan Plotly
-                        st.write("**Diagram Relasi Tabel:**")
-                        
-                        # Buat network graph sederhana
-                        import plotly.graph_objects as go
-                        
-                        # Node positions
-                        node_x = [0.5]
-                        node_y = [0.5]
-                        node_text = ["dataset_table"]
-                        node_colors = ['lightblue']
-                        
-                        # Add some related tables (conceptual)
-                        related_tables = ['metadata_table', 'category_table', 'log_table']
-                        for i, table in enumerate(related_tables):
-                            node_x.append(0.2 + i * 0.3)
-                            node_y.append(0.8)
-                            node_text.append(table)
-                            node_colors.append('lightgreen')
-                        
-                        fig = go.Figure()
-                        
-                        # Add nodes
-                        fig.add_trace(go.Scatter(
-                            x=node_x, y=node_y,
-                            mode='markers+text',
-                            marker=dict(size=50, color=node_colors),
-                            text=node_text,
-                            textposition="middle center",
-                            name="Tables"
-                        ))
-                        
-                        # Add edges (relationships)
+                        node_x.append(x)
+                        node_y.append(y)
+                        node_text.append(ref_info['name'][:10])
+                        node_colors.append(colors[i % len(colors)])
+                    
+                    # Add nodes
+                    fig.add_trace(go.Scatter(
+                        x=node_x, y=node_y,
+                        mode='markers+text',
+                        marker=dict(size=80, color=node_colors),
+                        text=node_text,
+                        textposition="middle center",
+                        textfont=dict(size=12, color='white'),
+                        name="Tables"
+                    ))
+                    
+                    # Add relationships
+                    if show_relationships and len(node_x) > 1:
                         for i in range(1, len(node_x)):
                             fig.add_trace(go.Scatter(
-                                x=[node_x[0], node_x[i]],
-                                y=[node_y[0], node_y[i]],
+                                x=[node_x[i], node_x[0]], y=[node_y[i], node_y[0]],
                                 mode='lines',
-                                line=dict(width=2, color='gray'),
-                                hoverinfo='none'
+                                line=dict(width=2, color='gray', dash='dash'),
+                                hoverinfo='none',
+                                showlegend=False
                             ))
-                        
-                        fig.update_layout(
-                            title="Database Table Relationships",
-                            showlegend=False,
-                            height=400,
-                            xaxis=dict(showgrid=False, zeroline=False, showticklabels=False),
-                            yaxis=dict(showgrid=False, zeroline=False, showticklabels=False),
-                            margin=dict(l=20, r=20, t=40, b=20)
-                        )
-                        
-                        st.plotly_chart(fig, use_container_width=True)
-
-                    # --- Bagian Penyambung SQL ---
-                    st.write("---")
-                    st.subheader("🧩 Format SQL (Comma Separated)")
-
-                    numeric_sql = ", ".join(numeric_cols)
-                    categorical_sql = ", ".join(categorical_cols)
-
-                    st.code(f"SELECT {numeric_sql}, {categorical_sql} FROM dataset_table;", language="sql")
-
-                    # Generate CREATE TABLE statement
-                    st.markdown("### 🗃️ SQL CREATE TABLE Statement")
-
-                    # Deteksi tipe data untuk SQL
-                    def infer_sql_type(dtype, sample_data):
-                        if np.issubdtype(dtype, np.number):
-                            return "DECIMAL(10,2)"
-                        elif np.issubdtype(dtype, np.datetime64):
-                            return "DATETIME"
-                        else:
-                            # Cek panjang string maksimum
-                            max_len = sample_data.astype(str).str.len().max()
-                            return f"VARCHAR({min(255, max(100, int(max_len * 1.5)))})"
-
-                    create_table_sql = "CREATE TABLE dataset_table (\n"
-                    for i, col in enumerate(df.columns):
-                        sql_type = infer_sql_type(df[col].dtype, df[col])
-                        if i == 0:
-                            create_table_sql += f"    {col} {sql_type} PRIMARY KEY,\n"
-                        else:
-                            create_table_sql += f"    {col} {sql_type},\n"
-
-                    create_table_sql = create_table_sql.rstrip(',\n') + "\n);"
-
-                    st.code(create_table_sql, language="sql")
-
-                    # Jika ingin lihat hanya daftar kolom
-                    col3, col4 = st.columns(2)
-                    with col3:
-                        st.write("**Kolom Numerik (SQL String):**")
-                        st.code(numeric_sql, language="sql")
-
-                    with col4:
-                        st.write("**Kolom Kategorikal (SQL String):**")
-                        st.code(categorical_sql, language="sql")
-
-                    # Visualisasi korelasi sebagai ERD sederhana
-                    if len(numeric_cols) > 1:
-                        st.write("---")
-                        st.subheader("📊 Matriks Korelasi (Hubungan Numerik)")
-                        corr_matrix = df[numeric_cols].corr()
-
-                        # Plot menggunakan Plotly
-                        fig = px.imshow(
-                            corr_matrix,
-                            text_auto=".2f",
-                            color_continuous_scale='RdBu_r',
-                            zmin=-1,
-                            zmax=1,
-                            aspect="auto",
-                            labels=dict(color="Korelasi")
-                        )
-                        fig.update_layout(
-                            title="Matriks Korelasi Numerik",
-                            xaxis_title="Fitur",
-                            yaxis_title="Fitur",
-                            autosize=True,
-                            margin=dict(l=40, r=40, t=60, b=40),
-                            height=600
-                        )
-                        st.plotly_chart(fig, use_container_width=True)
-
-                        # --- Linear Regression Analysis ---
-                        st.write("---")
-                        st.subheader("🧮 Linear Regression Analysis (SQL-Style LRS)")
-
-                        if len(numeric_cols) >= 2:
-                            col1, col2 = st.columns(2)
-                            
-                            with col1:
-                                x_axis = st.selectbox("Pilih variabel X (Independent)", numeric_cols, key="lrs_x")
-                            with col2:
-                                y_axis = st.selectbox("Pilih variabel Y (Dependent)", numeric_cols, key="lrs_y")
-                            
-                            if x_axis != y_axis:
-                                # Hitung regresi linear
-                                slope, intercept, r_value, p_value, std_err = stats.linregress(df[x_axis], df[y_axis])
-                                correlation = df[x_axis].corr(df[y_axis])
-                                r_squared = r_value**2
-
-                                # --- Tampilan SQL Query ---
-                                st.markdown("### 🧩 SQL Query Representation")
-                                st.code(f"""
-                    SELECT 
-                        {x_axis} AS X,
-                        {y_axis} AS Y,
-                        ROUND(REGR_SLOPE({y_axis}, {x_axis}), 4) AS slope,
-                        ROUND(REGR_INTERCEPT({y_axis}, {x_axis}), 4) AS intercept,
-                        ROUND(CORR({y_axis}, {x_axis}), 4) AS correlation,
-                        ROUND(POWER(CORR({y_axis}, {x_axis}), 2), 4) AS r_squared
-                    FROM dataset_table;
-                    """, language="sql")
-
-                                # --- Plot hubungan ---
-                                fig = px.scatter(
-                                    df,
-                                    x=x_axis,
-                                    y=y_axis,
-                                    trendline="ols",
-                                    title=f"📊 SQL Visualization: {y_axis} vs {x_axis}",
-                                    labels={x_axis: f"{x_axis}", y_axis: f"{y_axis}"}
-                                )
-                                fig.update_layout(
-                                    autosize=True,
-                                    margin=dict(l=40, r=40, t=60, b=40),
-                                    height=500,
-                                    title_x=0.5
-                                )
-                                st.plotly_chart(fig, use_container_width=True)
-
-                                # --- Relationship Mapping ---
-                                st.markdown("### 🔗 Relationship Mapping")
-                                
-                                # Buat diagram hubungan sederhana
-                                rel_fig = go.Figure()
-                                
-                                # Add nodes
-                                rel_fig.add_trace(go.Scatter(
-                                    x=[0.2, 0.8], y=[0.5, 0.5],
-                                    mode='markers+text',
-                                    marker=dict(size=80, color=['lightblue', 'lightgreen']),
-                                    text=[x_axis, y_axis],
-                                    textposition="middle center",
-                                    textfont=dict(size=14)
-                                ))
-                                
-                                # Add relationship line dengan annotation korelasi
-                                rel_fig.add_trace(go.Scatter(
-                                    x=[0.3, 0.7], y=[0.5, 0.5],
-                                    mode='lines+text',
-                                    line=dict(width=4, color='red'),
-                                    text=[f"r = {correlation:.3f}"],
-                                    textposition="middle center",
-                                    textfont=dict(size=12, color='red')
-                                ))
-                                
-                                rel_fig.update_layout(
-                                    title=f"Relationship Diagram: {x_axis} → {y_axis}",
-                                    showlegend=False,
-                                    height=300,
-                                    xaxis=dict(showgrid=False, zeroline=False, showticklabels=False, range=[0, 1]),
-                                    yaxis=dict(showgrid=False, zeroline=False, showticklabels=False, range=[0, 1]),
-                                    margin=dict(l=20, r=20, t=60, b=20)
-                                )
-                                
-                                st.plotly_chart(rel_fig, use_container_width=True)
-
-                                # --- Tabel hasil regresi ---
-                                st.markdown("### 📋 SQL-Style Result Table")
-                                result_df = pd.DataFrame({
-                                    "Metric": ["X (Independent)", "Y (Dependent)", "Slope (β1)", "Intercept (β0)", 
-                                            "R-Value", "R² (R-squared)", "P-Value", "Std Error", "Correlation"],
-                                    "Value": [x_axis, y_axis, f"{slope:.4f}", f"{intercept:.4f}", 
-                                            f"{r_value:.4f}", f"{r_squared:.4f}", f"{p_value:.4f}", 
-                                            f"{std_err:.4f}", f"{correlation:.4f}"]
-                                })
-
-                                st.dataframe(result_df, use_container_width=True, hide_index=True)
                     
-                    # Analisis statistik lengkap
-                    st.subheader("📊 Analisis Statistik Lengkap")
-                    
-                    # Statistik deskriptif
-                    st.write("**Statistik Deskriptif:**")
-                    st.dataframe(df.describe())
-                    
-                    # Analisis missing values
-                    st.write("**Analisis Missing Values:**")
-                    missing_data = df.isnull().sum()
-                    if missing_data.sum() > 0:
-                        fig_missing = px.bar(x=missing_data.index, y=missing_data.values,
-                                        title="Missing Values per Kolom")
-                        st.plotly_chart(fig_missing)
-                    else:
-                        st.success("Tidak ada missing values dalam dataset!")
-                    
-                    # Data quality report
-                    st.subheader("📋 Data Quality Report")
-                    
-                    quality_data = []
-                    for col in df.columns:
-                        quality_data.append({
-                            'Kolom': col,
-                            'Tipe': df[col].dtype,
-                            'Missing': df[col].isnull().sum(),
-                            'Missing %': (df[col].isnull().sum() / len(df)) * 100,
-                            'Unique': df[col].nunique(),
-                            'Contoh Value': df[col].iloc[0] if not df[col].empty else 'N/A'
-                        })
-                    
-                    quality_df = pd.DataFrame(quality_data)
-                    st.dataframe(quality_df)
-                    
-                    # Download hasil analisis
-                    st.subheader("💾 Download Hasil Analisis")
-                    
-                    # Convert quality report to CSV
-                    csv = quality_df.to_csv(index=False)
-                    st.download_button(
-                        label="Download Data Quality Report",
-                        data=csv,
-                        file_name="data_quality_report.csv",
-                        mime="text/csv"
+                    fig.update_layout(
+                        title="Database Table Relationships",
+                        showlegend=False,
+                        height=500,
+                        xaxis=dict(showgrid=False, zeroline=False, showticklabels=False, range=[0, 1]),
+                        yaxis=dict(showgrid=False, zeroline=False, showticklabels=False, range=[0, 1]),
+                        margin=dict(l=20, r=20, t=60, b=20)
                     )
                     
-                except Exception as e:
-                    st.error(f"Error membaca file: {str(e)}")
-            else:
-                st.info("Silakan upload file CSV atau Excel untuk memulai analisis")
+                    st.plotly_chart(fig, use_container_width=True)
+
+                # --- VISUALISASI DATA YANG AMAN ---
+                st.subheader("📈 Visualisasi Data")
                 
-                # Contoh dataset
-                st.subheader("🎯 Contoh Format Data")
-                example_data = {
-                    'ID': [1, 2, 3, 4, 5],
-                    'Nama': ['Alice', 'Bob', 'Charlie', 'Diana', 'Eve'],
-                    'Usia': [25, 30, 35, 28, 32],
-                    'Gaji': [50000, 60000, 70000, 55000, 65000],
-                    'Departemen': ['IT', 'HR', 'IT', 'Finance', 'HR']
+                # Warna konsisten untuk chart
+                color_palette = px.colors.qualitative.Set3
+                
+                # Fungsi safe plotting
+                def safe_plotting(plot_function, *args, **kwargs):
+                    try:
+                        return plot_function(*args, **kwargs)
+                    except Exception as e:
+                        st.error(f"Error dalam membuat chart: {str(e)}")
+                        return None
+                
+                # Tab untuk organisasi chart yang lebih baik
+                tab111, tab222, tab333 = st.tabs(["📊 Distribusi Numerik", "🏷️ Analisis Kategorikal", "📋 Data Quality"])
+                
+                with tab111:
+                    st.subheader("Analisis Distribusi Numerik")
+                    
+                    if numeric_cols:
+                        col1, col2 = st.columns(2)
+                        
+                        with col1:
+                            # Histogram dengan pengelompokan yang baik
+                            selected_num_hist = st.selectbox(
+                                "Pilih variabel untuk histogram:",
+                                numeric_cols,
+                                key="hist_num"
+                            )
+                            
+                            if selected_num_hist:
+                                fig_hist = safe_plotting(px.histogram,
+                                    df, 
+                                    x=selected_num_hist,
+                                    title=f"Distribusi {selected_num_hist}",
+                                    nbins=30,
+                                    color_discrete_sequence=['#3366CC'],
+                                    opacity=0.8
+                                )
+                                if fig_hist:
+                                    fig_hist.update_layout(
+                                        bargap=0.1,
+                                        xaxis_title=selected_num_hist,
+                                        yaxis_title="Frekuensi"
+                                    )
+                                    st.plotly_chart(fig_hist, use_container_width=True)
+                        
+                        with col2:
+                            # Box plot
+                            selected_num_box = st.selectbox(
+                                "Pilih variabel untuk box plot:",
+                                numeric_cols,
+                                key="box_num"
+                            )
+                            
+                            if selected_num_box:
+                                fig_box = safe_plotting(px.box,
+                                    df,
+                                    y=selected_num_box,
+                                    title=f"Box Plot {selected_num_box}",
+                                    color_discrete_sequence=['#FF6B6B']
+                                )
+                                if fig_box:
+                                    st.plotly_chart(fig_box, use_container_width=True)
+                        
+                        # Matriks korelasi
+                        if len(numeric_cols) >= 2:
+                            st.write("**Matriks Korelasi:**")
+                            try:
+                                corr_matrix = df[numeric_cols].corr()
+                                fig_corr = px.imshow(
+                                    corr_matrix,
+                                    text_auto=".2f",
+                                    color_continuous_scale='RdBu_r',
+                                    aspect="auto",
+                                    title="Matriks Korelasi Numerik"
+                                )
+                                st.plotly_chart(fig_corr, use_container_width=True)
+                            except Exception as e:
+                                st.warning(f"Tidak dapat menghitung matriks korelasi: {str(e)}")
+                
+                with tab222:
+                    st.subheader("Analisis Data Kategorikal")
+                    
+                    if categorical_cols:
+                        col1, col2 = st.columns(2)
+                        
+                        with col1:
+                            # Pie chart yang terorganisir
+                            selected_cat_pie = st.selectbox(
+                                "Pilih variabel kategorikal:",
+                                categorical_cols,
+                                key="pie_cat"
+                            )
+                            
+                            if selected_cat_pie:
+                                try:
+                                    value_counts = df[selected_cat_pie].value_counts().head(8)
+                                    fig_pie = safe_plotting(px.pie,
+                                        values=value_counts.values,
+                                        names=value_counts.index,
+                                        title=f"Distribusi {selected_cat_pie} (Top 8)",
+                                        color_discrete_sequence=color_palette
+                                    )
+                                    if fig_pie:
+                                        st.plotly_chart(fig_pie, use_container_width=True)
+                                except Exception as e:
+                                    st.warning(f"Tidak dapat membuat pie chart: {str(e)}")
+                        
+                        with col2:
+                            # Bar chart horizontal
+                            if selected_cat_pie:
+                                try:
+                                    value_counts = df[selected_cat_pie].value_counts().head(10)
+                                    fig_bar = safe_plotting(px.bar,
+                                        x=value_counts.values,
+                                        y=value_counts.index,
+                                        orientation='h',
+                                        title=f"Top 10 {selected_cat_pie}",
+                                        color=value_counts.values,
+                                        color_continuous_scale='Blues'
+                                    )
+                                    if fig_bar:
+                                        fig_bar.update_layout(
+                                            xaxis_title="Count",
+                                            yaxis_title=selected_cat_pie,
+                                            showlegend=False
+                                        )
+                                        st.plotly_chart(fig_bar, use_container_width=True)
+                                except Exception as e:
+                                    st.warning(f"Tidak dapat membuat bar chart: {str(e)}")
+                
+                with tab333:
+                    st.subheader("Data Quality Report")
+                    
+                    # Buat laporan kualitas data yang komprehensif
+                    quality_report = []
+                    for col in df.columns:
+                        analysis = column_analysis[col]
+                        quality_report.append({
+                            'Kolom': col,
+                            'Tipe Data': analysis['dtype'],
+                            'Role': analysis['role'],
+                            'Unique Values': analysis['unique_count'],
+                            'Null Values': analysis['null_count'],
+                            'Null %': f"{analysis['null_percentage']:.2f}%",
+                            'Sample': analysis['sample_values'][0] if analysis['sample_values'] else 'N/A'
+                        })
+                    
+                    quality_df = pd.DataFrame(quality_report)
+                    st.dataframe(quality_df, use_container_width=True)
+                    
+                    # Visualisasi kualitas data sederhana
+                    col1, col2 = st.columns(2)
+                    
+                    with col1:
+                        # Missing values bar chart
+                        missing_data = quality_df[['Kolom', 'Null Values']].set_index('Kolom')
+                        fig_missing = safe_plotting(px.bar,
+                            missing_data,
+                            y='Null Values',
+                            title="Missing Values per Kolom",
+                            color='Null Values',
+                            color_continuous_scale='Reds'
+                        )
+                        if fig_missing:
+                            st.plotly_chart(fig_missing, use_container_width=True)
+                    
+                    with col2:
+                        # Data types distribution
+                        type_dist = quality_df['Tipe Data'].value_counts()
+                        fig_types = safe_plotting(px.pie,
+                            values=type_dist.values,
+                            names=type_dist.index,
+                            title="Distribusi Tipe Data",
+                            color_discrete_sequence=color_palette
+                        )
+                        if fig_types:
+                            st.plotly_chart(fig_types, use_container_width=True)
+                
+                # --- DOWNLOAD SECTION ---
+                st.subheader("💾 Download Hasil Analisis")
+                
+                col1, col2, col3 = st.columns(3)
+                
+                with col1:
+                    st.download_button(
+                        "📊 Download Quality Report",
+                        quality_df.to_csv(index=False),
+                        "data_quality_report.csv",
+                        "text/csv"
+                    )
+                
+                with col2:
+                    # Buat summary report
+                    summary_report = {
+                        'file_name': uploaded_file.name,
+                        'file_size': f"{uploaded_file.size / 1024:.2f} KB",
+                        'rows': df.shape[0],
+                        'columns': df.shape[1],
+                        'analysis_date': pd.Timestamp.now().strftime("%Y-%m-%d %H:%M:%S"),
+                        'numeric_columns': numeric_cols,
+                        'categorical_columns': categorical_cols,
+                        'date_columns': date_cols,
+                        'primary_keys': [col for col, analysis in column_analysis.items() 
+                                    if analysis['role'] == 'PRIMARY_KEY'],
+                        'foreign_keys': [col for col, analysis in column_analysis.items() 
+                                    if analysis['role'] == 'FOREIGN_KEY']
+                    }
+                    
+                    import json
+                    st.download_button(
+                        "📋 Download Summary Report",
+                        json.dumps(summary_report, indent=2, ensure_ascii=False),
+                        "analysis_summary.json",
+                        "application/json"
+                    )
+                
+                with col3:
+                    # Download processed data
+                    st.download_button(
+                        "💾 Download Processed Data",
+                        df.to_csv(index=False),
+                        "processed_data.csv",
+                        "text/csv"
+                    )
+                
+            except Exception as e:
+                st.error(f"Error dalam analisis data: {str(e)}")
+                st.info("Pastikan file yang diupload berformat CSV atau Excel yang valid")
+                st.code(f"Error details: {str(e)}", language='python')
+        else:
+            st.info("📤 Silakan upload file CSV atau Excel untuk memulai analisis")
+            
+            # Template dan panduan
+            st.subheader("🎯 Panduan Format Data")
+            
+            col1, col2 = st.columns(2)
+            
+            with col1:
+                st.write("**Format yang Disarankan:**")
+                sample_data = {
+                    'customer_id': [1, 2, 3, 4, 5],
+                    'order_id': [101, 102, 103, 104, 105],
+                    'product_id': [201, 202, 203, 204, 205],
+                    'order_date': pd.date_range('2024-01-01', periods=5),
+                    'amount': [100.50, 75.25, 200.00, 150.75, 90.99],
+                    'category': ['Electronics', 'Books', 'Electronics', 'Clothing', 'Books'],
+                    'status': ['Completed', 'Pending', 'Completed', 'Shipped', 'Pending']
                 }
-                example_df = pd.DataFrame(example_data)
-                st.dataframe(example_df)
-                
-                # Download template
-                csv_template = example_df.to_csv(index=False)
-                st.download_button(
-                    label="Download Template CSV",
-                    data=csv_template,
-                    file_name="template_data.csv",
-                    mime="text/csv"
-                )
+                sample_df = pd.DataFrame(sample_data)
+                st.dataframe(sample_df)
+            
+            with col2:
+                st.write("**Keterangan Fitur:**")
+                st.markdown("""
+                - **🔑 Primary Key**: Kolom dengan nilai unik (ID, code)
+                - **🔗 Foreign Key**: Kolom referensi ke tabel lain
+                - **📊 ERD Dinamis**: Diagram relasi otomatis
+                - **📈 Visualisasi Aman**: Error handling untuk semua chart
+                - **🎨 Warna Konsisten**: Skema warna yang harmonis
+                - **📋 Analisis Komprehensif**: Statistik detail dan laporan
+                """)
+            
+            # Download template
+            csv_template = sample_df.to_csv(index=False)
+            st.download_button(
+                "📥 Download Template CSV",
+                csv_template,
+                "analysis_template.csv",
+                "text/csv"
+            )
 
     
     with tab8:
@@ -8450,12 +10720,29 @@ if df is not None:
             type=['csv', 'xlsx', 'xls'],
             key="stock_uploader"
         )
-        with st.expander("📜 Ketarangan Lengkap Tentang Aalisis Saham", expanded=False):
+        with st.expander("📜 Ketarangan Lengkap Tentang Analisis Saham", expanded=False):
+            st.markdown(
+                    """
+                    <img src="https://s3-ap-southeast-1.amazonaws.com/membership-media/public/uploads/posts/1653502344_Memahami_Apa_Itu_Saham_Dan_Cara_Kerjanya_1170x658.jpg" class="responsive-img">
+                    """,
+                    unsafe_allow_html=True
+                )
             st.markdown("""
-            **Penjelasan Penting 📛**
+
             
             ### 🧾 Pengambangan Saham
-            - Saham Ini Masih Tahap Pengembangan Dan Masih Tahap Uji Coba Dan kalian bisa menggunakan model yang ada
+            - Saham merupakan salah satu instrumen investasi yang populer di kalangan investor. Dengan membeli saham, investor memiliki sebagian kepemilikan dalam sebuah perusahaan dan berhak atas sebagian keuntungan perusahaan tersebut.
+            - Analisis saham melibatkan evaluasi berbagai faktor seperti kinerja keuangan perusahaan, kondisi pasar, tren industri, dan faktor ekonomi makro untuk membuat keputusan investasi yang lebih baik.
+            - Analisis saham dapat dilakukan dengan menggunakan teknologi yang terkenal seperti Excel, Google Sheets, atau Microsoft Excel.
+            
+            ### 📈 Analisis Grafik Saham
+            - Analisis grafik saham adalah proses menganalisis data saham untuk membuat grafik yang menampilkan informasi tentang saham secara visual.
+            - Grafik saham dapat digunakan untuk membuat perbandingan antara saham yang berbeda, menampilkan trend, dan menentukan kemungkinan investasi yang lebih baik.
+            - Grafik saham dapat digunakan untuk menentukan kemungkinan investasi yang lebih baik dan meningkatkan keuntungan investasi.
+            
+            ### 💰 Analisis Grafik Saham
+            - Analisis grafik saham dapat digunakan untuk membuat perbandingan antara saham yang berbeda, menampilkan trend, dan menentukan kemungkinan investasi yang lebih baik.
+            - Grafik saham dapat digunakan untuk menentukan kemungkinan investasi yang lebih baik dan meningkatkan keuntungan investasi.
             """)
         if uploaded_file is not None:
             try:
@@ -9569,7 +11856,7 @@ if df is not None:
         # Sidebar untuk memilih jenis kalkulator
         calc_type = st.sidebar.selectbox(
             "Pilih Jenis Kalkulator",
-            ["Kalkulator Dasar", "Kalkulator Ilmiah", "Kalkulator Keuangan", "Konverter Satuan", "Kalkulator BMI", "Kalkulator Waktu"]
+            ["🔢 Kalkulator Dasar", "🔬 Kalkulator Ilmiah", "💰 Kalkulator Keuangan", "📐 Konverter Satuan", "⚖️ Kalkulator BMI", "⏰ Kalkulator Waktu"]
         )
         
         # Initialize session state for history
@@ -9582,7 +11869,7 @@ if df is not None:
             if len(st.session_state.calc_history) > 10:  # Batasi hanya 10 riwayat terakhir
                 st.session_state.calc_history.pop(0)
         
-        if calc_type == "Kalkulator Dasar":
+        if calc_type == "🔢 Kalkulator Dasar":
             st.subheader("🔢 Kalkulator Dasar")
             
             # Layout dengan columns untuk tampilan kalkulator
@@ -9659,7 +11946,7 @@ if df is not None:
                 if st.button("🗑️ Reset", use_container_width=True):
                     st.rerun()
         
-        elif calc_type == "Kalkulator Ilmiah":
+        elif calc_type == "🔬 Kalkulator Ilmiah":
             st.subheader("🔬 Kalkulator Ilmiah")
             
             col1, col2 = st.columns(2)
@@ -9778,7 +12065,7 @@ if df is not None:
                     except Exception as e:
                         st.error(f"❌ Error: {str(e)}")
         
-        elif calc_type == "Kalkulator Keuangan":
+        elif calc_type == "💰 Kalkulator Keuangan":
             st.subheader("💰 Kalkulator Keuangan")
             
             finance_option = st.selectbox(
@@ -9860,7 +12147,7 @@ if df is not None:
                         """)
                         add_to_history(f"Cicilan: Rp {loan_amount:,.0f} → Rp {monthly_payment:,.0f}/bulan")
         
-        elif calc_type == "Konverter Satuan":
+        elif calc_type == "📐 Konverter Satuan":
             st.subheader("📐 Konverter Satuan")
             
             conversion_type = st.selectbox(
@@ -9945,8 +12232,8 @@ if df is not None:
                         st.success(f"**Hasil:** {calc_str}")
                         add_to_history(calc_str)
         
-        elif calc_type == "Kalkulator BMI":
-            st.subheader("💪 Kalkulator BMI (Body Mass Index)")
+        elif calc_type == "⚖️ Kalkulator BMI":
+            st.subheader("⚖️ Kalkulator BMI (Body Mass Index)")
             
             col1, col2 = st.columns(2)
             
@@ -9983,7 +12270,7 @@ if df is not None:
                     """)
                     add_to_history(f"BMI: {bmi:.1f} ({category})")
         
-        elif calc_type == "Kalkulator Waktu":
+        elif calc_type == "⏰ Kalkulator Waktu":
             st.subheader("⏰ Kalkulator Waktu")
             
             time_option = st.selectbox("Pilih jenis perhitungan", [
@@ -10119,7 +12406,7 @@ if df is not None:
             st.error("**🧹 Pembersihan Data**\n\nAuto-clean missing values")
         
         # Video Tutorial (placeholder)
-        st.markdown("### 🎥 Video Tutorial Penggunaan V2.2.5")
+        st.markdown("### 🎥 Video Tutorial Penggunaan V2.3.8")
         import streamlit.components.v1 as components
         google_drive_id = "1obx6q2jQS1fRrNi1E4VpAPlyI_rR9nO5"
 
@@ -10488,7 +12775,8 @@ if df is not None:
         with col3:
             st.markdown("""
             ### 🔄 Update
-            - Versi terbaru: 2.2.5
+            - Versi terbaru: 2.3.8
+            - Rilis: Oktober 2025
             - Last updated: 2025
             - Compatibility: Python 3.8+
             """)
