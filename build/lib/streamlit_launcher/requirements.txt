@@ -19,6 +19,8 @@ streamlit-folium==0.23.1
 # =============================
 scipy==1.14.1
 scikit-learn==1.5.2
+xgboost==2.1.1
+tensorflow==2.17.0
 
 # =============================
 # Utility & Logging
@@ -41,6 +43,6 @@ pillow==10.4.0
 # =============================
 # Notes
 # =============================
-# - 'io' and 'warnings' are built-in Python modules — do NOT include them here.
-# - 'sklearn' is not an actual PyPI package; replaced with 'scikit-learn' (the correct name).
-# - All dependencies pinned to stable and recent versions for compatibility.
+# - 'io', 'warnings', and 'time' are built-in Python modules — do NOT include them here.
+# - All packages are pinned to stable versions as of October 2025 for maximum compatibility.
+# - 'xgboost' and 'tensorflow' added under scientific section for ML model support.
