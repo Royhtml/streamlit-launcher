@@ -22,14 +22,12 @@ pillow==10.4.0
 scipy==1.14.1
 scikit-learn==1.5.2
 xgboost==2.1.1
-tensorflow==2.17.0
 
 # =============================
-# Machine Learning & AI
+# Deep Learning
 # =============================
-# Includes all sklearn-based models (RandomForest, SVM, GradientBoosting, etc.)
-# and TensorFlow for deep learning.
-# XGBoost included for gradient boosting models.
+tensorflow-cpu==2.16.1
+keras==3.4.1
 
 # =============================
 # Utility & Logging
@@ -44,14 +42,9 @@ openpyxl==3.1.5
 xlrd==2.0.1
 
 # =============================
-# Other Tools
-# =============================
-# streamlit.components.v1 and time are built-in parts of Streamlit/Python,
-# so they do not need to be added here.
-
-# =============================
 # Notes
 # =============================
 # - 'io', 'time', and 'warnings' are built-in Python modules — do NOT include them here.
-# - All dependencies pinned to stable, compatible versions (as of October 2025).
-# - Ready for Streamlit deployment, ML training, and visualization tasks.
+# - 'tensorflow-cpu' digunakan agar instalasi lebih ringan dan kompatibel di semua OS.
+# - 'keras' disertakan untuk dukungan model DL berbasis TensorFlow.
+# - Semua versi sudah stabil dan saling kompatibel per Oktober 2025.
