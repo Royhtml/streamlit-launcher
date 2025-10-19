@@ -26,8 +26,8 @@ xgboost==2.1.1
 # =============================
 # Deep Learning
 # =============================
-tensorflow-cpu==2.16.1
-keras==3.4.1
+TensorFlow==2.20.0
+keras==3.11.3
 
 # =============================
 # Utility & Logging
