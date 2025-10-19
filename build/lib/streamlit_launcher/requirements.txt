@@ -13,6 +13,8 @@ matplotlib==3.9.2
 seaborn==0.13.2
 wordcloud==1.9.4
 streamlit-folium==0.23.1
+graphviz==0.20.3
+pillow==10.4.0
 
 # =============================
 # Statistics & Scientific
@@ -23,9 +25,17 @@ xgboost==2.1.1
 tensorflow==2.17.0
 
 # =============================
+# Machine Learning & AI
+# =============================
+# Includes all sklearn-based models (RandomForest, SVM, GradientBoosting, etc.)
+# and TensorFlow for deep learning.
+# XGBoost included for gradient boosting models.
+
+# =============================
 # Utility & Logging
 # =============================
 rich==14.1.0
+requests==2.32.3
 
 # =============================
 # Excel & File Support
@@ -34,15 +44,14 @@ openpyxl==3.1.5
 xlrd==2.0.1
 
 # =============================
-# Other Dependencies
+# Other Tools
 # =============================
-graphviz==0.20.3
-requests==2.32.3
-pillow==10.4.0
+# streamlit.components.v1 and time are built-in parts of Streamlit/Python,
+# so they do not need to be added here.
 
 # =============================
 # Notes
 # =============================
-# - 'io', 'warnings', and 'time' are built-in Python modules — do NOT include them here.
-# - All packages are pinned to stable versions as of October 2025 for maximum compatibility.
-# - 'xgboost' and 'tensorflow' added under scientific section for ML model support.
+# - 'io', 'time', and 'warnings' are built-in Python modules — do NOT include them here.
+# - All dependencies pinned to stable, compatible versions (as of October 2025).
+# - Ready for Streamlit deployment, ML training, and visualization tasks.
