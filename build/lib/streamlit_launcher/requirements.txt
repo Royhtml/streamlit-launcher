@@ -26,8 +26,8 @@ xgboost==2.1.1
 # =============================
 # Deep Learning
 # =============================
-TensorFlow==2.20.0
-keras==3.11.3
+tensorflow-cpu==2.20.0
+keras==3.4.1
 
 # =============================
 # Utility & Logging
@@ -40,14 +40,17 @@ requests==2.32.3
 # =============================
 openpyxl==3.1.5
 xlrd==2.0.1
-numpy-stl==0.0.3
-trimesh==3.9.22
-plotly==5.24.1
+
+# =============================
+# 3D & Geometry Libraries
+# =============================
 numpy-stl==3.2.0
+trimesh==4.3.2
+
 # =============================
 # Notes
 # =============================
-# - 'io', 'time', and 'warnings' are built-in Python modules — do NOT include them here.
-# - 'tensorflow-cpu' digunakan agar instalasi lebih ringan dan kompatibel di semua OS.
-# - 'keras' disertakan untuk dukungan model DL berbasis TensorFlow.
-# - Semua versi sudah stabil dan saling kompatibel per Oktober 2025.
+# - 'tensorflow-cpu' digunakan agar lebih ringan & kompatibel di semua OS.
+# - Hindari duplikasi versi library (contohnya: numpy-stl & plotly sebelumnya ganda).
+# - Semua versi sudah stabil dan cocok untuk Python 3.10–3.12 per Oktober 2025.
+# - Jangan menambahkan modul built-in Python seperti io, time, atau warnings.
