@@ -27,12 +27,12 @@ xgboost==2.1.1
 # Deep Learning
 # =============================
 tensorflow-cpu==2.20.0
-keras==3.4.1
+keras==3.11.3
 
 # =============================
 # Utility & Logging
 # =============================
-rich==14.1.0
+rich==14.2.0
 requests==2.32.3
 
 # =============================
@@ -50,7 +50,7 @@ trimesh==4.3.2
 # =============================
 # Notes
 # =============================
-# - 'tensorflow-cpu' digunakan agar lebih ringan & kompatibel di semua OS.
-# - Hindari duplikasi versi library (contohnya: numpy-stl & plotly sebelumnya ganda).
-# - Semua versi sudah stabil dan cocok untuk Python 3.10–3.12 per Oktober 2025.
-# - Jangan menambahkan modul built-in Python seperti io, time, atau warnings.
+# - tensorflow-cpu 2.20.0 membutuhkan keras>=3.10.0 (gunakan 3.11.3).
+# - Semua versi stabil & kompatibel dengan Python 3.13 per Oktober 2025.
+# - Hindari duplikasi dependency untuk mempercepat resolver uv pip.
+# - Aman untuk Streamlit Cloud & lokal environment.
