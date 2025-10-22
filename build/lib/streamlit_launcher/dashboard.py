@@ -10195,6 +10195,28 @@ if df is not None:
                                     type=['png', 'jpg', 'jpeg'], 
                                     key="3d_converter")
         
+            
+        with st.expander("📜 Viture 3D Images Model", expanded=False):
+            st.markdown(
+                    """
+                    <img src="https://github.com/DwiDevelopes/gambar/raw/main/Screenshot%202025-10-22%20183928.png" class="responsive-img">
+                    """,
+                    unsafe_allow_html=True
+                )
+            st.markdown("""
+            
+            ### ✨ Pengertian Viture 3D Model Images Converter
+            - Viture 3D Model Images Converter adalah alat atau perangkat lunak yang dirancang untuk mengubah gambar dua dimensi (2D) menjadi model tiga dimensi (3D). 
+            - Alat ini menggunakan teknik pemrosesan gambar dan algoritma komputer untuk menganalisis gambar dan menghasilkan representasi 3D yang dapat dilihat, dimanipulasi, atau dicetak menggunakan printer 3D. 
+            - Viture 3D Model Images Converter sering digunakan dalam berbagai bidang seperti desain produk, arsitektur, animasi, dan pengembangan game untuk membuat model 3D dari gambar referensi atau sketsa.
+            
+            ### 🌕 Viture 3D Model Images Converter
+            - 🚀 Bisa Convert Model Dalam Bentuk Gambar 3d Model
+            - 🚀 Bisa Analisis Data Model Dalam Bentuk 3d Model
+            - 🚀 Bisa Melihat Sumbu x Dan Sumbu y
+            - 🚀 Bisa Melihat Model Dan Bisa Di Aplikasikan Maupun Di Print Dalam Model 3d Converter
+            """)
+        
         col1, col2 = st.columns(2)
         
         with col1:
@@ -10502,7 +10524,7 @@ if df is not None:
         with st.expander("📜 Keterangan Dalam Statistik Dan Analisis", expanded=False):
             st.markdown(
                 """
-                <img src="https://media.finebi.com/strapi/Annual_Sales_Summary_59110fda60.jpg" class="responsive-img">
+                <img src="https://nativealgorithms.com/wp-content/uploads/2023/04/sql-image.jpeg" class="responsive-img">
                 """,
                 unsafe_allow_html=True
             )
@@ -11232,7 +11254,7 @@ if df is not None:
         with st.expander("📜 Ketarangan Lengkap Tentang Analisis Saham", expanded=False):
             st.markdown(
                     """
-                    <img src="https://s3-ap-southeast-1.amazonaws.com/membership-media/public/uploads/posts/1653502344_Memahami_Apa_Itu_Saham_Dan_Cara_Kerjanya_1170x658.jpg" class="responsive-img">
+                    <img src="https://png.pngtree.com/background/20250116/original/pngtree-stock-market-analysis-with-colorful-candlestick-chart-picture-image_16020049.jpg" class="responsive-img">
                     """,
                     unsafe_allow_html=True
                 )
@@ -11685,6 +11707,30 @@ if df is not None:
             type=['csv', 'xlsx', 'xls'],
             help="File akan otomatis terdeteksi sebagai CSV atau Excel"
         )
+        
+        with st.expander("📜 Viture Generated Flowchart", expanded=False):
+            st.markdown(
+                    """
+                    <img src="https://github.com/DwiDevelopes/gambar/raw/main/Screenshot%202025-10-22%20185052.png" class="responsive-img">
+                    """,
+                    unsafe_allow_html=True
+                )
+            st.markdown("""
+            
+            ### ✨ Pengertian Viture Generated Flowchart
+            - Viture Generated Flowchart adalah alat atau perangkat lunak yang dirancang untuk mengubah data menjadi model flowchart.
+            - Alat ini memungkinkan pengguna untuk menganalisis data dan menghasilkan representasi visual dalam bentuk flowchart yang menggambarkan alur proses atau struktur data.
+            - Flowchart ini dapat digunakan untuk menganalisis data dalam bentuk flowchart yang menjelaskan proses atau struktur data.
+            
+            ### 🌕 Viture Generated Flowchart
+            - 🚀 bisa convert model Flowchart
+            - 🚀 bisa analisis date model Flowchart
+            - 🚀 bisa melihat sumbu x dan sumbu y
+            - 🚀 bisa melihat data numerik
+            - 🚀 bisa melihat data teks
+            - 🚀 bisa melihat date ERD
+            
+            """)
         
         if uploaded_file is not None:
             try:
@@ -12139,7 +12185,7 @@ if df is not None:
                     - Multiple sheets support
                     - Auto sheet detection
                     """)
-                
+                    
                 with col2:
                     st.markdown("""
                     ### 🚀 **FITUR ANALISIS LANJUT**
@@ -13071,7 +13117,7 @@ if df is not None:
         
         # Informasi Lisensi dengan expander
         st.subheader("📄 Hak Lisensi")
-                # Video Tutorial (placeholder)
+        # Video Tutorial (placeholder)
         st.markdown("### 🎥 Proses Pembuatan Streamlit Launcher")
         import streamlit.components.v1 as components
         google_drive_id = "1RD94cKgmYzbIf83jXz1cIPeweQeqx9CS"
@@ -13102,6 +13148,7 @@ if df is not None:
             <iframe src="https://drive.google.com/file/d/{google_drive_id}/preview" allow="autoplay"></iframe>
         </div>
         """
+        
 
 
         # ✅ Render di Streamlit
@@ -13129,6 +13176,7 @@ if df is not None:
             """)
         
         st.divider()
+
         
         # Informasi Penelitian
         st.subheader("🔬 Informasi Penelitian")
