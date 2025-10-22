@@ -29,6 +29,7 @@ statsmodels==0.14.3   # ← FIX
 # =============================
 tensorflow-cpu==2.20.0
 keras==3.11.3
+networkx==3.4.2
 
 # =============================
 # Utility & Logging
