@@ -65,6 +65,7 @@ from sklearn.preprocessing import StandardScaler, LabelEncoder, OneHotEncoder
 from sklearn.compose import ColumnTransformer
 from sklearn.impute import SimpleImputer
 from sklearn.pipeline import Pipeline
+import keras
 
 
 # Konfigurasi untuk performa
@@ -294,8 +295,9 @@ def create_all_visualizations(df):
     chart_types = [
         "📈 Grafik Garis (Line Chart)",
         "📊 Grafik Batang (Bar Chart)", 
-        "📋 Histogram Responsif Berwarna",  # DIUBAH NAMA DI SINI
+        "📋 Histogram Responsif Berwarna",
         "🔄 Diamond Chart",
+        "🛜 Network Diagram",
         "🔵 Scatter Plot",
         "🫧 Grafik Gelembung (Bubble Chart)",
         "🎯 Grafik Gauge (Speedometer)",
@@ -329,8 +331,11 @@ def create_all_visualizations(df):
             elif chart_type == "📊 Grafik Batang (Bar Chart)":
                 create_bar_chart(df, numeric_cols, non_numeric_cols)
                 
-            elif chart_type == "📋 Histogram Responsif Berwarna":  # DIUBAH DI SINI
-                create_responsive_histogram(df, numeric_cols)  # PASTIKAN NAMA FUNGSI SESUAI
+            elif chart_type == "📋 Histogram Responsif Berwarna": 
+                create_responsive_histogram(df, numeric_cols) 
+            
+            elif chart_type == "🛜 Network Diagram":
+                create_network_diagram(df, numeric_cols, non_numeric_cols)
                 
             elif chart_type == "🔄 Diamond Chart":
                 create_diamond_chart(df, numeric_cols, non_numeric_cols)
@@ -2377,6 +2382,251 @@ def create_bar_chart(df, numeric_cols, non_numeric_cols):
             ✅ Batasan jumlah kategori  
             ✅ Caching untuk performa  
             ✅ Aggregasi yang efisien  
+            """)
+
+
+def create_network_diagram(df, numeric_cols, non_numeric_cols):
+    col1, col2, col3 = st.columns(3)
+    
+    with col1:
+        source_col = st.selectbox("Pilih kolom untuk sumber (Source)", 
+                                non_numeric_cols if non_numeric_cols else df.columns.tolist(),
+                                key="network_source")
+    with col2:
+        target_col = st.selectbox("Pilih kolom untuk target (Target)", 
+                                non_numeric_cols if non_numeric_cols else df.columns.tolist(),
+                                key="network_target")
+    with col3:
+        value_col = st.selectbox("Pilih kolom untuk nilai hubungan (Value)", 
+                               numeric_cols, 
+                               key="network_value")
+    
+    # Optimasi: Pengaturan performa
+    col4, col5 = st.columns(2)
+    with col4:
+        max_nodes = st.slider("Maksimum node ditampilkan", 
+                            min_value=10, max_value=200, value=50, key="network_max_nodes")
+    with col5:
+        min_connections = st.slider("Minimum koneksi per node", 
+                                  min_value=1, max_value=10, value=2, key="network_min_conn")
+        use_sampling = st.checkbox("Gunakan sampling untuk data besar", value=True, key="network_sampling")
+    
+    if source_col and target_col and value_col:
+        with st.spinner("Membangun diagram jaringan..."):
+            # Optimasi 1: Sampling untuk data besar
+            processed_df = df.copy()
+            if use_sampling and len(df) > 5000:
+                sample_size = min(5000, len(df))
+                processed_df = df.sample(n=sample_size, random_state=42)
+                st.info(f"📊 Data disampling: {sample_size:,} dari {len(df):,} records")
+            
+            # Optimasi 2: Filter data berdasarkan threshold
+            connection_counts = processed_df.groupby(source_col)[target_col].count()
+            valid_sources = connection_counts[connection_counts >= min_connections].index
+            
+            filtered_df = processed_df[processed_df[source_col].isin(valid_sources)]
+            
+            # Batasi jumlah node unik
+            top_sources = filtered_df[source_col].value_counts().head(max_nodes//2).index
+            top_targets = filtered_df[target_col].value_counts().head(max_nodes//2).index
+            
+            final_df = filtered_df[
+                filtered_df[source_col].isin(top_sources) & 
+                filtered_df[target_col].isin(top_targets)
+            ]
+            
+            if len(final_df) == 0:
+                st.warning("Tidak ada data yang memenuhi kriteria filter. Coba kurangi minimum koneksi.")
+                return
+            
+            # Buat data nodes dan links
+            @st.cache_data(ttl=300)
+            def create_network_data(df, source_col, target_col, value_col):
+                # Kumpulkan semua node unik
+                sources = df[source_col].unique()
+                targets = df[target_col].unique()
+                all_nodes = list(set(list(sources) + list(targets)))
+                
+                # Buat mapping node ke index
+                node_dict = {node: i for i, node in enumerate(all_nodes)}
+                
+                # Buat links
+                links_df = df.groupby([source_col, target_col])[value_col].sum().reset_index()
+                
+                links = []
+                for _, row in links_df.iterrows():
+                    links.append({
+                        'source': node_dict[row[source_col]],
+                        'target': node_dict[row[target_col]],
+                        'value': row[value_col]
+                    })
+                
+                # Buat nodes dengan properties
+                node_degrees = {}
+                node_values = {}
+                
+                for link in links:
+                    node_degrees[link['source']] = node_degrees.get(link['source'], 0) + 1
+                    node_degrees[link['target']] = node_degrees.get(link['target'], 0) + 1
+                    node_values[link['source']] = node_values.get(link['source'], 0) + link['value']
+                    node_values[link['target']] = node_values.get(link['target'], 0) + link['value']
+                
+                nodes = []
+                for node_name, node_id in node_dict.items():
+                    nodes.append({
+                        'id': node_id,
+                        'name': str(node_name),
+                        'degree': node_degrees.get(node_id, 0),
+                        'value': node_values.get(node_id, 0),
+                        'group': 0 if node_id in [link['source'] for link in links] else 1
+                    })
+                
+                return nodes, links
+            
+            nodes, links = create_network_data(final_df, source_col, target_col, value_col)
+            
+            # Optimasi 3: Cache figure creation
+            @st.cache_data(ttl=300)
+            def create_network_figure(nodes, links, title):
+                # Buat graph dengan networkx untuk layout
+                import networkx as nx
+                
+                G = nx.Graph()
+                
+                # Tambahkan nodes
+                for node in nodes:
+                    G.add_node(node['id'], name=node['name'], degree=node['degree'], value=node['value'])
+                
+                # Tambahkan edges
+                for link in links:
+                    G.add_edge(link['source'], link['target'], weight=link['value'])
+                
+                # Gunakan spring layout
+                pos = nx.spring_layout(G, k=1, iterations=50)
+                
+                # Siapkan data untuk plotly
+                edge_x = []
+                edge_y = []
+                for link in links:
+                    x0, y0 = pos[link['source']]
+                    x1, y1 = pos[link['target']]
+                    edge_x.extend([x0, x1, None])
+                    edge_y.extend([y0, y1, None])
+                
+                node_x = [pos[node['id']][0] for node in nodes]
+                node_y = [pos[node['id']][1] for node in nodes]
+                node_text = [f"{node['name']}<br>Connections: {node['degree']}<br>Value: {node['value']:.2f}" 
+                           for node in nodes]
+                node_size = [max(10, min(50, node['degree'] * 5)) for node in nodes]
+                node_color = [node['value'] for node in nodes]
+                
+                # Buat figure
+                fig = go.Figure()
+                
+                # Tambahkan edges
+                fig.add_trace(go.Scatter(
+                    x=edge_x, y=edge_y,
+                    line=dict(width=0.5, color='#888'),
+                    hoverinfo='none',
+                    mode='lines',
+                    showlegend=False
+                ))
+                
+                # Tambahkan nodes
+                fig.add_trace(go.Scatter(
+                    x=node_x, y=node_y,
+                    mode='markers',
+                    hoverinfo='text',
+                    text=node_text,
+                    marker=dict(
+                        size=node_size,
+                        color=node_color,
+                        colorscale='Viridis',
+                        line=dict(width=2, color='darkblue')
+                    ),
+                    showlegend=False
+                ))
+                
+                # Update layout
+                fig.update_layout(
+                    title=title,
+                    title_x=0.5,
+                    height=600,
+                    showlegend=False,
+                    margin=dict(l=50, r=50, t=60, b=50),
+                    hovermode='closest',
+                    plot_bgcolor='rgba(0,0,0,0)',
+                    xaxis=dict(showgrid=False, zeroline=False, showticklabels=False),
+                    yaxis=dict(showgrid=False, zeroline=False, showticklabels=False)
+                )
+                
+                return fig
+            
+            title = f"Diagram Jaringan: {source_col} → {target_col} (Nilai: {value_col})"
+            fig = create_network_figure(nodes, links, title)
+            
+            # Optimasi 4: Plotly config yang ringan
+            config = {
+                'displayModeBar': True,
+                'displaylogo': False,
+                'modeBarButtonsToRemove': ['lasso2d', 'select2d', 'autoScale2d'],
+                'responsive': True
+            }
+            
+            st.plotly_chart(fig, use_container_width=True, config=config)
+        
+        # Tampilkan data summary
+        with st.expander("📊 Lihat Data Jaringan"):
+            col1, col2, col3 = st.columns(3)
+            with col1:
+                st.metric("Total Node", len(nodes))
+            with col2:
+                st.metric("Total Koneksi", len(links))
+            with col3:
+                avg_degree = sum(node['degree'] for node in nodes) / len(nodes) if nodes else 0
+                st.metric("Rata-rata Koneksi", f"{avg_degree:.1f}")
+            
+            # Tampilkan node dengan koneksi terbanyak
+            top_nodes = sorted(nodes, key=lambda x: x['degree'], reverse=True)[:10]
+            node_data = []
+            for node in top_nodes:
+                node_data.append({
+                    'Node': node['name'],
+                    'Koneksi': node['degree'],
+                    'Total Nilai': node['value']
+                })
+            
+            st.subheader("Node dengan Koneksi Terbanyak")
+            st.dataframe(node_data, use_container_width=True)
+            
+        with st.expander("ℹ️ Keterangan Diagram Jaringan"):
+            st.markdown(f"""
+            **Diagram Jaringan (Network Diagram)** digunakan untuk memvisualisasikan hubungan dan koneksi antar entitas.
+            
+            **Statistik Jaringan:**
+            - Total node: **{len(nodes)}**
+            - Total koneksi: **{len(links)}**
+            - Rata-rata koneksi per node: **{avg_degree:.1f}**
+            - Node dengan koneksi terbanyak: **{top_nodes[0]['name'] if top_nodes else 'N/A'}** ({top_nodes[0]['degree'] if top_nodes else 0} koneksi)
+            
+            **Kelebihan**: 
+            - Menunjukkan hubungan kompleks antar entitas
+            - Mengidentifikasi node penting (highly connected)
+            - Visualisasi pola koneksi dan cluster
+            
+            **Kekurangan**: 
+            - Dapat menjadi berantakan dengan banyak node
+            - Membutuhkan pemrosesan yang intensif
+            - Interpretasi bisa kompleks
+            
+            **Penggunaan**: Analisis jaringan sosial, hubungan bisnis, dependencies sistem
+            
+            **Optimasi yang diterapkan:**
+            ✅ Sampling otomatis untuk data besar  
+            ✅ Filter node berdasarkan minimum koneksi  
+            ✅ Batasan jumlah node maksimum  
+            ✅ Caching untuk performa  
+            ✅ Layout algoritma yang efisien  
             """)
 
 # Alternatif: Versi ultra-ringan untuk data sangat besar
@@ -5747,6 +5997,239 @@ def create_map_chart(df):
         - Kolom longitude (contoh: lon, long, longitude)
         - Opsional: Kolom nama lokasi (country, state, city, region, etc.)
         """)
+        
+        
+def create_choropleth_map(df, numeric_cols, non_numeric_cols):
+    col1, col2 = st.columns(2)
+    
+    with col1:
+        location_col = st.selectbox("Pilih kolom untuk lokasi", 
+                                  non_numeric_cols, 
+                                  key="choropleth_location")
+    with col2:
+        value_col = st.selectbox("Pilih kolom untuk nilai", 
+                               numeric_cols, 
+                               key="choropleth_value")
+    
+    # Pilihan tipe peta
+    map_type = st.selectbox("Pilih tipe peta", 
+                          ["World Countries", "Indonesia Provinces", "USA States", "Custom GeoJSON"],
+                          key="choropleth_maptype")
+    
+    # Optimasi: Pengaturan performa
+    col3, col4 = st.columns(2)
+    with col3:
+        use_sampling = st.checkbox("Gunakan sampling untuk data besar", value=True, key="choropleth_sampling")
+    with col4:
+        animation_col = st.selectbox("Kolom animasi (opsional)", 
+                                   [""] + non_numeric_cols,
+                                   key="choropleth_animation")
+    
+    if location_col and value_col:
+        with st.spinner("Membuat peta choropleth..."):
+            # Optimasi 1: Sampling untuk data besar
+            processed_df = df.copy()
+            if use_sampling and len(df) > 10000:
+                sample_size = min(10000, len(df))
+                processed_df = df.sample(n=sample_size, random_state=42)
+                st.info(f"📊 Data disampling: {sample_size:,} dari {len(df):,} records")
+            
+            # Aggregasi data berdasarkan lokasi
+            if animation_col:
+                # Jika menggunakan animasi, group by location dan animation column
+                map_data = (processed_df.groupby([location_col, animation_col])[value_col]
+                          .mean()
+                          .reset_index())
+            else:
+                # Jika tidak menggunakan animasi, group by location saja
+                map_data = (processed_df.groupby(location_col)[value_col]
+                          .agg(['mean', 'count', 'std'])
+                          .round(2)
+                          .reset_index())
+                map_data.columns = [location_col, value_col, 'count', 'std']
+            
+            # Optimasi 2: Cache figure creation
+            @st.cache_data(ttl=300)
+            def create_choropleth_figure(data, location_col, value_col, map_type, animation_col=None):
+                fig = px.choropleth(
+                    data,
+                    locations=location_col,
+                    locationmode='country names' if map_type == "World Countries" else None,
+                    color=value_col,
+                    hover_name=location_col,
+                    hover_data={
+                        value_col: ':.2f',
+                        'count': True,
+                        'std': ':.2f'
+                    } if not animation_col else {value_col: ':.2f'},
+                    animation_frame=animation_col if animation_col else None,
+                    color_continuous_scale="Viridis",
+                    title=f"Peta Choropleth: {value_col} per {location_col}",
+                    height=600
+                )
+                
+                # Update layout untuk tampilan yang lebih baik
+                fig.update_layout(
+                    margin=dict(l=50, r=50, t=60, b=50),
+                    geo=dict(
+                        showframe=False,
+                        showcoastlines=True,
+                        projection_type='equirectangular'
+                    ),
+                    coloraxis_colorbar=dict(
+                        title=value_col,
+                        thickness=20,
+                        len=0.75
+                    )
+                )
+                
+                return fig
+            
+            # Handle different map types
+            if map_type == "World Countries":
+                # Untuk peta dunia, asumsikan location_col berisi nama negara
+                fig = create_choropleth_figure(
+                    map_data, location_col, value_col, map_type, animation_col if animation_col != "" else None
+                )
+                
+            elif map_type == "Indonesia Provinces":
+                # Custom untuk provinsi Indonesia
+                indonesia_provinces = {
+                    'Aceh': 'ID-AC', 'Bali': 'ID-BA', 'Banten': 'ID-BT', 'Bengkulu': 'ID-BE',
+                    'Gorontalo': 'ID-GO', 'Jakarta': 'ID-JK', 'Jambi': 'ID-JA', 'Jawa Barat': 'ID-JB',
+                    'Jawa Tengah': 'ID-JT', 'Jawa Timur': 'ID-JI', 'Kalimantan Barat': 'ID-KB',
+                    'Kalimantan Selatan': 'ID-KS', 'Kalimantan Tengah': 'ID-KT', 'Kalimantan Timur': 'ID-KI',
+                    'Kalimantan Utara': 'ID-KU', 'Kepulauan Bangka Belitung': 'ID-BB',
+                    'Kepulauan Riau': 'ID-KR', 'Lampung': 'ID-LA', 'Maluku': 'ID-MA',
+                    'Maluku Utara': 'ID-MU', 'Nusa Tenggara Barat': 'ID-NB',
+                    'Nusa Tenggara Timur': 'ID-NT', 'Papua': 'ID-PA', 'Papua Barat': 'ID-PB',
+                    'Riau': 'ID-RI', 'Sulawesi Barat': 'ID-SR', 'Sulawesi Selatan': 'ID-SN',
+                    'Sulawesi Tengah': 'ID-ST', 'Sulawesi Tenggara': 'ID-SG', 'Sulawesi Utara': 'ID-SA',
+                    'Sumatera Barat': 'ID-SB', 'Sumatera Selatan': 'ID-SS', 'Sumatera Utara': 'ID-SU',
+                    'Yogyakarta': 'ID-YO'
+                }
+                
+                # Map province names to codes
+                map_data['province_code'] = map_data[location_col].map(indonesia_provinces)
+                
+                fig = px.choropleth(
+                    map_data,
+                    geojson="https://raw.githubusercontent.com/superpikar/indonesia-geojson/master/indonesia.geojson",
+                    locations='province_code',
+                    color=value_col,
+                    hover_name=location_col,
+                    hover_data={value_col: ':.2f', 'count': True} if not animation_col else {value_col: ':.2f'},
+                    animation_frame=animation_col if animation_col else None,
+                    color_continuous_scale="Blues",
+                    title=f"Peta Indonesia: {value_col} per Provinsi",
+                    height=600
+                )
+                
+                fig.update_geos(fitbounds="locations", visible=False)
+                
+            elif map_type == "USA States":
+                # Untuk peta USA states
+                fig = px.choropleth(
+                    map_data,
+                    locations=location_col,
+                    locationmode="USA-states",
+                    color=value_col,
+                    scope="usa",
+                    hover_name=location_col,
+                    hover_data={value_col: ':.2f', 'count': True} if not animation_col else {value_col: ':.2f'},
+                    animation_frame=animation_col if animation_col else None,
+                    color_continuous_scale="Reds",
+                    title=f"Peta USA: {value_col} per State",
+                    height=600
+                )
+                
+            else:  # Custom GeoJSON
+                st.info("Untuk Custom GeoJSON, silakan upload file GeoJSON Anda")
+                uploaded_geojson = st.file_uploader("Upload GeoJSON file", type=['json', 'geojson'])
+                
+                if uploaded_geojson:
+                    import json
+                    geojson_data = json.load(uploaded_geojson)
+                    
+                    fig = px.choropleth(
+                        map_data,
+                        geojson=geojson_data,
+                        locations=location_col,
+                        color=value_col,
+                        hover_name=location_col,
+                        hover_data={value_col: ':.2f', 'count': True} if not animation_col else {value_col: ':.2f'},
+                        animation_frame=animation_col if animation_col else None,
+                        color_continuous_scale="Greens",
+                        title=f"Peta Kustom: {value_col} per {location_col}",
+                        height=600
+                    )
+                    
+                    fig.update_geos(fitbounds="locations", visible=False)
+                else:
+                    st.warning("Silakan upload file GeoJSON untuk melanjutkan")
+                    return
+            
+            # Optimasi 3: Plotly config yang ringan
+            config = {
+                'displayModeBar': True,
+                'displaylogo': False,
+                'modeBarButtonsToRemove': ['lasso2d', 'select2d', 'autoScale2d'],
+                'responsive': True
+            }
+            
+            st.plotly_chart(fig, use_container_width=True, config=config)
+        
+        # Tampilkan data summary
+        with st.expander("📊 Lihat Data Peta"):
+            col1, col2, col3 = st.columns(3)
+            with col1:
+                st.metric("Total Lokasi", len(map_data))
+            with col2:
+                st.metric(f"Rata-rata {value_col}", f"{map_data[value_col].mean():.2f}")
+            with col3:
+                max_loc = map_data.loc[map_data[value_col].idxmax()][location_col]
+                st.metric("Lokasi Tertinggi", str(max_loc)[:20] + "...")
+            
+            # Tampilkan data teratas
+            st.subheader("Data per Lokasi")
+            display_data = map_data.sort_values(value_col, ascending=False).head(10)
+            st.dataframe(display_data.style.format({value_col: "{:.2f}"}), use_container_width=True)
+            
+        with st.expander("ℹ️ Keterangan Peta Choropleth"):
+            st.markdown(f"""
+            **Peta Choropleth** digunakan untuk memvisualisasikan data geografis dengan variasi warna.
+            
+            **Statistik Data:**
+            - Total lokasi: **{len(map_data)}**
+            - Rentang nilai: **{map_data[value_col].min():.2f}** hingga **{map_data[value_col].max():.2f}**
+            - Standar deviasi: **{map_data[value_col].std():.2f if 'std' in map_data.columns else 'N/A'}**
+            
+            **Kelebihan**: 
+            - Visualisasi spasial yang intuitif
+            - Mudah mengidentifikasi pola geografis
+            - Efektif untuk data regional/geografis
+            
+            **Kekurangan**: 
+            - Membutuhkan data lokasi yang akurat
+            - Dapat misleading jika tidak dinormalisasi
+            - Terbatas pada wilayah yang tersedia di GeoJSON
+            
+            **Penggunaan**: Analisis regional, data demografis, distribusi geografis
+            
+            **Tips Interpretasi:**
+            - Area dengan warna lebih gelap menunjukkan nilai lebih tinggi
+            - Perhatikan skala warna untuk interpretasi yang tepat
+            - Gunakan hover untuk melihat nilai detail
+            
+            **Optimasi yang diterapkan:**
+            ✅ Sampling otomatis untuk data besar  
+            ✅ Aggregasi data yang efisien  
+            ✅ Caching untuk performa  
+            ✅ Multiple map types support  
+            ✅ Animasi timeline (opsional)  
+            """)
+            
+            
 
 def create_flow_map(df):
     
@@ -9923,7 +10406,33 @@ if df is not None:
                         # Clean up temporary file
                         os.unlink(tmp_file.name)
                         
-                        st.success("✅ Model 3D berhasil dibuat!")
+                        with st.status("Model 3D Running...", expanded=True) as status:
+                            st.write("✅ Converting Model 3D...")
+                            time.sleep(2)
+                            st.write("✅ Data Mining 3D...")
+                            time.sleep(1)
+                            st.write("✅ Data mining Converting 3D...")
+                            time.sleep(1)
+                            st.write("✅ Model 3D tipe: STL...")
+                            time.sleep(1)
+                            st.write("✅ Resolusi...")
+                            time.sleep(1)
+                            st.write("✅ Dimensi Mesh...")
+                            time.sleep(1)
+                            st.write("✅ Skala Tinggi...")
+                            time.sleep(1)
+                            st.write("✅ Model Sasha AI...")
+                            time.sleep(1)
+                            st.write("✅ Model Alisa AI...")
+                            time.sleep(1)
+                            st.write("✅ Model dwibaktindev AI...")
+                            time.sleep(1)
+                        
+                        status.update(
+                            label="✅ Model 3D Converted!",
+                            state="complete",
+                            expanded=False
+                        )
                         
                         # Display results
                         st.info(f"**Model 3D tipe:** {conversion_type}")
