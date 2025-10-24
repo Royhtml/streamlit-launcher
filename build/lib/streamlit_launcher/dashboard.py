@@ -92,7 +92,6 @@ st.markdown(
         box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
     }
     </style>
-    <meta name="google-site-verification" content="ryAdKrOiPgVE9lQjxBAPCNbxtfCOJkDg_pvo7dzlp4U" />
     """,
     unsafe_allow_html=True
 )
