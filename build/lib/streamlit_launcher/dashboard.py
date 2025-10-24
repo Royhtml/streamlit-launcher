@@ -92,6 +92,7 @@ st.markdown(
         box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
     }
     </style>
+    <meta name="google-site-verification" content="ryAdKrOiPgVE9lQjxBAPCNbxtfCOJkDg_pvo7dzlp4U" />
     """,
     unsafe_allow_html=True
 )
@@ -294,7 +295,8 @@ def create_all_visualizations(df):
     # Pilihan jenis chart yang diperluas
     chart_types = [
         "📈 Grafik Garis (Line Chart)",
-        "📊 Grafik Batang (Bar Chart)", 
+        "📊 Grafik Batang (Bar Chart)",
+        "🦈 Fishbone Diagram", 
         "📋 Histogram Responsif Berwarna",
         "🔄 Diamond Chart",
         "🛜 Network Diagram",
@@ -330,6 +332,9 @@ def create_all_visualizations(df):
                 
             elif chart_type == "📊 Grafik Batang (Bar Chart)":
                 create_bar_chart(df, numeric_cols, non_numeric_cols)
+                
+            elif chart_type == "🦈 Fishbone Diagram":
+                create_fishbone_diagram(df, numeric_cols, non_numeric_cols)
                 
             elif chart_type == "📋 Histogram Responsif Berwarna": 
                 create_responsive_histogram(df, numeric_cols) 
@@ -2384,6 +2389,335 @@ def create_bar_chart(df, numeric_cols, non_numeric_cols):
             ✅ Aggregasi yang efisien  
             """)
 
+def create_fishbone_diagram(df, numeric_cols, non_numeric_cols):
+    st.markdown("### 🐠 Fishbone Diagram (Cause-and-Effect Diagram)")
+    
+    # Main effect/issue selection
+    st.markdown("---")
+    st.subheader("📋 Define the Main Effect/Issue")
+    
+    main_effect = st.text_input(
+        "Masukkan efek utama atau masalah yang akan dianalisis:",
+        placeholder="Contoh: Penurunan Kualitas Produk, Peningkatan Biaya Operasional, dll.",
+        key="fishbone_main_effect"
+    )
+    
+    if not main_effect:
+        st.warning("⚠️ Silakan tentukan efek utama terlebih dahulu")
+        return
+    
+    # Standard fishbone categories (6M)
+    categories = {
+        "Manusia": ["Keterampilan", "Pelatihan", "Motivasi", "Pengalaman"],
+        "Metode": ["Prosedur", "Standar", "Alur Kerja", "Kebijakan"],
+        "Material": ["Bahan Baku", "Kualitas", "Pasokan", "Spesifikasi"],
+        "Mesin": ["Perlengkapan", "Teknologi", "Pemeliharaan", "Kapasitas"],
+        "Lingkungan": ["Tempat Kerja", "Kondisi", "Lokasi", "Iklim"],
+        "Pengukuran": ["Metrik", "Kalibrasi", "Akurasi", "Frekuensi"]
+    }
+    
+    # Allow customization of categories
+    with st.expander("⚙️ Kustomisasi Kategori Fishbone"):
+        st.markdown("**Edit kategori dan sub-kategori standar (6M):**")
+        
+        custom_categories = {}
+        for i, (cat, subcats) in enumerate(categories.items()):
+            col1, col2 = st.columns([1, 3])
+            with col1:
+                new_cat = st.text_input(f"Kategori {i+1}", value=cat, key=f"cat_{i}")
+            with col2:
+                new_subcats = st.text_area(
+                    f"Sub-kategori {cat}",
+                    value=", ".join(subcats),
+                    placeholder="Pisahkan dengan koma",
+                    key=f"subcats_{i}"
+                )
+                custom_categories[new_cat] = [s.strip() for s in new_subcats.split(",") if s.strip()]
+        
+        categories = custom_categories
+    
+    # Data selection for analysis
+    st.markdown("---")
+    st.subheader("📊 Pilih Data untuk Analisis")
+    
+    col1, col2 = st.columns(2)
+    with col1:
+        cause_column = st.selectbox(
+            "Pilih kolom penyebab potensial:",
+            non_numeric_cols if non_numeric_cols else df.columns.tolist(),
+            key="fishbone_cause_col"
+        )
+    with col2:
+        effect_column = st.selectbox(
+            "Pilih kolom efek/impact:",
+            numeric_cols,
+            key="fishbone_effect_col"
+        )
+    
+    # Analysis parameters
+    col3, col4 = st.columns(2)
+    with col3:
+        max_causes = st.slider(
+            "Maksimum penyebab per kategori:",
+            min_value=3, max_value=20, value=8, key="fishbone_max_causes"
+        )
+    with col4:
+        correlation_threshold = st.slider(
+            "Threshold korelasi minimum:",
+            min_value=0.1, max_value=0.8, value=0.3, step=0.1,
+            key="fishbone_corr_threshold"
+        )
+    
+    if cause_column and effect_column:
+        with st.spinner("🔍 Menganalisis data dan membuat Fishbone Diagram..."):
+            
+            # Optimasi 1: Sampling untuk data besar
+            processed_df = df.copy()
+            if len(df) > 5000:
+                sample_size = min(5000, len(df))
+                processed_df = df.sample(n=sample_size, random_state=42)
+                st.info(f"📊 Data disampling: {sample_size:,} dari {len(df):,} records")
+            
+            # Analisis korelasi dan grouping
+            fishbone_data = analyze_causes_effects(processed_df, cause_column, effect_column, categories)
+            
+            # Buat visualisasi fishbone
+            fig = create_fishbone_visualization(fishbone_data, main_effect, categories)
+            
+            # Optimasi config plotly
+            config = {
+                'displayModeBar': True,
+                'displaylogo': False,
+                'modeBarButtonsToRemove': ['lasso2d', 'select2d'],
+                'responsive': True
+            }
+            
+            st.plotly_chart(fig, use_container_width=True, config=config)
+        
+        # Tampilkan data analysis
+        with st.expander("📈 Lihat Analisis Data Detail"):
+            display_fishbone_analysis(fishbone_data, cause_column, effect_column)
+        
+        with st.expander("ℹ️ Panduan Fishbone Diagram"):
+            st.markdown(f"""
+            **Fishbone Diagram (Diagram Sebab-Akibat)** digunakan untuk mengidentifikasi akar penyebab masalah.
+            
+            **Struktur Diagram:**
+            - **Kepala Ikan**: {main_effect}
+            - **Tulang Utama**: {', '.join(categories.keys())}
+            - **Tulang Kecil**: Sub-kategori penyebab
+            
+            **Metodologi 6M:**
+            - **Manusia**: Faktor terkait SDM
+            - **Metode**: Prosedur dan sistem kerja  
+            - **Material**: Bahan dan input produksi
+            - **Mesin**: Peralatan dan teknologi
+            - **Lingkungan**: Kondisi eksternal
+            - **Pengukuran**: Sistem monitoring
+            
+            **Cara Membaca:**
+            1. Identifikasi kategori dengan penyebab terbanyak
+            2. Perhatikan penyebab dengan korelasi tertinggi
+            3. Prioritaskan analisis pada area kritis
+            
+            **Keuntungan:**
+            ✅ Analisis root cause yang sistematis  
+            ✅ Kolaborasi tim yang efektif  
+            ✅ Visualisasi hubungan sebab-akibat  
+            ✅ Identifikasi area improvement  
+            
+            **Tips:**
+            - Gunakan data historis untuk validasi
+            - Libatkan tim yang memahami proses
+            - Fokus pada fakta, bukan asumsi
+            """)
+
+def analyze_causes_effects(df, cause_col, effect_col, categories):
+    """Analisis hubungan antara penyebab dan efek"""
+    analysis_results = {}
+    
+    # Untuk data kategorikal
+    if df[cause_col].dtype == 'object':
+        # Group by cause categories and calculate effect statistics
+        cause_analysis = df.groupby(cause_col)[effect_col].agg([
+            'mean', 'count', 'std'
+        ]).round(2)
+        
+        # Calculate correlation-like metric
+        overall_mean = df[effect_col].mean()
+        cause_analysis['impact_score'] = abs(cause_analysis['mean'] - overall_mean) / cause_analysis['std'].replace(0, 1)
+        cause_analysis['impact_score'] = cause_analysis['impact_score'].fillna(0)
+        
+        # Categorize causes into fishbone categories
+        for category, subcategories in categories.items():
+            category_causes = []
+            for cause in cause_analysis.index:
+                cause_str = str(cause).lower()
+                # Match causes with subcategories
+                for subcat in subcategories:
+                    if subcat.lower() in cause_str:
+                        category_causes.append({
+                            'cause': cause,
+                            'mean_effect': cause_analysis.loc[cause, 'mean'],
+                            'count': cause_analysis.loc[cause, 'count'],
+                            'impact_score': cause_analysis.loc[cause, 'impact_score']
+                        })
+                        break
+            
+            # Sort by impact and limit
+            category_causes.sort(key=lambda x: x['impact_score'], reverse=True)
+            analysis_results[category] = category_causes[:10]
+    
+    return analysis_results
+
+def create_fishbone_visualization(analysis_data, main_effect, categories):
+    """Buat visualisasi Fishbone Diagram menggunakan Plotly"""
+    import plotly.graph_objects as go
+    import plotly.figure_factory as ff
+    
+    # Create empty figure
+    fig = go.Figure()
+    
+    # Fishbone structure parameters
+    center_y = 0
+    spine_length = 6
+    branch_length = 2
+    category_angles = {
+        'Manusia': 30, 'Metode': 60, 'Material': 120, 
+        'Mesin': 150, 'Lingkungan': 210, 'Pengukuran': 330
+    }
+    
+    # Draw main spine (horizontal line)
+    fig.add_trace(go.Scatter(
+        x=[-spine_length, spine_length], y=[center_y, center_y],
+        mode='lines', line=dict(color='black', width=3),
+        showlegend=False
+    ))
+    
+    # Draw fish head
+    fig.add_trace(go.Scatter(
+        x=[spine_length, spine_length + 0.5, spine_length],
+        y=[center_y - 0.3, center_y, center_y + 0.3],
+        fill='toself', fillcolor='lightblue',
+        line=dict(color='blue', width=2),
+        showlegend=False
+    ))
+    
+    # Add main effect text
+    fig.add_annotation(
+        x=spine_length + 0.7, y=center_y,
+        text=main_effect,
+        showarrow=False,
+        font=dict(size=16, color='blue', weight='bold'),
+        bgcolor='lightblue',
+        bordercolor='blue'
+    )
+    
+    # Draw category branches and add causes
+    for category, causes in analysis_data.items():
+        if category in category_angles and causes:
+            angle = category_angles[category]
+            angle_rad = np.radians(angle)
+            
+            # Calculate branch coordinates
+            branch_x = branch_length * np.cos(angle_rad)
+            branch_y = branch_length * np.sin(angle_rad)
+            
+            # Draw category branch
+            fig.add_trace(go.Scatter(
+                x=[0, branch_x], y=[center_y, branch_y],
+                mode='lines', line=dict(color='gray', width=2),
+                showlegend=False
+            ))
+            
+            # Add category label
+            fig.add_annotation(
+                x=branch_x * 1.1, y=branch_y * 1.1,
+                text=category,
+                showarrow=False,
+                font=dict(size=12, color='darkred', weight='bold'),
+                bgcolor='lightcoral'
+            )
+            
+            # Add causes as sub-branches
+            for i, cause in enumerate(causes[:8]):
+                sub_angle = angle + (i - len(causes)//2) * 10
+                sub_angle_rad = np.radians(sub_angle)
+                
+                sub_x = branch_x * 0.8 + 0.3 * np.cos(sub_angle_rad)
+                sub_y = branch_y * 0.8 + 0.3 * np.sin(sub_angle_rad)
+                
+                # Draw sub-branch
+                fig.add_trace(go.Scatter(
+                    x=[branch_x * 0.8, sub_x], y=[branch_y * 0.8, sub_y],
+                    mode='lines', line=dict(color='lightgray', width=1),
+                    showlegend=False
+                ))
+                
+                # Add cause text with impact-based color
+                impact_color = 'red' if cause['impact_score'] > 0.5 else 'orange' if cause['impact_score'] > 0.3 else 'green'
+                
+                fig.add_annotation(
+                    x=sub_x, y=sub_y,
+                    text=f"{cause['cause']}<br>({cause['mean_effect']})",
+                    showarrow=False,
+                    font=dict(size=9, color=impact_color),
+                    bgcolor='white',
+                    bordercolor=impact_color
+                )
+    
+    # Update layout for fishbone diagram
+    fig.update_layout(
+        title=f"Fishbone Diagram: {main_effect}",
+        showlegend=False,
+        width=1000,
+        height=700,
+        xaxis=dict(visible=False, range=[-8, 10]),
+        yaxis=dict(visible=False, range=[-5, 5]),
+        plot_bgcolor='white',
+        margin=dict(l=50, r=50, t=80, b=50)
+    )
+    
+    return fig
+
+def display_fishbone_analysis(analysis_data, cause_col, effect_col):
+    """Tampilkan analisis detail fishbone diagram"""
+    
+    # Summary statistics
+    total_causes = sum(len(causes) for causes in analysis_data.values())
+    high_impact_causes = sum(1 for causes in analysis_data.values() 
+                           for cause in causes if cause['impact_score'] > 0.5)
+    
+    col1, col2, col3 = st.columns(3)
+    with col1:
+        st.metric("Total Kategori", len(analysis_data))
+    with col2:
+        st.metric("Total Penyebab", total_causes)
+    with col3:
+        st.metric("Penyebab Impact Tinggi", high_impact_causes)
+    
+    # Display causes by category
+    for category, causes in analysis_data.items():
+        if causes:
+            st.markdown(f"### 📂 {category}")
+            
+            # Create dataframe for causes
+            cause_df = pd.DataFrame([{
+                'Penyebab': cause['cause'],
+                f'Rata-rata {effect_col}': cause['mean_effect'],
+                'Frekuensi': cause['count'],
+                'Score Impact': cause['impact_score']
+            } for cause in causes])
+            
+            # Style based on impact score
+            styled_df = cause_df.style.background_gradient(
+                subset=['Score Impact'], cmap='Reds'
+            ).format({
+                f'Rata-rata {effect_col}': '{:.2f}',
+                'Score Impact': '{:.3f}'
+            })
+            
+            st.dataframe(styled_df, use_container_width=True)
 
 def create_network_diagram(df, numeric_cols, non_numeric_cols):
     col1, col2, col3 = st.columns(3)
