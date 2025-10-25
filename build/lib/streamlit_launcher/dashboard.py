@@ -66,13 +66,14 @@ from sklearn.compose import ColumnTransformer
 from sklearn.impute import SimpleImputer
 from sklearn.pipeline import Pipeline
 import keras
+import re
 
 
-# Konfigurasi untuk performa
+
 plt.style.use('default')
 sns.set_palette("husl")
 
-# --- Konfigurasi halaman ---
+
 st.set_page_config(
     page_icon="https://github.com/DwiDevelopes/gambar/raw/main/Desain%20tanpa%20judul%20(8).jpg",
     layout="wide",
@@ -81,7 +82,7 @@ st.set_page_config(
 )
 st.title("📊 STREAMLIT LAUNCHER ANALYSIS PENELITIAN LANJUTAN")
 
-# --- Tambahkan gambar responsif ---
+
 st.markdown(
     """
     <style>
@@ -96,7 +97,6 @@ st.markdown(
     unsafe_allow_html=True
 )
 
-# Ganti URL di bawah ini dengan lokasi gambar kamu (bisa file lokal atau URL)
 st.markdown(
     """
     <img src="https://github.com/DwiDevelopes/gambar/raw/main/Desain%20tanpa%20judul%20(8).jpg" class="responsive-img">
@@ -104,7 +104,6 @@ st.markdown(
     unsafe_allow_html=True
 )
 
-# CSS kustom untuk styling
 st.markdown("""
 <meta name="google-site-verification" content="ryAdKrOiPgVE9lQjxBAPCNbxtfCOJkDg_pvo7dzlp4U" />
 <style>
@@ -196,7 +195,7 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
-# Cache untuk performa
+
 @st.cache_data(show_spinner=False)
 def process_uploaded_file(uploaded_file):
     try:
@@ -205,7 +204,7 @@ def process_uploaded_file(uploaded_file):
             st.sidebar.success(f"CSV berhasil dibaca: {uploaded_file.name}")
             
         elif uploaded_file.name.endswith(('.xlsx', '.xls')):
-            # Coba beberapa engine untuk membaca Excel
+
             try:
                 df = pd.read_excel(uploaded_file, engine='openpyxl')
             except:
@@ -275,7 +274,6 @@ def merge_datasets(datasets, merge_method='concat'):
         st.sidebar.success(f"Berhasil menggabungkan {len(datasets)} dataset ({merge_method} join)")
         return merged_df
 
-# Fungsi untuk membuat semua jenis visualisasi
 def create_all_visualizations(df):
     if df is None or df.empty:
         st.error("Data tidak tersedia atau kosong")
@@ -288,10 +286,10 @@ def create_all_visualizations(df):
         st.error("Tidak ditemukan kolom numerik dalam dataset.")
         return
     
-    # Sidebar untuk konfigurasi chart
+
     st.sidebar.header("🎛️ Konfigurasi Visualisasi")
     
-    # Pilihan jenis chart yang diperluas
+
     chart_types = [
         "📈 Grafik Garis (Line Chart)",
         "📊 Grafik Batang (Bar Chart)",
@@ -320,7 +318,7 @@ def create_all_visualizations(df):
     chart_type = st.sidebar.selectbox("Pilih Jenis Chart", chart_types, key="chart_type_select")
     
     try:
-        # Container untuk chart
+
         chart_container = st.container()
         
         with chart_container:
@@ -398,7 +396,7 @@ def create_all_visualizations(df):
 
 def create_responsive_histogram(df, numeric_cols):
     
-    # Deteksi ukuran data
+
     data_size = len(df)
     if data_size > 100000:
         st.info(f"⚡ Mode Optimasi: Data besar ({data_size:,} rows) - Menggunakan sampling otomatis")
@@ -418,7 +416,7 @@ def create_responsive_histogram(df, numeric_cols):
                                  key="hist_color")
     
     with col4:
-        # Pengaturan optimasi
+
         optimization_mode = st.selectbox(
             "Mode Optimasi",
             ["Auto", "Fast", "Balanced", "Detailed"],
@@ -429,35 +427,32 @@ def create_responsive_histogram(df, numeric_cols):
     if selected_col:
         try:
             with st.spinner("🔄 Memproses data histogram..."):
-                # OPTIMASI 1: Filter dan sampling data
+
                 clean_data = optimize_histogram_data(df[selected_col], data_size, optimization_mode)
                 
                 if len(clean_data) == 0:
                     st.warning(f"Tidak ada data valid untuk kolom {selected_col}")
                     return
                 
-                # OPTIMASI 2: Batasi bins untuk data sangat besar
                 if len(clean_data) > 100000:
                     num_bins = min(num_bins, 50)
                 
                 col1, col2 = st.columns([2, 1])
                 
                 with col1:
-                    # Buat histogram yang dioptimalkan
                     fig = create_optimized_histogram(clean_data, selected_col, num_bins, color_theme, data_size)
                     st.plotly_chart(fig, use_container_width=True, 
                                   config={'displayModeBar': True, 'responsive': True})
                 
                 with col2:
-                    # Statistik cepat
+
                     display_quick_statistics(clean_data, selected_col)
 
-                # OPTIMASI 3: Multiple histogram dengan data terbatas
-                if data_size <= 50000:  # Hanya tampilkan untuk data tidak terlalu besar
+                if data_size <= 50000: 
                     with st.expander("🔍 Bandingkan Distribusi", expanded=False):
                         compare_cols = st.multiselect(
                             "Pilih kolom untuk perbandingan", 
-                            numeric_cols[:5],  # Batasi pilihan
+                            numeric_cols[:5],  
                             default=[selected_col],
                             key="hist_compare"
                         )
@@ -466,12 +461,12 @@ def create_responsive_histogram(df, numeric_cols):
                             fig_compare = create_comparison_histogram(df, compare_cols, optimization_mode)
                             st.plotly_chart(fig_compare, use_container_width=True)
                 
-                # Tampilkan info optimasi
+          
                 show_histogram_optimization_info(data_size, len(clean_data), optimization_mode)
 
         except Exception as e:
             st.error(f"Error membuat histogram: {str(e)}")
-            # Fallback ke metode sederhana
+       
             create_simple_histogram_fallback(df[selected_col].dropna(), selected_col)
 
 def optimize_histogram_data(data_series, data_size, optimization_mode):
@@ -481,7 +476,6 @@ def optimize_histogram_data(data_series, data_size, optimization_mode):
     if len(clean_data) == 0:
         return clean_data
     
-    # Tentukan target sample size berdasarkan mode optimasi
     target_sizes = {
         "Auto": min(10000, data_size) if data_size > 50000 else data_size,
         "Fast": min(5000, data_size),
@@ -491,16 +485,16 @@ def optimize_histogram_data(data_series, data_size, optimization_mode):
     
     target_size = target_sizes[optimization_mode]
     
-    # Jika data lebih besar dari target, lakukan sampling
+
     if len(clean_data) > target_size:
         if optimization_mode == "Fast":
-            # Systematic sampling untuk performa maksimal
+
             step = len(clean_data) // target_size
             sampled_data = clean_data.iloc[::step]
         else:
-            # Stratified sampling untuk mempertahankan distribusi
+
             try:
-                # Bin data terlebih dahulu, lalu sample dari setiap bin
+
                 n_bins = min(100, target_size // 10)
                 bins = pd.cut(clean_data, bins=n_bins)
                 stratified_sample = clean_data.groupby(bins, observed=False, group_keys=False).apply(
@@ -508,7 +502,7 @@ def optimize_histogram_data(data_series, data_size, optimization_mode):
                 )
                 sampled_data = stratified_sample
             except:
-                # Fallback ke random sampling
+     
                 sampled_data = clean_data.sample(n=target_size, random_state=42)
         
         return sampled_data
@@ -518,7 +512,7 @@ def optimize_histogram_data(data_series, data_size, optimization_mode):
 def create_optimized_histogram(data, column_name, num_bins, color_theme, original_size):
     """Buat histogram dengan optimasi performa"""
     
-    # Mapping warna yang dioptimalkan
+
     color_sequences = {
         "Viridis": ['#440154', '#3b528b', '#21918c', '#5ec962', '#fde725'],
         "Plasma": ['#0d0887', '#7e03a8', '#cc4778', '#f89540', '#f0f921'],
@@ -530,13 +524,13 @@ def create_optimized_histogram(data, column_name, num_bins, color_theme, origina
     
     selected_color = color_sequences.get(color_theme, color_sequences["Viridis"])[2]
     
-    # OPTIMASI: Gunakan numpy untuk perhitungan histogram yang lebih cepat
+
     hist, bin_edges = np.histogram(data, bins=num_bins)
     bin_centers = (bin_edges[:-1] + bin_edges[1:]) / 2
     
     fig = go.Figure()
     
-    # Trace histogram yang dioptimalkan
+  
     fig.add_trace(go.Bar(
         x=bin_centers,
         y=hist,
@@ -547,11 +541,11 @@ def create_optimized_histogram(data, column_name, num_bins, color_theme, origina
         hovertemplate='<b>Range: %{x:.2f}</b><br>Frekuensi: %{y}<extra></extra>'
     ))
     
-    # OPTIMASI: Density plot hanya untuk data yang tidak terlalu besar
+
     if len(data) <= 10000:
         try:
             from scipy.stats import gaussian_kde
-            # Sample data untuk density calculation
+
             if len(data) > 2000:
                 density_data = data.sample(n=2000, random_state=42)
             else:
@@ -11174,14 +11168,1784 @@ try:
     import plotly.express as px
 except ImportError:
     st.warning("Beberapa library 3D tidak terinstall. Install dengan: pip install numpy-stl trimesh plotly")
+    
+    
+
+import streamlit as st
+import pandas as pd
+import numpy as np
+import plotly.express as px
+import plotly.graph_objects as go
+from plotly.subplots import make_subplots
+import matplotlib.pyplot as plt
+import io
+import base64
+
+def process_dna_data(dna_df):
+    """Process uploaded DNA data"""
+    st.subheader("Analisis Data DNA")
+    
+    # Tampilkan informasi dasar
+    st.write("### 📊 Informasi Dataset DNA")
+    st.write(f"**Jumlah baris:** {len(dna_df)}")
+    st.write(f"**Jumlah kolom:** {len(dna_df.columns)}")
+    
+    # Analisis kolom untuk identifikasi data DNA
+    analyze_dna_columns(dna_df)
+    
+    # Analisis statistik dasar
+    st.write("### 📈 Statistik DNA")
+    st.dataframe(dna_df.describe())
+    
+    # Visualisasi data DNA
+    create_dna_visualizations(dna_df)
+    
+    # Analisis sequence jika ada kolom sequence
+    text_columns = dna_df.select_dtypes(include=['object']).columns
+    for col in text_columns:
+        if any(keyword in col.lower() for keyword in ['sequence', 'dna', 'gene', 'seq', 'gen']):
+            st.write(f"### 🧬 Analisis Sequence dari kolom: {col}")
+            analyze_sequence_column(dna_df, col)
+            
+            
+def create_secondary_structure(sequence):
+    """Create DNA secondary structure visualization"""
+    st.subheader("🔄 Struktur Sekunder DNA")
+    
+    # Simplified secondary structure prediction
+    # Untuk demo, kita buat struktur acak
+    structure = predict_secondary_structure(sequence[:100])  # Batasi panjang
+    
+    # Create visualization
+    fig = go.Figure()
+    
+    # Plot sequence dengan struktur
+    positions = list(range(len(structure)))
+    colors = []
+    for char in structure:
+        if char == '(':
+            colors.append('red')
+        elif char == ')':
+            colors.append('blue')
+        else:
+            colors.append('gray')
+    
+    fig.add_trace(go.Scatter(
+        x=positions,
+        y=[1] * len(positions),
+        mode='markers+text',
+        marker=dict(
+            size=20,
+            color=colors,
+            opacity=0.7
+        ),
+        text=list(sequence[:100]),
+        textposition="middle center"
+    ))
+    
+    fig.update_layout(
+        title="Struktur Sekunder DNA (Prediksi)",
+        xaxis_title="Posisi Sequence",
+        yaxis=dict(showticklabels=False),
+        height=300
+    )
+    
+    st.plotly_chart(fig)
+
+def predict_secondary_structure(sequence):
+    """Simplified secondary structure prediction"""
+    # Ini adalah implementasi sederhana untuk demo
+    # Dalam aplikasi nyata, gunakan algoritma seperti Nussinov
+    structure = [''] * len(sequence)
+    
+    # Pairing sederhana: cari complementary bases
+    for i in range(len(sequence) - 4):
+        if i + 4 < len(structure) and structure[i] == '':
+            current_base = sequence[i]
+            complementary = {'A': 'T', 'T': 'A', 'C': 'G', 'G': 'C'}
+            if sequence[i+4] == complementary.get(current_base, ''):
+                structure[i] = '('
+                structure[i+4] = ')'
+    
+    # Fill unpaired positions
+    for i in range(len(structure)):
+        if structure[i] == '':
+            structure[i] = '.'
+    
+    return ''.join(structure)
+
+def create_dna_visualizations(dna_df):
+    """Create various DNA visualizations from dataframe"""
+    st.write("### 📈 Visualisasi Data DNA")
+    
+    # Check for common DNA-related columns
+    numeric_columns = dna_df.select_dtypes(include=[np.number]).columns.tolist()
+    
+    if numeric_columns:
+        # Distribution plot for numeric data
+        selected_column = st.selectbox("Pilih kolom untuk distribusi:", numeric_columns)
+        fig_dist = px.histogram(dna_df, x=selected_column, title=f"Distribusi {selected_column}")
+        st.plotly_chart(fig_dist)
+    
+    if len(numeric_columns) >= 2:
+        # Scatter plot
+        col1, col2 = st.selectbox("Pilih kolom X:", numeric_columns), st.selectbox("Pilih kolom Y:", numeric_columns)
+        fig_scatter = px.scatter(dna_df, x=col1, y=col2, title=f"Scatter Plot {col1} vs {col2}")
+        st.plotly_chart(fig_scatter)
+
+def analyze_dna_columns(dna_df):
+    """Analyze columns to identify DNA-related data"""
+    st.write("### 🔍 Identifikasi Data DNA")
+    
+    numeric_cols = dna_df.select_dtypes(include=[np.number]).columns.tolist()
+    text_cols = dna_df.select_dtypes(include=['object']).columns.tolist()
+    
+    col1, col2 = st.columns(2)
+    
+    with col1:
+        st.write("**Kolom Numerik:**")
+        for col in numeric_cols:
+            st.write(f"- {col}: {dna_df[col].dtype}")
+            
+    with col2:
+        st.write("**Kolom Teks:**")
+        for col in text_cols:
+            sample_val = str(dna_df[col].iloc[0]) if len(dna_df) > 0 else "N/A"
+            st.write(f"- {col}: {sample_val[:50]}...")
+            
+def create_advanced_3d_dna(sequence, title):
+    """Create advanced 3D DNA model"""
+    st.subheader("🎯 Model 3D DNA Advanced")
+    
+    # Generate helical coordinates
+    num_points = min(len(sequence), 500)  # Batasi untuk performa
+    t = np.linspace(0, 8 * np.pi, num_points)
+    
+    # Double helix coordinates
+    radius = 1.0
+    x1 = radius * np.cos(t)
+    y1 = radius * np.sin(t)
+    z1 = t / (2 * np.pi)
+    
+    x2 = radius * np.cos(t + np.pi)
+    y2 = radius * np.sin(t + np.pi)
+    z2 = t / (2 * np.pi)
+    
+    # Base pairing coordinates
+    base_pairs_x, base_pairs_y, base_pairs_z = [], [], []
+    for i in range(0, num_points, 10):
+        base_pairs_x.extend([x1[i], x2[i], None])
+        base_pairs_y.extend([y1[i], y2[i], None])
+        base_pairs_z.extend([z1[i], z2[i], None])
+    
+    # Color coding for bases
+    base_colors = {'A': '#FF6B6B', 'T': '#4ECDC4', 'C': '#45B7D1', 'G': '#FFE66D'}
+    colors1 = [base_colors.get(sequence[i % len(sequence)], 'gray') for i in range(num_points)]
+    
+    # Create 3D plot
+    fig = go.Figure()
+    
+    # Strand 1
+    fig.add_trace(go.Scatter3d(
+        x=x1, y=y1, z=z1,
+        mode='markers+lines',
+        marker=dict(
+            size=6,
+            color=colors1,
+            opacity=0.8
+        ),
+        line=dict(
+            color='white',
+            width=4
+        ),
+        name='Strand 1'
+    ))
+    
+    # Strand 2
+    fig.add_trace(go.Scatter3d(
+        x=x2, y=y2, z=z2,
+        mode='markers+lines',
+        marker=dict(
+            size=6,
+            color=[base_colors.get(sequence[(i + 5) % len(sequence)], 'gray') for i in range(num_points)],
+            opacity=0.8
+        ),
+        line=dict(
+            color='lightblue',
+            width=4
+        ),
+        name='Strand 2'
+    ))
+    
+    # Base pairs
+    fig.add_trace(go.Scatter3d(
+        x=base_pairs_x,
+        y=base_pairs_y,
+        z=base_pairs_z,
+        mode='lines',
+        line=dict(
+            color='rgba(255, 255, 255, 0.5)',
+            width=2
+        ),
+        name='Base Pairs'
+    ))
+    
+    fig.update_layout(
+        title=title,
+        scene=dict(
+            xaxis_title="X",
+            yaxis_title="Y",
+            zaxis_title="Z (Helical Rise)",
+            bgcolor='black',
+            camera=dict(
+                eye=dict(x=1.5, y=1.5, z=1.5)
+            )
+        ),
+        width=800,
+        height=600
+    )
+    
+    st.plotly_chart(fig)
+    
+    # Tambahkan model secondary structure
+    create_secondary_structure(sequence)
+
+def analyze_sequence_column(df, column_name):
+    """Analyze specific sequence column"""
+    sequences = df[column_name].dropna()
+    
+    if len(sequences) > 0:
+        # Analisis sequence pertama
+        first_seq = str(sequences.iloc[0]).upper()
+        if any(base in 'ATCG' for base in first_seq):
+            st.write(f"**Sequence contoh:** {first_seq[:100]}..." if len(first_seq) > 100 else first_seq)
+            
+            # Analisis organisme
+            organism_info = predict_organism_from_sequence(first_seq)
+            st.write(f"**🧬 Prediksi Organisme:** {organism_info}")
+            
+            # Hitung komposisi basa
+            base_counts = calculate_base_composition(first_seq)
+            
+            # Chart komposisi lengkap
+            create_comprehensive_base_charts(base_counts, first_seq)
+            
+            # Buat model 3D
+            create_advanced_3d_dna(first_seq, f"Model 3D - {column_name}")
+
+def predict_organism_from_sequence(sequence):
+    """Predict organism based on sequence characteristics"""
+    sequence = sequence.upper()
+    gc_content = (sequence.count('G') + sequence.count('C')) / len(sequence) * 100
+    
+    # Pattern matching untuk identifikasi organisme
+    patterns = {
+        'human': [
+            r'ATG',  # Start codon common
+            r'TATAAA',  # TATA box
+            r'GGGCGG',  # GC box
+        ],
+        'bacterial': [
+            r'AGGAGG',  # Shine-Dalgarno
+            r'TTGACA',  # -35 box
+            r'TATAAT',  # -10 box
+        ],
+        'viral': [
+            r'AAAAAA',  # Poly-A common in viruses
+            r'TTTTTT',  # Poly-T
+        ]
+    }
+    
+    scores = {}
+    for org, pattern_list in patterns.items():
+        score = 0
+        for pattern in pattern_list:
+            matches = len(re.findall(pattern, sequence))
+            score += matches
+        scores[org] = score
+    
+    # Prediksi berdasarkan GC content dan patterns
+    if gc_content > 55:
+        gc_hint = "GC tinggi - kemungkinan Bacterial atau Archaeal"
+    elif gc_content < 40:
+        gc_hint = "GC rendah - kemungkinan Viral atau beberapa Eukaryotic"
+    else:
+        gc_hint = "GC medium - kemungkinan Human/Mammalian"
+    
+    best_org = max(scores, key=scores.get)
+    confidence = "Tinggi" if scores[best_org] > 2 else "Sedang" if scores[best_org] > 0 else "Rendah"
+    
+    return f"{best_org.title()} (GC: {gc_content:.1f}%) - Confidence: {confidence} - {gc_hint}"
+
+def calculate_base_composition(sequence):
+    """Calculate detailed base composition"""
+    sequence = sequence.upper()
+    total = len(sequence)
+    
+    base_counts = {
+        'Adenine (A)': sequence.count('A'),
+        'Thymine (T)': sequence.count('T'),
+        'Cytosine (C)': sequence.count('C'),
+        'Guanine (G)': sequence.count('G'),
+        'Other (N)': total - (sequence.count('A') + sequence.count('T') + sequence.count('C') + sequence.count('G'))
+    }
+    
+    # Hitung persentase
+    base_percentages = {k: (v/total)*100 for k, v in base_counts.items()}
+    
+    return {
+        'counts': base_counts,
+        'percentages': base_percentages,
+        'total': total,
+        'gc_content': (base_counts['Cytosine (C)'] + base_counts['Guanine (G)']) / total * 100
+    }
+
+def create_comprehensive_base_charts(base_data, sequence):
+    """Create comprehensive base composition charts"""
+    st.subheader("📊 Chart Komposisi Basa Lengkap")
+    
+    # Pie Chart 1: Distribusi Basa
+    fig_pie1 = px.pie(
+        values=list(base_data['counts'].values()),
+        names=list(base_data['counts'].keys()),
+        title="Distribusi Basa DNA",
+        hole=0.3
+    )
+    fig_pie1.update_traces(textposition='inside', textinfo='percent+label')
+    st.plotly_chart(fig_pie1)
+    
+    # Bar Chart
+    fig_bar = px.bar(
+        x=list(base_data['counts'].keys()),
+        y=list(base_data['counts'].values()),
+        title="Jumlah Basa per Tipe",
+        color=list(base_data['counts'].keys()),
+        text=list(base_data['counts'].values())
+    )
+    fig_bar.update_layout(xaxis_title="Jenis Basa", yaxis_title="Jumlah")
+    st.plotly_chart(fig_bar)
+    
+    # Pie Chart 2: Purin vs Pirimidin
+    purines = base_data['counts']['Adenine (A)'] + base_data['counts']['Guanine (G)']
+    pyrimidines = base_data['counts']['Thymine (T)'] + base_data['counts']['Cytosine (C)']
+    
+    fig_pie2 = px.pie(
+        values=[purines, pyrimidines],
+        names=['Purin (A+G)', 'Pirimidin (T+C)'],
+        title="Rasio Purin vs Pirimidin",
+        color=['Purin (A+G)', 'Pirimidin (T+C)'],
+        color_discrete_map={'Purin (A+G)': 'blue', 'Pirimidin (T+C)': 'red'}
+    )
+    st.plotly_chart(fig_pie2)
+    
+    # Tampilkan informasi numerik
+    col1, col2, col3 = st.columns(3)
+    
+    with col1:
+        st.metric("GC Content", f"{base_data['gc_content']:.1f}%")
+        st.metric("AT Content", f"{100 - base_data['gc_content']:.1f}%")
+    
+    with col2:
+        st.metric("Total Basa", f"{base_data['total']:,}")
+        st.metric("Basa Valid", f"{base_data['total'] - base_data['counts']['Other (N)']:,}")
+    
+    with col3:
+        pur_pyr_ratio = purines / pyrimidines if pyrimidines > 0 else 0
+        st.metric("Rasio A:T", f"{base_data['counts']['Adenine (A)']}:{base_data['counts']['Thymine (T)']}")
+        st.metric("Rasio G:C", f"{base_data['counts']['Guanine (G)']}:{base_data['counts']['Cytosine (C)']}")
+
+def process_manual_dna(sequence, gene_name, organism, chromosome, start_pos, end_pos, gc_content):
+    """Process manually entered DNA data"""
+    sequence = sequence.upper()
+    
+    st.subheader("📋 Informasi DNA Lengkap")
+    
+    # Analisis organisme dan karakteristik
+    organism_analysis = analyze_organism_detailed(sequence, organism)
+    st.write(f"### 🧬 Analisis Organisme: {organism_analysis['prediction']}")
+    
+    # Informasi dasar
+    col1, col2, col3 = st.columns(3)
+    
+    with col1:
+        st.metric("Panjang Sequence", f"{len(sequence):,} bp")
+        st.metric("GC Content", f"{gc_content}%")
+        st.metric("Berat Molekular", f"{(len(sequence) * 660)/1000:.2f} kDa")
+    
+    with col2:
+        st.metric("Nama Gen", gene_name)
+        st.metric("Organisme", organism)
+        st.metric("Strand", "+")
+    
+    with col3:
+        st.metric("Kromosom", f"Chr {chromosome}")
+        st.metric("Lokasi Genom", f"{start_pos:,} - {end_pos:,}")
+        st.metric("Panjang Gen", f"{end_pos - start_pos + 1:,} bp")
+    
+    # Chart komposisi basa lengkap
+    base_data = calculate_base_composition(sequence)
+    create_comprehensive_base_charts(base_data, sequence)
+    
+    # Analisis sequence mendalam
+    perform_comprehensive_dna_analysis(sequence, gene_name, gc_content, organism)
+    
+    # Informasi penelitian dan aplikasi
+    show_research_application(sequence, gene_name, organism)
+    
+    # Visualisasi 3D
+    create_advanced_3d_dna(sequence, f"Struktur 3D {gene_name}")
+
+def analyze_organism_detailed(sequence, user_organism):
+    """Detailed organism analysis"""
+    sequence = sequence.upper()
+    gc_content = (sequence.count('G') + sequence.count('C')) / len(sequence) * 100
+    
+    # Karakteristik berdasarkan GC content dan patterns
+    characteristics = {
+        'gc_category': 'Tinggi' if gc_content > 60 else 'Rendah' if gc_content < 40 else 'Medium',
+        'length_category': 'Pendek' if len(sequence) < 1000 else 'Panjang',
+        'complexity': 'Sederhana' if len(set(sequence)) < 4 else 'Kompleks'
+    }
+    
+    # Prediksi berdasarkan karakteristik
+    if gc_content > 60:
+        likely_organisms = ["Bacterial (GC-rich)", "Archaeal", "Some Fungi"]
+    elif gc_content < 40:
+        likely_organisms = ["Viral", "Some Mammalian", "Mitochondrial"]
+    else:
+        likely_organisms = ["Human/Mammalian", "Plant", "General Eukaryotic"]
+    
+    # Validasi dengan input user
+    user_match = "Match" if user_organism.lower() in [org.lower() for org in likely_organisms] else "Mismatch"
+    
+    return {
+        'prediction': f"{user_organism} - GC: {gc_content:.1f}% ({characteristics['gc_category']})",
+        'likely_organisms': likely_organisms,
+        'characteristics': characteristics,
+        'user_match': user_match,
+        'gc_content': gc_content
+    }
+    
+def show_base_composition(sequence):
+    """Show detailed base composition analysis"""
+    st.subheader("Komposisi Basa Detil")
+    
+    base_counts = {
+        'Adenine (A)': sequence.count('A'),
+        'Thymine (T)': sequence.count('T'),
+        'Cytosine (C)': sequence.count('C'),
+        'Guanine (G)': sequence.count('G'),
+        'Other (N)': len(sequence) - (sequence.count('A') + sequence.count('T') + sequence.count('C') + sequence.count('G'))
+    }
+    
+    col1, col2 = st.columns(2)
+    
+    with col1:
+        # Pie chart
+        fig_pie = px.pie(
+            values=list(base_counts.values()),
+            names=list(base_counts.keys()),
+            title="Distribusi Basa DNA"
+        )
+        st.plotly_chart(fig_pie)
+    
+    with col2:
+        # Bar chart
+        fig_bar = px.bar(
+            x=list(base_counts.keys()),
+            y=list(base_counts.values()),
+            title="Jumlah Basa",
+            color=list(base_counts.keys())
+        )
+        st.plotly_chart(fig_bar)
+    
+    # Dinucleotide frequency
+    st.subheader("Frekuensi Dinukleotida")
+    dinucleotides = ['AA', 'AT', 'AC', 'AG', 'TA', 'TT', 'TC', 'TG', 
+                    'CA', 'CT', 'CC', 'CG', 'GA', 'GT', 'GC', 'GG']
+    di_counts = {di: sequence.count(di) for di in dinucleotides}
+    
+    fig_di = px.bar(
+        x=list(di_counts.keys()),
+        y=list(di_counts.values()),
+        title="Frekuensi Dinukleotida"
+    )
+    st.plotly_chart(fig_di)
+
+def find_dna_motifs(sequence):
+    """Find common DNA motifs"""
+    st.subheader("Pencarian Motif DNA")
+    
+    common_motifs = {
+        'TATA Box': 'TATAAA',
+        'GC Box': 'GGGCGG',
+        'CAAT Box': 'CCAAT',
+        'Kozak Sequence': 'GCCACC',
+        'Start Codon': 'ATG',
+        'Stop Codons': ['TAA', 'TAG', 'TGA']
+    }
+    
+    motif_results = {}
+    
+    for motif_name, motif_seq in common_motifs.items():
+        if isinstance(motif_seq, list):
+            # Untuk stop codons yang multiple
+            counts = sum(sequence.count(codon) for codon in motif_seq)
+            positions = []
+            for codon in motif_seq:
+                start = 0
+                while start < len(sequence):
+                    pos = sequence.find(codon, start)
+                    if pos == -1:
+                        break
+                    positions.append(pos)
+                    start = pos + 1
+        else:
+            counts = sequence.count(motif_seq)
+            positions = []
+            start = 0
+            while start < len(sequence):
+                pos = sequence.find(motif_seq, start)
+                if pos == -1:
+                    break
+                positions.append(pos)
+                start = pos + 1
+        
+        motif_results[motif_name] = {
+            'count': counts,
+            'positions': positions,
+            'sequence': motif_seq if not isinstance(motif_seq, list) else ', '.join(motif_seq)
+        }
+    
+    # Tampilkan hasil
+    for motif, data in motif_results.items():
+        st.write(f"**{motif}** (`{data['sequence']}`):")
+        st.write(f"  - Ditemukan: {data['count']} kali")
+        if data['positions']:
+            st.write(f"  - Posisi: {data['positions'][:5]}{'...' if len(data['positions']) > 5 else ''}")
+            
+
+def calculate_biophysical_properties(sequence, gc_content):
+    """Calculate biophysical properties of DNA"""
+    st.subheader("Sifat Biofisika DNA")
+    
+    # Perhitungan berbagai properti
+    seq_length = len(sequence)
+    molecular_weight = seq_length * 660  # Da
+    extinction_coefficient = calculate_extinction_coefficient(sequence)
+    
+    # Melting temperature calculation
+    if seq_length < 14:
+        tm = (sequence.count('A') + sequence.count('T')) * 2 + (sequence.count('G') + sequence.count('C')) * 4
+    else:
+        tm = 64.9 + 41 * (gc_content/100 - 16.4) / seq_length
+    
+    # Hydrophobicity index (simplified)
+    hydrophobic_bases = sequence.count('A') + sequence.count('T')
+    hydrophobicity_index = (hydrophobic_bases / seq_length) * 100
+    
+    # Display results
+    props = {
+        "Suhu Leleh (Tm)": f"{tm:.1f} °C",
+        "Berat Molekular": f"{molecular_weight/1000:.2f} kDa",
+        "Koefisien Ekstingsi": f"{extinction_coefficient:.0f} L/mol·cm",
+        "Indeks Hidrofobisitas": f"{hydrophobicity_index:.1f}%",
+        "GC Content Aktual": f"{(sequence.count('G') + sequence.count('C')) / seq_length * 100:.1f}%",
+        "AT Content": f"{(sequence.count('A') + sequence.count('T')) / seq_length * 100:.1f}%"
+    }
+    
+    for prop, value in props.items():
+        st.metric(prop, value)
+
+def calculate_extinction_coefficient(sequence):
+    """Calculate DNA extinction coefficient"""
+    # Simplified calculation
+    A_count = sequence.count('A')
+    T_count = sequence.count('T')
+    G_count = sequence.count('G')
+    C_count = sequence.count('C')
+    
+    # Approximate extinction coefficients (L/mol·cm)
+    return (A_count * 15400 + T_count * 8800 + G_count * 11700 + C_count * 7300)
+
+def analyze_sequence_features(sequence):
+    """Analyze various sequence features"""
+    st.subheader("Fitur Sequence")
+    
+    # Open Reading Frames
+    st.write("**Open Reading Frames (ORFs):**")
+    orfs = find_orfs(sequence)
+    for i, orf in enumerate(orfs[:3]):  # Tampilkan 3 ORF pertama
+        st.write(f"ORF {i+1}: Posisi {orf[0]}-{orf[1]} (Panjang: {orf[2]} bp)")
+    
+    # Restriction sites
+    st.write("**Situs Restriksi Umum:**")
+    restriction_enzymes = {
+        'EcoRI': 'GAATTC',
+        'BamHI': 'GGATCC',
+        'HindIII': 'AAGCTT',
+        'XbaI': 'TCTAGA'
+    }
+    
+    for enzyme, site in restriction_enzymes.items():
+        count = sequence.count(site)
+        if count > 0:
+            st.write(f"{enzyme} ({site}): {count} situs")
+
+def find_orfs(sequence):
+    """Find Open Reading Frames in DNA sequence"""
+    orfs = []
+    start_codon = 'ATG'
+    stop_codons = ['TAA', 'TAG', 'TGA']
+    
+    # Cari semua start codons
+    start_positions = []
+    start = 0
+    while start < len(sequence):
+        pos = sequence.find(start_codon, start)
+        if pos == -1:
+            break
+        start_positions.append(pos)
+        start = pos + 1
+    
+    # Untuk setiap start, cari stop codon berikutnya
+    for start_pos in start_positions:
+        for stop_codon in stop_codons:
+            stop_pos = sequence.find(stop_codon, start_pos + 3)
+            if stop_pos != -1 and (stop_pos - start_pos) % 3 == 0:
+                orf_length = stop_pos - start_pos + 3
+                if orf_length >= 30:  # Minimum ORF length
+                    orfs.append((start_pos, stop_pos + 2, orf_length))
+                break
+    
+    return sorted(orfs, key=lambda x: x[2], reverse=True)
+
+
+def perform_comprehensive_dna_analysis(sequence, gene_name, gc_content, organism):
+    """Perform comprehensive DNA analysis"""
+    st.write("## 🔬 Analisis Komprehensif DNA")
+    
+    # Tab untuk berbagai jenis analisis
+    analysis_tabs = st.tabs([
+        "📊 Komposisi Basa", "🔍 Motif & Pattern", 
+        "🧮 Biophysical Properties", "📈 Sequence Features",
+        "🧪 Aplikasi Penelitian"
+    ])
+    
+    with analysis_tabs[0]:
+        show_base_composition(sequence)
+    
+    with analysis_tabs[1]:
+        find_dna_motifs(sequence)
+    
+    with analysis_tabs[2]:
+        calculate_biophysical_properties(sequence, gc_content)
+    
+    with analysis_tabs[3]:
+        analyze_sequence_features(sequence)
+    
+    with analysis_tabs[4]:
+        show_research_applications_detailed(sequence, gene_name, organism)
+
+def show_research_application(sequence, gene_name, organism):
+    """Show research and application information"""
+    st.write("## 🧪 Informasi Penelitian & Aplikasi")
+    
+    research_info = {
+        "Jenis Penelitian": predict_research_type(sequence, gene_name),
+        "Aplikasi Klinis": predict_clinical_application(gene_name, organism),
+        "Potensi Terapi": predict_therapeutic_potential(gene_name),
+        "Status Penelitian": get_research_status(gene_name),
+        "Database References": get_database_references(gene_name)
+    }
+    
+    for category, info in research_info.items():
+        st.write(f"**{category}:**")
+        if isinstance(info, list):
+            for item in info:
+                st.write(f"- {item}")
+        else:
+            st.write(f"{info}")
+        
+        st.write("")
+
+def show_research_applications_detailed(sequence, gene_name, organism):
+    """Show detailed research applications"""
+    st.subheader("🔬 Aplikasi dalam Penelitian")
+    
+    # Prediksi berdasarkan sequence characteristics
+    seq_length = len(sequence)
+    gc_content = (sequence.count('G') + sequence.count('C')) / len(sequence) * 100
+    
+    col1, col2 = st.columns(2)
+    
+    with col1:
+        st.write("**💊 Aplikasi Potensial:**")
+        
+        applications = []
+        if seq_length < 100:
+            applications.append("PCR Primer")
+            applications.append("Molecular Probe")
+        if gc_content > 50:
+            applications.append("GC-rich Gene Studies")
+        if "ATG" in sequence and "TAA" in sequence:
+            applications.append("Gene Expression Studies")
+        if seq_length > 1000:
+            applications.append("Gene Therapy Research")
+            applications.append("Vaccine Development")
+        
+        for app in applications:
+            st.write(f"✅ {app}")
+    
+    with col2:
+        st.write("**🔍 Area Penelitian:**")
+        
+        research_areas = []
+        if "human" in organism.lower():
+            research_areas.append("Medical Genetics")
+            research_areas.append("Personalized Medicine")
+        if "viral" in organism.lower():
+            research_areas.append("Virology")
+            research_areas.append("Vaccine Development")
+        if "bacterial" in organism.lower():
+            research_areas.append("Antibiotic Research")
+            research_areas.append("Microbiome Studies")
+        
+        for area in research_areas:
+            st.write(f"🔬 {area}")
+
+def predict_research_type(sequence, gene_name):
+    """Predict research type based on sequence and gene name"""
+    research_types = []
+    
+    # Berdasarkan panjang sequence
+    if len(sequence) < 100:
+        research_types.append("PCR-based studies")
+        research_types.append("Diagnostic marker development")
+    elif len(sequence) < 1000:
+        research_types.append("Gene expression analysis")
+        research_types.append("Functional genomics")
+    else:
+        research_types.append("Whole gene studies")
+        research_types.append("Therapeutic development")
+    
+    # Berdasarkan nama gen
+    gene_lower = gene_name.lower()
+    if any(term in gene_lower for term in ['cancer', 'tumor', 'onc']):
+        research_types.append("Cancer research")
+    if any(term in gene_lower for term in ['immune', 'ifn', 'il']):
+        research_types.append("Immunology research")
+    if any(term in gene_lower for term in ['neuro', 'brain', 'cogn']):
+        research_types.append("Neuroscience research")
+    
+    return research_types
+
+def predict_clinical_application(gene_name, organism):
+    """Predict clinical applications"""
+    applications = []
+    
+    if "human" in organism.lower():
+        applications.append("Genetic testing")
+        applications.append("Disease diagnosis")
+        
+        if any(term in gene_name.lower() for term in ['brca', 'cancer', 'tumor']):
+            applications.append("Cancer risk assessment")
+        if any(term in gene_name.lower() for term in ['cvd', 'cardio', 'heart']):
+            applications.append("Cardiovascular risk prediction")
+    
+    return applications if applications else ["Research use only"]
+
+def predict_therapeutic_potential(gene_name):
+    """Predict therapeutic potential"""
+    therapeutic_areas = []
+    
+    gene_lower = gene_name.lower()
+    
+    if any(term in gene_lower for term in ['cf', 'cystic']):
+        therapeutic_areas.append("Gene therapy for cystic fibrosis")
+    if any(term in gene_lower for term in ['hemo', 'blood']):
+        therapeutic_areas.append("Hematological disorders treatment")
+    if any(term in gene_lower for term in ['insulin', 'diabetes']):
+        therapeutic_areas.append("Diabetes treatment")
+    
+    return therapeutic_areas if therapeutic_areas else ["Under investigation"]
+
+def get_research_status(gene_name):
+    """Get research status information"""
+    # Simulasi data research status
+    status_options = [
+        "Basic research",
+        "Pre-clinical studies", 
+        "Clinical trials phase I/II",
+        "Clinical trials phase III",
+        "Approved therapy"
+    ]
+    
+    # Simple heuristic based on gene name
+    if any(term in gene_name.lower() for term in ['brca', 'her2', 'egfr']):
+        return status_options[4]  # Approved
+    elif any(term in gene_name.lower() for term in ['test', 'new', 'novel']):
+        return status_options[0]  # Basic research
+    else:
+        return status_options[1]  # Pre-clinical
+
+def get_database_references(gene_name):
+    """Get database reference links"""
+    databases = [
+        f"NCBI Gene: https://www.ncbi.nlm.nih.gov/gene/?term={gene_name}",
+        f"UniProt: https://www.uniprot.org/uniprot/?query={gene_name}",
+        f"Ensembl: https://www.ensembl.org/Multi/Search/Results?q={gene_name}",
+        f"OMIM: https://www.omim.org/search?index=entry&sort=score+desc%2C+prefix_sort+desc&start=1&limit=10&search={gene_name}"
+    ]
+    
+    return databases
+
+# [Fungsi-fungsi lainnya tetap sama seperti sebelumnya: show_base_composition, find_dna_motifs, calculate_biophysical_properties, analyze_sequence_features, create_advanced_3d_dna, dll.]
+
+def create_dna_visualizations(dna_df):
+    """Create various DNA visualizations from dataframe"""
+    st.write("### 📈 Visualisasi Data DNA")
+    
+    # Check for common DNA-related columns
+    numeric_columns = dna_df.select_dtypes(include=[np.number]).columns.tolist()
+    
+    if numeric_columns:
+        # Distribution plot for numeric data
+        selected_column = st.selectbox("Pilih kolom untuk distribusi:", numeric_columns)
+        fig_dist = px.histogram(dna_df, x=selected_column, title=f"Distribusi {selected_column}")
+        st.plotly_chart(fig_dist)
+    
+    if len(numeric_columns) >= 2:
+        # Scatter plot
+        col1, col2 = st.selectbox("Pilih kolom X:", numeric_columns), st.selectbox("Pilih kolom Y:", numeric_columns)
+        fig_scatter = px.scatter(dna_df, x=col1, y=col2, title=f"Scatter Plot {col1} vs {col2}")
+        st.plotly_chart(fig_scatter)
 REMOVE_BG_API_KEY = "xQH5KznYiupRrywK5yPcjeyi"
 PIXELS_API_KEY = "LH59shPdj1xO0lolnHPsClH23qsnHE4NjkCFBhKEXvR0CbqwkrXbqBnw"
 if df is not None:
-    tab1, tab2, tab3, tab4, tab5, tab6, tab7, tab8, tab9, tab10, tab11 = st.tabs([
+    tab1, tab2, tab3, tab4, tab5, tab6, tab7, tab8, tab9, tab10, tab11, tab12, tab13 = st.tabs([
         "📊 Statistik", "📈 Visualisasi", "💾 Data", "ℹ️ Informasi", "🧮 Kalkulator",
         "🖼️ Vitures", "📍 Flowchart", "📊 Grafik Saham", "🗃️ SQL Style", 
-        "🔄 3D Model & Analisis", "⚡ Konversi Cepat"
+        "🔄 3D Model & Analisis", "⚡ Konversi Cepat", "📝 Editor File", "🧬 Analisis DNA"
     ])
+
+    with tab13:
+        st.header("🧬 Analisis DNA dan Visualisasi 3D Lengkap")
+        
+        st.info("""
+        **Fitur Analisis DNA:**
+        - ✅ Identifikasi organisme (Human, Bacterial, Viral, dll)
+        - 📊 Chart komposisi basa lengkap (Pie chart, Bar chart, Purin/Pirimidin)
+        - 🔬 Analisis motif dan pattern DNA
+        - 🧮 Perhitungan sifat biofisika
+        - 🧪 Informasi penelitian dan aplikasi klinis
+        - 🎯 Visualisasi 3D struktur DNA
+        """)
+        
+        # Pilihan input method
+        input_method = st.radio(
+            "Pilih metode input:",
+            ["📤 Upload File", "⌨️ Input Manual"],
+            horizontal=True
+        )
+        
+        if input_method == "📤 Upload File":
+            st.subheader("Upload File DNA")
+            uploaded_file = st.file_uploader(
+                "Upload file CSV atau Excel berisi data DNA",
+                type=['csv', 'xlsx', 'xls'],
+                help="File harus mengandung kolom sequence DNA atau data genetik"
+            )
+            
+            if uploaded_file is not None:
+                try:
+                    if uploaded_file.name.endswith('.csv'):
+                        dna_df = pd.read_csv(uploaded_file)
+                    else:
+                        dna_df = pd.read_excel(uploaded_file)
+                    
+                    st.success("✅ File berhasil diupload!")
+                    st.write("### 👁️ Preview data DNA:")
+                    st.dataframe(dna_df.head())
+                    
+                    # Proses data DNA menggunakan fungsi yang sudah didefinisikan
+                    process_dna_data(dna_df)
+                    
+                except Exception as e:
+                    st.error(f"❌ Error membaca file: {e}")
+        
+        else:  # Input Manual
+            st.subheader("⌨️ Input Manual Data DNA")
+            
+            col1, col2 = st.columns(2)
+            
+            with col1:
+                dna_sequence = st.text_area(
+                    "Masukkan sequence DNA:",
+                    value="ATCGATCGATCGATCGATCGATCGATCGATCGATCGATCGATCGATCGATCGATCG",
+                    height=120,
+                    help="Masukkan sequence DNA dalam format ATCG (hanya huruf A, T, C, G, N)"
+                )
+                
+                gene_name = st.text_input("Nama Gen:*", value="BRCA1", 
+                                         help="Contoh: BRCA1, TP53, CFTR, dll")
+                organism = st.selectbox("Organisme:*", 
+                                      ["Homo sapiens", "Mus musculus", "Rattus norvegicus", 
+                                       "Escherichia coli", "SARS-CoV-2", "Other"],
+                                      help="Pilih organisme sumber DNA")
+            
+            with col2:
+                chromosome = st.number_input("Kromosom:", min_value=1, max_value=100, value=17,
+                                           help="Nomor kromosom dimana gen berada")
+                start_position = st.number_input("Posisi Start:*", min_value=1, value=43044294,
+                                               help="Posisi start pada genom")
+                end_position = st.number_input("Posisi End:*", min_value=1, value=43070992,
+                                             help="Posisi end pada genom")
+                gc_content = st.slider("GC Content (%):", 0, 100, 42,
+                                     help="Kandungan GC dalam persen")
+                
+                # Auto-calculate GC content jika sequence ada
+                if dna_sequence:
+                    auto_gc = (dna_sequence.upper().count('G') + dna_sequence.upper().count('C')) / len(dna_sequence) * 100
+                    st.write(f"GC Content otomatis: {auto_gc:.1f}%")
+            
+            if st.button("🔬 Analisis DNA Lengkap", type="primary", use_container_width=True):
+                if dna_sequence and gene_name and organism:
+                    # Validasi sequence DNA
+                    valid_chars = set('ATCGatcgNn')
+                    if all(char.upper() in valid_chars for char in dna_sequence):
+                        process_manual_dna(dna_sequence.upper(), gene_name, organism, chromosome, start_position, end_position, gc_content)
+                    else:
+                        st.error("❌ Sequence DNA mengandung karakter tidak valid. Hanya A, T, C, G, N yang diperbolehkan.")
+                else:
+                    st.warning("⚠️ Harap isi semua field yang wajib (*)")
+
+    with tab12:
+        st.header("📝 Editor File CSV/XLS")
+        st.markdown("""
+        **Fitur Editor File** memungkinkan Anda untuk:
+        - 📤 Upload file CSV atau Excel
+        - 👀 Melihat preview data
+        - 🛠️ Membersihkan dan memproses data
+        - 📈 Menganalisis data dengan berbagai visualisasi
+        - ✏️ Mengedit data secara manual
+        - 💾 Mendownload hasil editing
+        """)
+        
+        # Section 1: Upload File
+        st.subheader("📤 Upload File")
+        st.markdown("Upload file data Anda dalam format CSV atau Excel untuk mulai mengedit.")
+        
+        uploaded_file = st.file_uploader(
+            "Pilih file CSV atau Excel", 
+            type=['csv', 'xlsx', 'xls'],
+            key="file_editor"
+        )
+        
+        # Initialize session state for edited dataframe
+        if 'edited_df' not in st.session_state:
+            st.session_state.edited_df = None
+        if 'original_df' not in st.session_state:
+            st.session_state.original_df = None
+        
+        if uploaded_file is not None:
+            # Baca file berdasarkan tipe hanya jika file baru diupload
+            if st.session_state.original_df is None or f"current_file_{uploaded_file.name}" not in st.session_state:
+                try:
+                    if uploaded_file.name.endswith('.csv'):
+                        df_loaded = pd.read_csv(uploaded_file)
+                    else:
+                        df_loaded = pd.read_excel(uploaded_file)
+                    
+                    st.session_state.original_df = df_loaded.copy()
+                    st.session_state.edited_df = df_loaded.copy()
+                    st.session_state[f"current_file_{uploaded_file.name}"] = True
+                    
+                    st.success(f"✅ File {uploaded_file.name} berhasil diupload!")
+                except Exception as e:
+                    st.error(f"❌ Error membaca file: {e}")
+                    st.stop()
+            
+            # Gunakan dataframe dari session state
+            edited_df = st.session_state.edited_df
+            original_df = st.session_state.original_df
+            
+            # Section 2: Preview Data
+            st.subheader("👀 Preview Data")
+            st.markdown("**Preview data awal:**")
+            st.dataframe(edited_df, use_container_width=True)
+            
+            # Section 3: Tools Editing
+            st.subheader("🛠️ Tools Editing")
+            st.markdown("Gunakan tools berikut untuk membersihkan dan memproses data:")
+            
+            col1, col2, col3, col4 = st.columns(4)
+            
+            with col1:
+                if st.button("🗑️ Hapus Duplikat", use_container_width=True, help="Hapus baris data yang duplikat"):
+                    before_count = len(edited_df)
+                    edited_df = edited_df.drop_duplicates()
+                    after_count = len(edited_df)
+                    st.session_state.edited_df = edited_df
+                    st.success(f"Duplikat berhasil dihapus! {before_count - after_count} baris dihapus.")
+                    st.rerun()
+            
+            with col2:
+                if st.button("🧹 Hapus NA", use_container_width=True, help="Hapus baris yang mengandung nilai kosong"):
+                    before_count = len(edited_df)
+                    edited_df = edited_df.dropna()
+                    after_count = len(edited_df)
+                    st.session_state.edited_df = edited_df
+                    st.success(f"Data NA berhasil dihapus! {before_count - after_count} baris dihapus.")
+                    st.rerun()
+            
+            with col3:
+                if st.button("🔄 Reset Index", use_container_width=True, help="Reset index dataframe menjadi urutan angka"):
+                    edited_df = edited_df.reset_index(drop=True)
+                    st.session_state.edited_df = edited_df
+                    st.success("Index berhasil direset!")
+                    st.rerun()
+            
+            with col4:
+                if st.button("📊 Info Data", use_container_width=True, help="Tampilkan informasi detail tentang data"):
+                    st.write("**📋 Informasi Data:**")
+                    buffer = io.StringIO()
+                    edited_df.info(buf=buffer)
+                    st.text(buffer.getvalue())
+
+            # Section 4: Hapus Baris
+            st.subheader("❌ Hapus Baris")
+            st.markdown("Pilih baris yang ingin dihapus berdasarkan kriteria tertentu:")
+            
+            col_del1, col_del2 = st.columns(2)
+            
+            with col_del1:
+                st.write("**Hapus Baris Berdasarkan Index**")
+                if not edited_df.empty:
+                    max_index = len(edited_df) - 1
+                    rows_to_delete = st.multiselect(
+                        "Pilih index baris yang akan dihapus:",
+                        options=range(len(edited_df)),
+                        format_func=lambda x: f"Baris {x}",
+                        key="delete_rows"
+                    )
+                    
+                    if st.button("🗑️ Hapus Baris Terpilih", use_container_width=True) and rows_to_delete:
+                        edited_df = edited_df.drop(rows_to_delete).reset_index(drop=True)
+                        st.session_state.edited_df = edited_df
+                        st.success(f"Berhasil menghapus {len(rows_to_delete)} baris!")
+                        st.rerun()
+            
+            with col_del2:
+                st.write("**Hapus Baris Berdasarkan Kondisi**")
+                condition_col = st.selectbox(
+                    "Pilih kolom untuk kondisi:",
+                    edited_df.columns,
+                    key="condition_col"
+                )
+                
+                if edited_df[condition_col].dtype in ['object', 'string']:
+                    unique_vals = edited_df[condition_col].unique()
+                    delete_vals = st.multiselect(
+                        "Pilih nilai yang akan dihapus:",
+                        unique_vals,
+                        key="delete_vals"
+                    )
+                    if delete_vals:
+                        before_count = len(edited_df)
+                        edited_df = edited_df[~edited_df[condition_col].isin(delete_vals)]
+                        after_count = len(edited_df)
+                        st.info(f"Akan menghapus {before_count - after_count} baris")
+                else:
+                    delete_min, delete_max = st.slider(
+                        "Pilih range nilai yang akan dihapus:",
+                        float(edited_df[condition_col].min()),
+                        float(edited_df[condition_col].max()),
+                        (float(edited_df[condition_col].min()), float(edited_df[condition_col].max())),
+                        key="delete_range"
+                    )
+                    before_count = len(edited_df)
+                    edited_df = edited_df[(edited_df[condition_col] < delete_min) | (edited_df[condition_col] > delete_max)]
+                    after_count = len(edited_df)
+                    st.info(f"Akan menghapus {before_count - after_count} baris")
+                
+                if st.button("🗑️ Hapus Berdasarkan Kondisi", use_container_width=True):
+                    st.session_state.edited_df = edited_df
+                    st.success(f"Berhasil menghapus {before_count - after_count} baris!")
+                    st.rerun()
+
+            # Section 5: Analisis Data Lengkap
+            st.subheader("📈 Analisis Data Lengkap")
+            st.markdown("""
+            **Analisis komprehensif** untuk memahami data Anda:
+            - 📊 **Statistik Deskriptif**: Ringkasan statistik numerik
+            - 📈 **Visualisasi**: Grafik dan chart interaktif
+            - 🔍 **Korelasi**: Hubungan antar variabel numerik
+            - 📋 **Data Quality**: Kualitas dan kelengkapan data
+            """)
+            
+            analisis_tab1, analisis_tab2, analisis_tab3, analisis_tab4 = st.tabs([
+                "📊 Statistik Deskriptif", "📈 Visualisasi", "🔍 Korelasi", "📋 Data Quality"
+            ])
+            
+            with analisis_tab1:
+                st.write("**📊 Statistik Deskriptif**")
+                st.markdown("Statistik dasar untuk kolom numerik:")
+                
+                if not edited_df.select_dtypes(include=[np.number]).empty:
+                    st.dataframe(edited_df.describe(), use_container_width=True)
+                    
+                    # Additional statistics
+                    st.write("**📐 Statistik Tambahan**")
+                    numeric_cols = edited_df.select_dtypes(include=[np.number]).columns
+                    stats_df = pd.DataFrame({
+                        'Kolom': numeric_cols,
+                        'Variansi': [edited_df[col].var() for col in numeric_cols],
+                        'Skewness': [edited_df[col].skew() for col in numeric_cols],
+                        'Kurtosis': [edited_df[col].kurtosis() for col in numeric_cols]
+                    })
+                    st.dataframe(stats_df, use_container_width=True)
+                else:
+                    st.info("Tidak ada kolom numerik untuk dianalisis")
+                
+            with analisis_tab2:
+                st.write("**📈 Visualisasi Data**")
+                st.markdown("Buat visualisasi interaktif untuk memahami pola data:")
+                
+                # Pie Chart
+                col_viz1, col_viz2 = st.columns(2)
+                
+                with col_viz1:
+                    st.write("**🥧 Pie Chart**")
+                    st.markdown("Untuk menampilkan proporsi data kategorikal")
+                    
+                    categorical_cols = edited_df.select_dtypes(include=['object', 'category']).columns.tolist()
+                    if categorical_cols:
+                        pie_column = st.selectbox(
+                            "Pilih kolom kategorikal:",
+                            categorical_cols,
+                            key="pie_column"
+                        )
+                        
+                        if pie_column:
+                            pie_data = edited_df[pie_column].value_counts()
+                            if len(pie_data) > 10:
+                                st.warning(f"⚠️ Terlalu banyak kategori ({len(pie_data)}). Menampilkan 10 teratas.")
+                                pie_data = pie_data.head(10)
+                            
+                            fig_pie = px.pie(
+                                values=pie_data.values,
+                                names=pie_data.index,
+                                title=f"Distribusi {pie_column}",
+                                color_discrete_sequence=px.colors.qualitative.Set3
+                            )
+                            fig_pie.update_traces(textposition='inside', textinfo='percent+label')
+                            st.plotly_chart(fig_pie, use_container_width=True)
+                    else:
+                        st.info("Tidak ada kolom kategorikal untuk Pie Chart")
+                
+                with col_viz2:
+                    st.write("**📊 Bar Chart**")
+                    st.markdown("Untuk menampilkan perbandingan data")
+                    
+                    bar_column = st.selectbox(
+                        "Pilih kolom untuk Bar Chart:",
+                        edited_df.columns,
+                        key="bar_column"
+                    )
+                    
+                    if bar_column:
+                        if edited_df[bar_column].dtype in ['object', 'category']:
+                            bar_data = edited_df[bar_column].value_counts().head(10)
+                            fig_bar = px.bar(
+                                x=bar_data.index,
+                                y=bar_data.values,
+                                title=f"Top 10 {bar_column}",
+                                labels={'x': bar_column, 'y': 'Count'},
+                                color=bar_data.values,
+                                color_continuous_scale='blues'
+                            )
+                            fig_bar.update_layout(xaxis_tickangle=-45)
+                        else:
+                            # Histogram untuk data numerik
+                            fig_bar = px.histogram(
+                                edited_df, 
+                                x=bar_column,
+                                title=f"Distribusi {bar_column}",
+                                nbins=20,
+                                color_discrete_sequence=['#3366CC']
+                            )
+                        st.plotly_chart(fig_bar, use_container_width=True)
+                
+                # Line Chart untuk data time series
+                st.write("**📈 Line Chart**")
+                st.markdown("Untuk tren data over time atau sequential")
+                
+                numeric_columns = edited_df.select_dtypes(include=[np.number]).columns.tolist()
+                if len(numeric_columns) >= 2:
+                    col_line1, col_line2 = st.columns(2)
+                    with col_line1:
+                        x_column = st.selectbox("Pilih kolom X:", edited_df.columns, key="line_x")
+                    with col_line2:
+                        y_column = st.selectbox("Pilih kolom Y:", numeric_columns, key="line_y")
+                    
+                    if x_column and y_column:
+                        try:
+                            # Coba sorting jika numeric
+                            if edited_df[x_column].dtype in [np.number]:
+                                temp_df = edited_df.sort_values(x_column)
+                            else:
+                                temp_df = edited_df
+                            
+                            fig_line = px.line(
+                                temp_df, 
+                                x=x_column, 
+                                y=y_column,
+                                title=f"{y_column} vs {x_column}",
+                                markers=True,
+                                color_discrete_sequence=['#FF6B6B']
+                            )
+                            st.plotly_chart(fig_line, use_container_width=True)
+                        except Exception as e:
+                            st.warning(f"Tidak dapat membuat line chart: {e}")
+            
+            with analisis_tab3:
+                st.write("**🔍 Matriks Korelasi**")
+                st.markdown("Menunjukkan hubungan linear antar variabel numerik")
+                
+                numeric_df = edited_df.select_dtypes(include=[np.number])
+                if not numeric_df.empty and len(numeric_df.columns) > 1:
+                    corr_matrix = numeric_df.corr()
+                    
+                    # Matriks Korelasi
+                    fig_corr = px.imshow(
+                        corr_matrix,
+                        title="Matriks Korelasi",
+                        color_continuous_scale='RdBu_r',
+                        aspect='auto',
+                        text_auto=True
+                    )
+                    st.plotly_chart(fig_corr, use_container_width=True)
+                    
+                    # Heatmap correlation yang lebih detail
+                    st.write("**🔥 Heatmap Korelasi**")
+                    fig_heatmap = go.Figure(data=go.Heatmap(
+                        z=corr_matrix.values,
+                        x=corr_matrix.columns,
+                        y=corr_matrix.columns,
+                        colorscale='Viridis',
+                        hoverongaps=False,
+                        text=corr_matrix.values,
+                        texttemplate="%{text:.2f}"
+                    ))
+                    fig_heatmap.update_layout(
+                        title="Heatmap Korelasi Detail",
+                        xaxis_title="Variabel",
+                        yaxis_title="Variabel"
+                    )
+                    st.plotly_chart(fig_heatmap, use_container_width=True)
+                    
+                    # Korelasi tertinggi
+                    st.write("**📈 Korelasi Tertinggi**")
+                    corr_pairs = []
+                    for i in range(len(corr_matrix.columns)):
+                        for j in range(i+1, len(corr_matrix.columns)):
+                            corr_pairs.append({
+                                'Variabel 1': corr_matrix.columns[i],
+                                'Variabel 2': corr_matrix.columns[j],
+                                'Korelasi': abs(corr_matrix.iloc[i, j])
+                            })
+                    
+                    corr_df = pd.DataFrame(corr_pairs).sort_values('Korelasi', ascending=False).head(10)
+                    st.dataframe(corr_df, use_container_width=True)
+                    
+                else:
+                    st.info("❌ Tidak ada cukup kolom numerik untuk analisis korelasi")
+            
+            with analisis_tab4:
+                st.write("**📋 Data Quality Report**")
+                st.markdown("Laporan lengkap kualitas data Anda:")
+                
+                col_qual1, col_qual2 = st.columns(2)
+                
+                with col_qual1:
+                    # Missing values analysis
+                    st.write("**🔍 Analisis Missing Values**")
+                    missing_data = edited_df.isnull().sum()
+                    missing_percent = (missing_data / len(edited_df)) * 100
+                    
+                    missing_df = pd.DataFrame({
+                        'Kolom': missing_data.index,
+                        'Missing Count': missing_data.values,
+                        'Missing %': missing_percent.values
+                    }).sort_values('Missing Count', ascending=False)
+                    
+                    # Hanya tampilkan kolom dengan missing values
+                    missing_df = missing_df[missing_df['Missing Count'] > 0]
+                    
+                    if not missing_df.empty:
+                        st.dataframe(missing_df, use_container_width=True)
+                        
+                        # Visualisasi missing values
+                        fig_missing = px.bar(
+                            missing_df,
+                            x='Kolom',
+                            y='Missing Count',
+                            title='Missing Values per Kolom',
+                            color='Missing %',
+                            color_continuous_scale='reds'
+                        )
+                        st.plotly_chart(fig_missing, use_container_width=True)
+                    else:
+                        st.success("✅ Tidak ada missing values!")
+                
+                with col_qual2:
+                    # Data types and unique values
+                    st.write("**📊 Tipe Data & Nilai Unik**")
+                    quality_data = []
+                    for col in edited_df.columns:
+                        quality_data.append({
+                            'Kolom': col,
+                            'Tipe Data': str(edited_df[col].dtype),
+                            'Nilai Unik': edited_df[col].nunique(),
+                            'Nilai Kosong': edited_df[col].isnull().sum()
+                        })
+                    
+                    quality_df = pd.DataFrame(quality_data)
+                    st.dataframe(quality_df, use_container_width=True)
+                    
+                    # Memory usage
+                    st.write("**💾 Penggunaan Memory**")
+                    memory_usage = edited_df.memory_usage(deep=True).sum() / 1024  # KB
+                    st.metric("Total Memory", f"{memory_usage:.2f} KB")
+                    
+                    # Data shape
+                    st.write("**📐 Dimensi Data**")
+                    col_shape1, col_shape2 = st.columns(2)
+                    with col_shape1:
+                        st.metric("Baris", len(edited_df))
+                    with col_shape2:
+                        st.metric("Kolom", len(edited_df.columns))
+
+            # Section 6: Edit Kolom
+            st.subheader("✏️ Edit Kolom")
+            st.markdown("Ubah struktur dan tipe data kolom:")
+            
+            col_edit1, col_edit2, col_edit3 = st.columns(3)
+            
+            with col_edit1:
+                # Rename kolom
+                st.write("**🏷️ Rename Kolom**")
+                columns = edited_df.columns.tolist()
+                selected_col = st.selectbox("Pilih kolom:", columns, key="rename_col")
+                new_name = st.text_input("Nama baru:", value=selected_col, key="new_name")
+                
+                if st.button("🔄 Ubah Nama Kolom", use_container_width=True, key="rename_btn"):
+                    if new_name and new_name != selected_col:
+                        edited_df = edited_df.rename(columns={selected_col: new_name})
+                        st.session_state.edited_df = edited_df
+                        st.success(f"✅ Kolom {selected_col} berhasil diubah menjadi {new_name}")
+                        st.rerun()
+                    else:
+                        st.warning("⚠️ Nama baru harus berbeda dari nama lama")
+            
+            with col_edit2:
+                # Hapus kolom
+                st.write("**❌ Hapus Kolom**")
+                col_to_delete = st.selectbox("Pilih kolom untuk dihapus:", columns, key="delete_col")
+                
+                if st.button("🗑️ Hapus Kolom", use_container_width=True, key="delete_btn"):
+                    if len(edited_df.columns) > 1:
+                        edited_df = edited_df.drop(columns=[col_to_delete])
+                        st.session_state.edited_df = edited_df
+                        st.success(f"✅ Kolom {col_to_delete} berhasil dihapus!")
+                        st.rerun()
+                    else:
+                        st.error("❌ Tidak bisa menghapus kolom terakhir!")
+            
+            with col_edit3:
+                # Ubah tipe data
+                st.write("**🔄 Ubah Tipe Data**")
+                col_to_convert = st.selectbox("Pilih kolom:", columns, key="convert_col")
+                current_dtype = str(edited_df[col_to_convert].dtype)
+                st.write(f"Tipe data saat ini: `{current_dtype}`")
+                
+                new_dtype = st.selectbox(
+                    "Tipe data baru:",
+                    ['pertahankan', 'string', 'numeric', 'datetime', 'category', 'boolean'],
+                    key="dtype_select"
+                )
+                
+                if st.button("⚡ Ubah Tipe Data", use_container_width=True, key="convert_btn"):
+                    try:
+                        if new_dtype == 'string':
+                            edited_df[col_to_convert] = edited_df[col_to_convert].astype(str)
+                        elif new_dtype == 'numeric':
+                            edited_df[col_to_convert] = pd.to_numeric(edited_df[col_to_convert], errors='coerce')
+                        elif new_dtype == 'datetime':
+                            edited_df[col_to_convert] = pd.to_datetime(edited_df[col_to_convert], errors='coerce')
+                        elif new_dtype == 'category':
+                            edited_df[col_to_convert] = edited_df[col_to_convert].astype('category')
+                        elif new_dtype == 'boolean':
+                            edited_df[col_to_convert] = edited_df[col_to_convert].astype(bool)
+                        
+                        st.session_state.edited_df = edited_df
+                        st.success(f"✅ Tipe data {col_to_convert} berhasil diubah ke {new_dtype}")
+                        st.rerun()
+                    except Exception as e:
+                        st.error(f"❌ Error: {e}")
+
+            # Section 7: Filter Data
+            st.subheader("🔍 Filter Data")
+            st.markdown("Saring data berdasarkan kriteria tertentu:")
+            
+            filter_col1, filter_col2 = st.columns(2)
+            
+            with filter_col1:
+                filter_col = st.selectbox("Pilih kolom untuk filter:", edited_df.columns, key="filter_col")
+                st.write(f"Tipe data: `{edited_df[filter_col].dtype}`")
+            
+            with filter_col2:
+                if edited_df[filter_col].dtype in ['object', 'string', 'category']:
+                    unique_vals = edited_df[filter_col].unique()
+                    selected_vals = st.multiselect("Pilih nilai yang ingin ditampilkan:", unique_vals, key="cat_filter")
+                    if selected_vals:
+                        filtered_df = edited_df[edited_df[filter_col].isin(selected_vals)]
+                        st.info(f"📊 Menampilkan {len(filtered_df)} dari {len(edited_df)} baris")
+                    else:
+                        filtered_df = edited_df
+                else:
+                    min_val = float(edited_df[filter_col].min())
+                    max_val = float(edited_df[filter_col].max())
+                    val_range = st.slider(
+                        "Pilih range nilai:",
+                        min_val, max_val, (min_val, max_val),
+                        key="num_filter"
+                    )
+                    filtered_df = edited_df[
+                        (edited_df[filter_col] >= val_range[0]) & 
+                        (edited_df[filter_col] <= val_range[1])
+                    ]
+                    st.info(f"📊 Menampilkan {len(filtered_df)} dari {len(edited_df)} baris")
+            
+            # Tampilkan data terfilter
+            if not filtered_df.equals(edited_df):
+                st.write("**👀 Preview Data Terfilter**")
+                st.dataframe(filtered_df, use_container_width=True)
+
+            # Section 8: Transformasi Data
+            st.subheader("🔄 Transformasi Data")
+            st.markdown("Transformasi data untuk analisis yang lebih baik:")
+            
+            col_trans1, col_trans2 = st.columns(2)
+            
+            with col_trans1:
+                st.write("**🔢 Transformasi Numerik**")
+                numeric_cols = edited_df.select_dtypes(include=[np.number]).columns.tolist()
+                if numeric_cols:
+                    num_col = st.selectbox(
+                        "Pilih kolom numerik:",
+                        numeric_cols,
+                        key="num_col"
+                    )
+                    
+                    transform_type = st.selectbox(
+                        "Jenis transformasi:",
+                        ['None', 'Log', 'Square Root', 'Normalize', 'Standardize', 'Square'],
+                        key="transform_type"
+                    )
+                    
+                    if st.button("⚡ Terapkan Transformasi", use_container_width=True) and transform_type != 'None':
+                        try:
+                            col_name = f"{num_col}_{transform_type.lower()}"
+                            if transform_type == 'Log':
+                                edited_df[col_name] = np.log(edited_df[num_col] + 1e-10)  # Avoid log(0)
+                            elif transform_type == 'Square Root':
+                                edited_df[col_name] = np.sqrt(edited_df[num_col])
+                            elif transform_type == 'Normalize':
+                                edited_df[col_name] = (edited_df[num_col] - edited_df[num_col].min()) / (edited_df[num_col].max() - edited_df[num_col].min())
+                            elif transform_type == 'Standardize':
+                                edited_df[col_name] = (edited_df[num_col] - edited_df[num_col].mean()) / edited_df[num_col].std()
+                            elif transform_type == 'Square':
+                                edited_df[col_name] = edited_df[num_col] ** 2
+                            
+                            st.session_state.edited_df = edited_df
+                            st.success(f"✅ Transformasi {transform_type} berhasil diterapkan! Kolom baru: {col_name}")
+                            st.rerun()
+                        except Exception as e:
+                            st.error(f"❌ Error dalam transformasi: {e}")
+                else:
+                    st.info("❌ Tidak ada kolom numerik untuk transformasi")
+            
+            with col_trans2:
+                st.write("**📊 Group By & Aggregasi**")
+                group_col = st.selectbox(
+                    "Kolom untuk group by:",
+                    ['None'] + edited_df.columns.tolist(),
+                    key="group_col"
+                )
+                
+                if group_col != 'None':
+                    numeric_cols = edited_df.select_dtypes(include=[np.number]).columns.tolist()
+                    if numeric_cols:
+                        agg_col = st.selectbox(
+                            "Kolom untuk aggregasi:",
+                            numeric_cols,
+                            key="agg_col"
+                        )
+                        
+                        agg_func = st.selectbox(
+                            "Fungsi aggregasi:",
+                            ['mean', 'sum', 'count', 'min', 'max', 'std', 'median'],
+                            key="agg_func"
+                        )
+                        
+                        if st.button("📈 Terapkan Group By", use_container_width=True):
+                            try:
+                                grouped_df = edited_df.groupby(group_col)[agg_col].agg(agg_func).reset_index()
+                                st.write("**📋 Hasil Group By:**")
+                                st.dataframe(grouped_df, use_container_width=True)
+                                
+                                # Visualisasi hasil group by
+                                fig_group = px.bar(
+                                    grouped_df,
+                                    x=group_col,
+                                    y=agg_col,
+                                    title=f"{agg_func.title()} of {agg_col} by {group_col}",
+                                    color=agg_col,
+                                    color_continuous_scale='viridis'
+                                )
+                                fig_group.update_layout(xaxis_tickangle=-45)
+                                st.plotly_chart(fig_group, use_container_width=True)
+                                
+                                # Opsi untuk menyimpan hasil group by
+                                if st.button("💾 Simpan Hasil Group By", use_container_width=True):
+                                    edited_df = grouped_df
+                                    st.session_state.edited_df = edited_df
+                                    st.success("✅ Hasil group by disimpan sebagai data utama!")
+                                    st.rerun()
+                            except Exception as e:
+                                st.error(f"❌ Error dalam group by: {e}")
+                    else:
+                        st.info("❌ Tidak ada kolom numerik untuk aggregasi")
+
+            # Section 9: Edit Data Manual
+            st.subheader("📝 Edit Data Manual")
+            st.markdown("Edit data secara langsung di tabel berikut:")
+            
+            st.write("**✏️ Edit Nilai Sel**")
+            edit_cols = st.multiselect(
+                "Pilih kolom yang akan diedit:",
+                edited_df.columns,
+                default=edited_df.columns[:min(3, len(edited_df.columns))].tolist(),
+                key="edit_cols"
+            )
+            
+            if edit_cols:
+                st.info("💡 Anda dapat mengedit nilai langsung di tabel. Double-click pada sel untuk mengedit.")
+                edited_data = st.data_editor(
+                    edited_df[edit_cols],
+                    use_container_width=True,
+                    num_rows="dynamic",
+                    key="data_editor_main"
+                )
+                
+                # Update hanya kolom yang diedit
+                edited_df[edit_cols] = edited_data
+                st.session_state.edited_df = edited_df
+                
+                if not edited_data.equals(edited_df[edit_cols].iloc[:len(edited_data)]):
+                    st.success("✅ Perubahan berhasil disimpan!")
+
+            # Section 10: Pivot Table
+            st.subheader("📊 Pivot Table")
+            st.markdown("Buat pivot table untuk analisis multidimensi:")
+            
+            col_pivot1, col_pivot2, col_pivot3 = st.columns(3)
+            
+            with col_pivot1:
+                pivot_index = st.selectbox("Index:", edited_df.columns, key="pivot_index")
+            with col_pivot2:
+                pivot_columns = st.selectbox("Columns:", ['None'] + edited_df.columns.tolist(), key="pivot_columns")
+            with col_pivot3:
+                pivot_values = st.selectbox("Values:", 
+                                          ['None'] + edited_df.select_dtypes(include=[np.number]).columns.tolist(), 
+                                          key="pivot_values")
+            
+            if st.button("🎯 Buat Pivot Table", use_container_width=True) and pivot_values != 'None':
+                try:
+                    if pivot_columns == 'None':
+                        pivot_df = edited_df.pivot_table(
+                            index=pivot_index,
+                            values=pivot_values,
+                            aggfunc='mean'
+                        )
+                    else:
+                        pivot_df = edited_df.pivot_table(
+                            index=pivot_index,
+                            columns=pivot_columns,
+                            values=pivot_values,
+                            aggfunc='mean'
+                        )
+                    
+                    st.write("**📊 Pivot Table:**")
+                    st.dataframe(pivot_df, use_container_width=True)
+                    
+                    # Heatmap untuk pivot table
+                    if not pivot_df.empty and len(pivot_df) > 1:
+                        st.write("**🔥 Heatmap Pivot Table**")
+                        fig_pivot = px.imshow(
+                            pivot_df,
+                            title="Heatmap Pivot Table",
+                            color_continuous_scale='Blues',
+                            aspect='auto'
+                        )
+                        st.plotly_chart(fig_pivot, use_container_width=True)
+                except Exception as e:
+                    st.error(f"❌ Error membuat pivot table: {e}")
+
+            # Section 11: Download File
+            st.subheader("💾 Download File")
+            st.markdown("Download hasil editing dalam berbagai format:")
+            
+            col_dl1, col_dl2, col_dl3, col_dl4 = st.columns(4)
+            
+            with col_dl1:
+                # Download CSV
+                csv_data = edited_df.to_csv(index=False)
+                st.download_button(
+                    label="📥 Download CSV",
+                    data=csv_data,
+                    file_name="edited_data.csv",
+                    mime="text/csv",
+                    use_container_width=True,
+                    help="Download data dalam format CSV"
+                )
+            
+            with col_dl2:
+                # Download Excel
+                excel_buffer = io.BytesIO()
+                with pd.ExcelWriter(excel_buffer, engine='openpyxl') as writer:
+                    edited_df.to_excel(writer, index=False, sheet_name='Data')
+                    
+                    # Tambahkan sheet dengan statistik
+                    if not edited_df.select_dtypes(include=[np.number]).empty:
+                        edited_df.describe().to_excel(writer, sheet_name='Statistik')
+                
+                excel_data = excel_buffer.getvalue()
+                
+                st.download_button(
+                    label="📥 Download Excel",
+                    data=excel_data,
+                    file_name="edited_data.xlsx",
+                    mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                    use_container_width=True,
+                    help="Download data dalam format Excel dengan multiple sheets"
+                )
+            
+            with col_dl3:
+                # Download JSON
+                json_data = edited_df.to_json(orient='records', indent=2)
+                st.download_button(
+                    label="📥 Download JSON",
+                    data=json_data,
+                    file_name="edited_data.json",
+                    mime="application/json",
+                    use_container_width=True,
+                    help="Download data dalam format JSON"
+                )
+            
+            with col_dl4:
+                # Reset data
+                if st.button("🔄 Reset ke Data Awal", use_container_width=True, 
+                           help="Kembali ke data original yang diupload"):
+                    edited_df = original_df.copy()
+                    st.session_state.edited_df = edited_df
+                    st.success("✅ Data berhasil direset ke kondisi awal!")
+                    st.rerun()
+
+            # Section 12: Informasi Data (DIPERBAIKI)
+            st.subheader("ℹ️ Informasi Data")
+            st.markdown("Ringkasan perubahan dan informasi data:")
+            
+            col_info1, col_info2, col_info3, col_info4 = st.columns(4)
+            
+            with col_info1:
+                # Perbaikan: Hilangkan delta untuk menghindari error
+                st.metric("Jumlah Baris", len(edited_df))
+                st.metric("Jumlah Kolom", len(edited_df.columns))
+            
+            with col_info2:
+                memory_usage = edited_df.memory_usage(deep=True).sum() / 1024
+                st.metric("Memory Usage", f"{memory_usage:.2f} KB")
+                
+                duplicates = edited_df.duplicated().sum()
+                st.metric("Duplikat", duplicates)
+            
+            with col_info3:
+                na_count = edited_df.isna().sum().sum()
+                st.metric("Nilai NA", na_count)
+                
+                unique_dtypes = len(edited_df.dtypes.unique())
+                st.metric("Tipe Data", f"{unique_dtypes} jenis")
+            
+            with col_info4:
+                numeric_cols = len(edited_df.select_dtypes(include=[np.number]).columns)
+                categorical_cols = len(edited_df.select_dtypes(include=['object', 'category']).columns)
+                st.metric("Kolom Numerik", numeric_cols)
+                st.metric("Kolom Kategorikal", categorical_cols)
+
+            # Tampilkan perbandingan dengan data asli (opsional)
+            if original_df is not None:
+                st.write("**📊 Perbandingan dengan Data Asli**")
+                comp_col1, comp_col2, comp_col3, comp_col4 = st.columns(4)
+                
+                with comp_col1:
+                    row_change = len(edited_df) - len(original_df)
+                    change_text = f"{row_change:+d}" if row_change != 0 else "0"
+                    st.metric("Perubahan Baris", len(edited_df), delta=change_text)
+                
+                with comp_col2:
+                    col_change = len(edited_df.columns) - len(original_df.columns)
+                    change_text = f"{col_change:+d}" if col_change != 0 else "0"
+                    st.metric("Perubahan Kolom", len(edited_df.columns), delta=change_text)
+                
+                with comp_col3:
+                    na_change = edited_df.isna().sum().sum() - original_df.isna().sum().sum()
+                    change_text = f"{na_change:+d}" if na_change != 0 else "0"
+                    st.metric("Perubahan NA", edited_df.isna().sum().sum(), delta=change_text)
+                
+                with comp_col4:
+                    dup_change = edited_df.duplicated().sum() - original_df.duplicated().sum()
+                    change_text = f"{dup_change:+d}" if dup_change != 0 else "0"
+                    st.metric("Perubahan Duplikat", edited_df.duplicated().sum(), delta=change_text)
+
+            # Preview data setelah editing
+            st.subheader("👁️ Data Setelah Editing")
+            st.markdown("**Preview data setelah semua editing:**")
+            st.dataframe(edited_df, use_container_width=True)
+            
+        else:
+            st.info("📁 Silakan upload file CSV atau Excel untuk mulai mengedit")
+            
+            # Contoh data untuk demo
+            if st.button("🔄 Load Contoh Data", help="Muat data contoh untuk mencoba fitur editor"):
+                # Buat contoh data
+                example_data = pd.DataFrame({
+                    'Nama': ['Alice', 'Bob', 'Charlie', 'Diana', 'Eve', 'Frank', 'Grace', 'Henry'],
+                    'Usia': [25, 30, 35, 28, 32, 29, 31, 27],
+                    'Kota': ['Jakarta', 'Bandung', 'Surabaya', 'Jakarta', 'Bandung', 'Surabaya', 'Jakarta', 'Bandung'],
+                    'Gaji': [50000, 60000, 70000, 55000, 65000, 58000, 72000, 53000],
+                    'Departemen': ['IT', 'HR', 'IT', 'Finance', 'HR', 'IT', 'Finance', 'HR'],
+                    'Pengalaman': [2, 5, 8, 3, 6, 4, 7, 2],
+                    'Status': ['Aktif', 'Aktif', 'Non-Aktif', 'Aktif', 'Aktif', 'Non-Aktif', 'Aktif', 'Aktif']
+                })
+                
+                st.session_state.original_df = example_data.copy()
+                st.session_state.edited_df = example_data.copy()
+                
+                st.success("✅ Contoh data berhasil dimuat!")
+                st.rerun()
     
     with tab11:
         st.header("⚡ Konversi File XLS - CSV (High Performance)")
@@ -14428,16 +16192,16 @@ if df is not None:
             col1, col2 = st.columns(2)
             
             with col1:
-                # Placeholder untuk visualisasi distribusi normal
+               
                 st.image("https://upload.wikimedia.org/wikipedia/commons/thumb/7/74/Normal_Distribution_PDF.svg/1200px-Normal_Distribution_PDF.svg.png", 
                         caption="Distribusi Normal", use_column_width=True)
             
             with col2:
-                # Placeholder untuk visualisasi korelasi
+           
                 st.image("https://uploads-ssl.webflow.com/61af164800e38cf1b6c60b55/6401eb60f7f8fc5fd74a1abd_nilai%20korelasi.WebP",
                         caption="Jenis-jenis Korelasi", use_column_width=True)
         
-        # Distribusi Probabilitas
+
         st.markdown("### 📊 Distribusi Probabilitas")
         
         col1, col2 = st.columns(2)
@@ -14467,9 +16231,7 @@ if df is not None:
         
         st.divider()
         
-        # Informasi Lisensi dengan expander
         st.subheader("📄 Hak Lisensi")
-        # Video Tutorial (placeholder)
         st.markdown("### 🎥 Proses Pembuatan Streamlit Launcher")
         import streamlit.components.v1 as components
         google_drive_id = "1RD94cKgmYzbIf83jXz1cIPeweQeqx9CS"
@@ -14530,7 +16292,7 @@ if df is not None:
         st.divider()
 
         
-        # Informasi Penelitian
+     
         st.subheader("🔬 Informasi Penelitian")
         
         col1, col2 = st.columns([2, 1])
@@ -14555,7 +16317,7 @@ if df is not None:
             st.image("https://cdn-icons-png.flaticon.com/512/2933/2933245.png",
                     caption="Metode Penelitian", width=200)
         
-        # Metode Statistik dengan cards
+
         st.markdown("### 📐 Metode Statistik yang Digunakan")
         
         col1, col2, col3 = st.columns(3)
@@ -14589,7 +16351,7 @@ if df is not None:
         
         st.divider()
         
-        # Sumber Belajar dengan tabs
+        
         st.subheader("📚 Sumber Belajar Statistik")
         
         tab_buku, tab_online, tab_tools = st.tabs(["📖 Buku", "🌐 Online", "🛠️ Tools"])
@@ -14658,7 +16420,7 @@ if df is not None:
         
         st.divider()
         
-        # Kontak dan Support
+     
         st.subheader("📞 Kontak & Support")
         
         col1, col2, col3 = st.columns(3)
@@ -14690,7 +16452,7 @@ if df is not None:
             - Compatibility: Python 3.8+
             """)
         
-        # Footer
+ 
         st.markdown("---")
         st.markdown(
             "<div style='text-align: center; color: gray;'>"
@@ -14709,14 +16471,14 @@ if df is not None:
     with tab3:
         st.header("📋 Data Lengkap & Analisis Komprehensif")
 
-        # Cek jika df ada dan tidak kosong
+    
         if 'df' in locals() or 'df' in globals():
             if len(df) > 0:
-                # Optimasi: Tampilkan dataframe dengan pagination untuk dataset besar
+    
                 st.dataframe(df, use_container_width=True, 
                             height=400 if len(df) > 1000 else min(400, len(df)*25))
                 
-                # Informasi dasar dataset dengan optimasi memory
+        
                 st.subheader("📊 Informasi Dataset")
                 
                 col_info1, col_info2, col_info3, col_info4 = st.columns(4)
@@ -14742,7 +16504,7 @@ if df is not None:
                     st.metric("Memory Usage", f"{memory_usage:.2f} MB")
                     st.metric("Data Types", f"{len(df.dtypes.unique())}")
 
-                # Optimasi: Hitung statistik hanya sekali dan cache
+            
                 @st.cache_data
                 def calculate_basic_stats(_df, numeric_columns):
                     stats = {}
@@ -14753,7 +16515,7 @@ if df is not None:
                         stats['std_value'] = _df[numeric_columns].std().mean()
                         stats['cv_value'] = (stats['std_value'] / stats['avg_value'] * 100) if stats['avg_value'] != 0 else 0
                         
-                        # Tambahan statistik lengkap
+                    
                         stats['skewness'] = _df[numeric_columns].skew().mean()
                         stats['kurtosis'] = _df[numeric_columns].kurtosis().mean()
                         stats['q1'] = _df[numeric_columns].quantile(0.25).mean()
@@ -14764,16 +16526,16 @@ if df is not None:
                         
                     return stats
 
-                # Section untuk statistik deskriptif
+             
                 st.subheader("📊 Statistik Deskriptif Lengkap")
                 
-                # Pilih kolom numerik
+              
                 numeric_columns = df.select_dtypes(include=['number']).columns.tolist()
                 
                 if numeric_columns:
                     basic_stats = calculate_basic_stats(df, numeric_columns)
                     
-                    # Tampilkan dalam 2 baris metrik
+                 
                     col1, col2, col3, col4 = st.columns(4)
                     
                     with col1:
@@ -14796,7 +16558,7 @@ if df is not None:
                         st.metric("Koef. Variasi", f"{basic_stats['cv_value']:.1f}%")
                         st.metric("Skewness", f"{basic_stats['skewness']:.2f}")
 
-                # STRATEGI DAN METODOLOGI ANALISIS
+            
                 st.subheader("🎯 STRATEGI ANALISIS & METODOLOGI")
                 
                 strategy_tab1, strategy_tab2, strategy_tab3 = st.tabs(["📋 Framework", "🧮 Rumus Statistik", "🔍 Teknik Analisis"])
@@ -14890,17 +16652,17 @@ if df is not None:
                     - Year-over-Year Growth
                     """)
 
-                # ANALISIS LENGKAP DENGAN RUMUSAN MASALAH DAN SOLUSI
+              
                 st.subheader("🔍 ANALISIS KOMPREHENSIF & REKOMENDASI STRATEGIS")
 
-                # Identifikasi Masalah Utama dengan Scoring
+           
                 st.markdown("### 🎯 DIAGNOSIS MASALAH UTAMA")
                 
                 problems = []
                 solutions = []
                 risk_scores = []
                 
-                # Analisis Data Quality dengan scoring
+             
                 completeness_rate = (1 - missing_values / (len(df) * len(df.columns))) * 100 if len(df) > 0 else 0
                 if completeness_rate < 90:
                     risk_score = min(100, (90 - completeness_rate) * 2)
@@ -14924,7 +16686,7 @@ if df is not None:
                     solutions.append("**Hapus Duplikat**: Gunakan df.drop_duplicates() dengan subset kolom kunci untuk membersihkan data")
                     risk_scores.append(risk_score)
                 
-                # Analisis Variasi Data
+           
                 high_variance_cols = []
                 if numeric_columns:
                     for col in numeric_columns:
@@ -14942,7 +16704,7 @@ if df is not None:
                         solutions.append("**Normalisasi Data**: Terapkan standard scaling atau min-max scaling untuk kolom dengan variasi tinggi sebelum modeling")
                         risk_scores.append(risk_score)
                 
-                # Analisis Outlier dengan detail
+                
                 outlier_cols = []
                 if numeric_columns:
                     for col in numeric_columns:
@@ -14965,7 +16727,7 @@ if df is not None:
                         solutions.append("**Treatment Outlier**: Pertimbangkan winsorizing (mengganti dengan Q1-1.5IQR/Q3+1.5IQR) atau transformasi logaritmik")
                         risk_scores.append(risk_score)
 
-                # Analisis Distribusi Data
+        
                 if numeric_columns and 'basic_stats' in locals():
                     skewness_risk = abs(basic_stats['skewness'])
                     if skewness_risk > 1:
@@ -14978,7 +16740,7 @@ if df is not None:
                         solutions.append("**Transformasi Data**: Pertimbangkan transformasi log, square root, atau Box-Cox untuk normalisasi distribusi")
                         risk_scores.append(min(100, skewness_risk * 20))
 
-                # Tampilkan Masalah dan Solusi dengan Risk Assessment
+            
                 col_prob, col_sol = st.columns(2)
                 
                 with col_prob:
@@ -15017,14 +16779,14 @@ if df is not None:
                     else:
                         st.success("✅ Data dalam kondisi baik untuk analisis lanjutan")
 
-                # KESIMPULAN ANALITIS LENGKAP DENGAN STRATEGI BISNIS
+        
                 st.subheader("🎯 KESIMPULAN ANALITIS & STRATEGI BISNIS")
                 
-                # Hitung metrics untuk kesimpulan
+         
                 data_quality_score = completeness_rate - (duplicate_rows / len(df) * 100) - (len(high_variance_cols) * 5) - (len(outlier_cols) * 3)
                 data_quality_score = max(0, min(100, data_quality_score))
                 
-                # Business Impact Assessment
+              
                 business_impact = "Tinggi" if data_quality_score > 80 else "Menengah" if data_quality_score > 60 else "Rendah"
                 implementation_priority = "Segera" if data_quality_score < 70 else "Bisa Ditunda"
                 analytics_readiness = "Siap" if data_quality_score > 75 else "Perlu Persiapan" if data_quality_score > 50 else "Tidak Siap"
@@ -15107,10 +16869,10 @@ if df is not None:
                         "🚀 Lanjutkan" if data_quality_score > 70 else "⏳ Tunda"
                     ))
 
-                # ROADMAP IMPLEMENTASI DETAIL
+             
                 st.subheader("📋 ROADMAP IMPLEMENTASI DETAIL")
                 
-                # Define phases based on data quality score
+              
                 if data_quality_score < 50:
                     phases = [
                         {
@@ -15177,7 +16939,7 @@ if df is not None:
                         }
                     ]
                 
-                # Display roadmap
+           
                 for i, phase in enumerate(phases):
                     with st.expander(f"{phase['phase']} ({phase['duration']})", expanded=True):
                         col_act, col_del = st.columns(2)
@@ -15192,10 +16954,10 @@ if df is not None:
                             for deliverable in phase['deliverables']:
                                 st.markdown(f"• {deliverable}")
 
-                # FINAL EXECUTIVE SUMMARY
+            
                 st.subheader("🏆 EXECUTIVE SUMMARY")
                 
-                # Create executive summary based on analysis
+              
                 if data_quality_score >= 80:
                     summary = f"""
                     **🎉 STATUS: EXCELLENT** 
@@ -15235,11 +16997,11 @@ if df is not None:
                 
                 st.info(summary)
 
-                # Ekspor Laporan Super Lengkap
+            
                 st.subheader("📤 EKSPOR LAPORAN ANALISIS SUPER LENGKAP")
                 
                 if st.button("📊 GENERATE COMPREHENSIVE BUSINESS REPORT"):
-                    # Buat laporan analisis super lengkap
+               
                     comprehensive_report = f"""
                     LAPORAN ANALISIS DATA BISNIS KOMPREHENSIF
                     ===========================================
@@ -15352,7 +17114,7 @@ else:
     example_data = create_sample_file()
     st.dataframe(example_data.head(), use_container_width=True)
     
-    # Informasi kolom data
+
     st.markdown("""
     **Keterangan Kolom Data:**
     - **Date**: Tanggal transaksi (format: YYYY-MM-DD)
@@ -15368,7 +17130,7 @@ else:
     st.subheader("📊 Pratinjau Visualisasi Dashboard")
     st.write("Dashboard ini akan menampilkan berbagai visualisasi interaktif setelah data diunggah:")
     
-    # Row 1: KPI Cards
+
     st.write("**📈 Key Performance Indicators**")
     kpi_col1, kpi_col2, kpi_col3, kpi_col4 = st.columns(4)
     
@@ -15416,32 +17178,32 @@ else:
         </div>
         """, unsafe_allow_html=True)
     
-    # Deteksi tipe data kolom
+  
     numeric_cols = example_data.select_dtypes(include=[np.number]).columns.tolist()
     categorical_cols = example_data.select_dtypes(include=['object']).columns.tolist()
     
-    # Jika tidak ada kolom kategorikal, coba kolom dengan nilai unik sedikit
+ 
     if not categorical_cols:
         for col in example_data.columns:
-            if example_data[col].nunique() <= 10:  # Jika punya <= 10 nilai unik, anggap kategorikal
+            if example_data[col].nunique() <= 10:  
                 categorical_cols.append(col)
     
-    # Row 2: Line Chart dan Area Chart
+ 
     col1, col2 = st.columns(2)
     
     with col1:
-        # Line Chart - Trend Harga
+     
         st.write("**📈 Line Chart - Trend Data**")
         
-        # Cek dan proses data untuk line chart
+
         if len(numeric_cols) >= 4:
-            # Gunakan 4 kolom numerik pertama untuk line chart
+        
             line_data = example_data.reset_index()
             fig_line = px.line(line_data, x=line_data.index, y=numeric_cols[:4],
                               title='Trend Data Numerik',
                               color_discrete_sequence=['#636EFA', '#00CC96', '#EF553B', '#AB63FA'])
         else:
-            # Gunakan semua kolom numerik yang ada
+        
             line_data = example_data.reset_index()
             available_cols = numeric_cols[:min(4, len(numeric_cols))]
             if available_cols:
@@ -15449,7 +17211,7 @@ else:
                                   title='Trend Data Numerik',
                                   color_discrete_sequence=px.colors.qualitative.Set1[:len(available_cols)])
             else:
-                # Buat data dummy jika tidak ada kolom numerik
+           
                 dummy_data = pd.DataFrame({
                     'index': range(10),
                     'Value1': np.random.rand(10) * 100,
@@ -15469,7 +17231,7 @@ else:
         st.caption("Line chart menampilkan pergerakan data numerik untuk analisis trend.")
     
     with col2:
-        # Area Chart - Data Numerik
+     
         st.write("**📊 Area Chart - Distribusi Kumulatif**")
         
         if numeric_cols:
@@ -15478,7 +17240,7 @@ else:
                               title=f'Distribusi Kumulatif {numeric_cols[0]}',
                               color_discrete_sequence=['#FFA15A'])
         else:
-            # Buat data dummy
+           
             area_data = pd.DataFrame({
                 'index': range(10),
                 'Value': np.cumsum(np.random.rand(10) * 10)
@@ -15496,11 +17258,11 @@ else:
         st.plotly_chart(fig_area, use_container_width=True)
         st.caption("Area chart menunjukkan distribusi kumulatif data dengan fill pattern.")
     
-    # Row 3: Histogram dan Pie Chart
+
     col3, col4 = st.columns(2)
     
     with col3:
-        # Histogram Distribusi Data
+ 
         st.write("**📊 Histogram - Distribusi Data**")
         
         if numeric_cols:
@@ -15510,7 +17272,7 @@ else:
                                    opacity=0.8,
                                    nbins=20)
         else:
-            # Buat data dummy
+       
             dummy_hist = pd.DataFrame({
                 'Value': np.random.normal(100, 15, 1000)
             })
@@ -15531,14 +17293,14 @@ else:
         st.caption("Histogram menampilkan distribusi frekuensi data untuk analisis pola sebaran.")
     
     with col4:
-        # Pie Chart - Komposisi Kategori
+  
         st.write("**🥧 Pie Chart - Komposisi Data**")
         
         if categorical_cols:
             cat_composition = example_data[categorical_cols[0]].value_counts().reset_index()
             cat_composition.columns = ['Kategori', 'Count']
         else:
-            # Buat data dummy
+         
             cat_composition = pd.DataFrame({
                 'Kategori': ['Kategori A', 'Kategori B', 'Kategori C', 'Kategori D'],
                 'Count': [25, 30, 20, 25]
@@ -15557,11 +17319,11 @@ else:
         st.plotly_chart(fig_pie, use_container_width=True)
         st.caption("Pie chart menunjukkan komposisi persentase data berdasarkan kategori.")
     
-    # Row 4: Scatter Plot dan Bar Chart
+ 
     col5, col6 = st.columns(2)
     
     with col5:
-        # Scatter Plot - Korelasi Variabel
+       
         st.write("**🔍 Scatter Plot - Korelasi Variabel**")
         
         if len(numeric_cols) >= 2:
@@ -15580,7 +17342,7 @@ else:
                                        title=f'Korelasi {x_col} vs {y_col}',
                                        color_discrete_sequence=['#636EFA'])
         else:
-            # Buat data dummy
+         
             dummy_scatter = pd.DataFrame({
                 'X': np.random.rand(50) * 100,
                 'Y': np.random.rand(50) * 100 + 50,
@@ -15600,7 +17362,7 @@ else:
         st.caption("Scatter plot menampilkan hubungan korelasi antara dua variabel numerik.")
     
     with col6:
-        # Bar Chart - Rata-rata per Kategori
+      
         st.write("**📊 Bar Chart - Performa per Kategori**")
         
         if categorical_cols and numeric_cols:
@@ -15612,7 +17374,7 @@ else:
                             color='Rata_rata',
                             color_continuous_scale='Viridis')
         else:
-            # Data dummy untuk bar chart
+        
             bar_data = pd.DataFrame({
                 'Kategori': ['Kategori A', 'Kategori B', 'Kategori C', 'Kategori D'],
                 'Rata_rata': [100, 150, 120, 180]
@@ -15632,15 +17394,15 @@ else:
         st.plotly_chart(fig_bar, use_container_width=True)
         st.caption("Bar chart perbandingan rata-rata nilai untuk setiap kategori.")
     
-    # Row 5: Treemap dan Box Plot
+
     col7, col8 = st.columns(2)
     
     with col7:
-        # Treemap - Hierarki Data
+      
         st.write("**🌳 Treemap - Struktur Hierarkis**")
         
         if len(categorical_cols) >= 2 and numeric_cols:
-            # Pastikan kita punya cukup kolom kategorikal
+        
             tree_group_cols = categorical_cols[:2]
             tree_data = example_data.groupby(tree_group_cols)[numeric_cols[0]].sum().reset_index()
             
@@ -15649,9 +17411,9 @@ else:
                                  color=numeric_cols[0], 
                                  color_continuous_scale='Blues')
         elif categorical_cols and numeric_cols:
-            # Jika hanya punya 1 kolom kategorikal, buat level tambahan
+
             tree_data = example_data.copy()
-            tree_data['Level2'] = 'Subkategori'  # Tambahkan level dummy
+            tree_data['Level2'] = 'Subkategori' 
             tree_group_cols = [categorical_cols[0], 'Level2']
             tree_data = tree_data.groupby(tree_group_cols)[numeric_cols[0]].sum().reset_index()
             
@@ -15660,7 +17422,7 @@ else:
                                  color=numeric_cols[0], 
                                  color_continuous_scale='Blues')
         else:
-            # Data dummy untuk treemap
+
             tree_data = pd.DataFrame({
                 'Level1': ['Sektor A', 'Sektor A', 'Sektor B', 'Sektor B'],
                 'Level2': ['Produk 1', 'Produk 2', 'Produk 1', 'Produk 2'],
@@ -15679,7 +17441,6 @@ else:
         st.caption("Treemap menampilkan hubungan hierarkis antara kategori data berdasarkan nilai agregat.")
     
     with col8:
-        # Box Plot - Distribusi per Kategori
         st.write("**📦 Box Plot - Variasi Data**")
         
         if categorical_cols and numeric_cols:
@@ -15688,7 +17449,6 @@ else:
                             color=categorical_cols[0],
                             color_discrete_sequence=px.colors.qualitative.Pastel)
         else:
-            # Data dummy untuk box plot
             dummy_box = pd.DataFrame({
                 'Kategori': ['A']*20 + ['B']*20 + ['C']*20,
                 'Nilai': np.concatenate([
@@ -15711,7 +17471,7 @@ else:
         st.plotly_chart(fig_box, use_container_width=True)
         st.caption("Box plot menunjukkan distribusi statistik data untuk setiap kategori.")
 
-    # Fitur Dashboard yang Tersedia
+
     st.subheader("🚀 Fitur Dashboard yang Tersedia")
     
     feature_col1, feature_col2, feature_col3 = st.columns(3)
@@ -15759,7 +17519,6 @@ st.markdown("""
 </div>
 """, unsafe_allow_html=True)
 
-# Footer yang aman
 try:
     total_records = len(df) if 'df' in locals() or 'df' in globals() else 0
     quality_score = data_quality_score if 'data_quality_score' in locals() or 'data_quality_score' in globals() else 0
