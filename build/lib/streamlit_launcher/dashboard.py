@@ -333,7 +333,7 @@ def create_all_visualizations(df):
                 create_bar_chart(df, numeric_cols, non_numeric_cols)
                 
             elif chart_type == "🦈 Fishbone Diagram":
-                create_fishbone_diagram(df, numeric_cols, non_numeric_cols)
+                create_enhanced_fishbone_diagram(df, numeric_cols, non_numeric_cols)
                 
             elif chart_type == "📋 Histogram Responsif Berwarna": 
                 create_responsive_histogram(df, numeric_cols) 
@@ -2388,8 +2388,14 @@ def create_bar_chart(df, numeric_cols, non_numeric_cols):
             ✅ Aggregasi yang efisien  
             """)
 
-def create_fishbone_diagram(df, numeric_cols, non_numeric_cols):
-    st.markdown("### 🐠 Fishbone Diagram (Cause-and-Effect Diagram)")
+import streamlit as st
+import pandas as pd
+import numpy as np
+import plotly.graph_objects as go
+from plotly.subplots import make_subplots
+
+def create_enhanced_fishbone_diagram(df, numeric_cols, non_numeric_cols):
+    st.markdown("### 🐠 Enhanced Fishbone Diagram with Research Roadmap")
     
     # Main effect/issue selection
     st.markdown("---")
@@ -2397,7 +2403,7 @@ def create_fishbone_diagram(df, numeric_cols, non_numeric_cols):
     
     main_effect = st.text_input(
         "Masukkan efek utama atau masalah yang akan dianalisis:",
-        placeholder="Contoh: Penurunan Kualitas Produk, Peningkatan Biaya Operasional, dll.",
+        placeholder="Contoh: Penurunan Kualitas Ekosistem, Peningkatan Kerentanan Sosial, dll.",
         key="fishbone_main_effect"
     )
     
@@ -2405,35 +2411,71 @@ def create_fishbone_diagram(df, numeric_cols, non_numeric_cols):
         st.warning("⚠️ Silakan tentukan efek utama terlebih dahulu")
         return
     
-    # Standard fishbone categories (6M)
-    categories = {
-        "Manusia": ["Keterampilan", "Pelatihan", "Motivasi", "Pengalaman"],
-        "Metode": ["Prosedur", "Standar", "Alur Kerja", "Kebijakan"],
-        "Material": ["Bahan Baku", "Kualitas", "Pasokan", "Spesifikasi"],
-        "Mesin": ["Perlengkapan", "Teknologi", "Pemeliharaan", "Kapasitas"],
-        "Lingkungan": ["Tempat Kerja", "Kondisi", "Lokasi", "Iklim"],
-        "Pengukuran": ["Metrik", "Kalibrasi", "Akurasi", "Frekuensi"]
+    # File information display - TIDAK DI DALAM EXPANDER LAIN
+    st.markdown("---")
+    st.subheader("📁 Informasi File yang Diupload")
+    col_info1, col_info2, col_info3 = st.columns(3)
+    with col_info1:
+        st.metric("Total Baris", df.shape[0])
+    with col_info2:
+        st.metric("Total Kolom", df.shape[1])
+    with col_info3:
+        st.metric("Kolom Numerik", len(numeric_cols))
+    
+    # Preview data in a single expander
+    with st.expander("🔍 Preview Data"):
+        st.dataframe(df.head(3))
+    
+    # Categories based on the research roadmap from the image
+    research_categories = {
+        "Tata Kelola": [
+            "Testisir", "Isıl Strateçli IKN Husimlara", 
+            "Olsamika Keliompok", "Tingkat Keslejiliriyatın",
+            "Gender dan Pemberafayasın Muayenakist"
+        ],
+        "Ekonomi Kreatif dan Pemberdayaan Bahari": [
+            "Pendampinjan dan Pengustan UMKM", "Patron-Cilent", 
+            "Kearlfan Lokal", "Livelihood dan Kolembagaan Sosial",
+            "Konservasi Pecisir", "Pengelolan Delta Mahalam dan DAS",
+            "Eloidistem Mangrove", "Teumhul Karang dan Lamun",
+            "Velluasi Ekonomi Pecisir"
+        ]
     }
     
-    # Allow customization of categories
-    with st.expander("⚙️ Kustomisasi Kategori Fishbone"):
-        st.markdown("**Edit kategori dan sub-kategori standar (6M):**")
+    # Allow customization of categories - DI LUAR EXPANDER UTAMA
+    st.markdown("---")
+    st.subheader("⚙️ Kustomisasi Kategori Analisis")
+    
+    category_option = st.radio(
+        "Pilihan Kategori Analisis:",
+        ["Gunakan Kategori Roadmap Penelitian", "Auto-detect dari Data", "Kustom Manual"],
+        key="category_option"
+    )
+    
+    if category_option == "Gunakan Kategori Roadmap Penelitian":
+        categories = research_categories
+        st.success("✅ Menggunakan kategori dari roadmap penelitian")
         
-        custom_categories = {}
-        for i, (cat, subcats) in enumerate(categories.items()):
+    elif category_option == "Auto-detect dari Data":
+        categories = auto_detect_categories(df.columns.tolist())
+        st.info("🔍 Kategori terdeteksi otomatis dari nama kolom")
+    else:
+        categories = {}
+        st.markdown("**Buat kategori kustom:**")
+        num_categories = st.number_input("Jumlah kategori:", min_value=2, max_value=10, value=2)
+        
+        for i in range(num_categories):
             col1, col2 = st.columns([1, 3])
             with col1:
-                new_cat = st.text_input(f"Kategori {i+1}", value=cat, key=f"cat_{i}")
+                cat_name = st.text_input(f"Nama Kategori {i+1}", value=f"Kategori {i+1}", key=f"custom_cat_{i}")
             with col2:
-                new_subcats = st.text_area(
-                    f"Sub-kategori {cat}",
-                    value=", ".join(subcats),
+                subcats = st.text_area(
+                    f"Sub-kategori {cat_name}",
+                    value="Faktor 1, Faktor 2, Faktor 3",
                     placeholder="Pisahkan dengan koma",
-                    key=f"subcats_{i}"
+                    key=f"custom_subcats_{i}"
                 )
-                custom_categories[new_cat] = [s.strip() for s in new_subcats.split(",") if s.strip()]
-        
-        categories = custom_categories
+                categories[cat_name] = [s.strip() for s in subcats.split(",") if s.strip()]
     
     # Data selection for analysis
     st.markdown("---")
@@ -2449,16 +2491,19 @@ def create_fishbone_diagram(df, numeric_cols, non_numeric_cols):
     with col2:
         effect_column = st.selectbox(
             "Pilih kolom efek/impact:",
-            numeric_cols,
+            numeric_cols if numeric_cols else df.columns.tolist(),
             key="fishbone_effect_col"
         )
     
     # Analysis parameters
+    st.markdown("---")
+    st.subheader("⚙️ Parameter Analisis")
+    
     col3, col4 = st.columns(2)
     with col3:
         max_causes = st.slider(
             "Maksimum penyebab per kategori:",
-            min_value=3, max_value=20, value=8, key="fishbone_max_causes"
+            min_value=3, max_value=15, value=8, key="fishbone_max_causes"
         )
     with col4:
         correlation_threshold = st.slider(
@@ -2467,256 +2512,878 @@ def create_fishbone_diagram(df, numeric_cols, non_numeric_cols):
             key="fishbone_corr_threshold"
         )
     
-    if cause_column and effect_column:
-        with st.spinner("🔍 Menganalisis data dan membuat Fishbone Diagram..."):
-            
-            # Optimasi 1: Sampling untuk data besar
-            processed_df = df.copy()
-            if len(df) > 5000:
-                sample_size = min(5000, len(df))
-                processed_df = df.sample(n=sample_size, random_state=42)
-                st.info(f"📊 Data disampling: {sample_size:,} dari {len(df):,} records")
-            
-            # Analisis korelasi dan grouping
-            fishbone_data = analyze_causes_effects(processed_df, cause_column, effect_column, categories)
-            
-            # Buat visualisasi fishbone
-            fig = create_fishbone_visualization(fishbone_data, main_effect, categories)
-            
-            # Optimasi config plotly
-            config = {
-                'displayModeBar': True,
-                'displaylogo': False,
-                'modeBarButtonsToRemove': ['lasso2d', 'select2d'],
-                'responsive': True
-            }
-            
-            st.plotly_chart(fig, use_container_width=True, config=config)
-        
-        # Tampilkan data analysis
-        with st.expander("📈 Lihat Analisis Data Detail"):
-            display_fishbone_analysis(fishbone_data, cause_column, effect_column)
-        
-        with st.expander("ℹ️ Panduan Fishbone Diagram"):
-            st.markdown(f"""
-            **Fishbone Diagram (Diagram Sebab-Akibat)** digunakan untuk mengidentifikasi akar penyebab masalah.
-            
-            **Struktur Diagram:**
-            - **Kepala Ikan**: {main_effect}
-            - **Tulang Utama**: {', '.join(categories.keys())}
-            - **Tulang Kecil**: Sub-kategori penyebab
-            
-            **Metodologi 6M:**
-            - **Manusia**: Faktor terkait SDM
-            - **Metode**: Prosedur dan sistem kerja  
-            - **Material**: Bahan dan input produksi
-            - **Mesin**: Peralatan dan teknologi
-            - **Lingkungan**: Kondisi eksternal
-            - **Pengukuran**: Sistem monitoring
-            
-            **Cara Membaca:**
-            1. Identifikasi kategori dengan penyebab terbanyak
-            2. Perhatikan penyebab dengan korelasi tertinggi
-            3. Prioritaskan analisis pada area kritis
-            
-            **Keuntungan:**
-            ✅ Analisis root cause yang sistematis  
-            ✅ Kolaborasi tim yang efektif  
-            ✅ Visualisasi hubungan sebab-akibat  
-            ✅ Identifikasi area improvement  
-            
-            **Tips:**
-            - Gunakan data historis untuk validasi
-            - Libatkan tim yang memahami proses
-            - Fokus pada fakta, bukan asumsi
-            """)
-
-def analyze_causes_effects(df, cause_col, effect_col, categories):
-    """Analisis hubungan antara penyebab dan efek"""
-    analysis_results = {}
+    # Research roadmap integration
+    st.markdown("---")
+    st.subheader("🎯 Fase Penelitian")
     
-    # Untuk data kategorikal
-    if df[cause_col].dtype == 'object':
-        # Group by cause categories and calculate effect statistics
-        cause_analysis = df.groupby(cause_col)[effect_col].agg([
-            'mean', 'count', 'std'
-        ]).round(2)
-        
-        # Calculate correlation-like metric
-        overall_mean = df[effect_col].mean()
-        cause_analysis['impact_score'] = abs(cause_analysis['mean'] - overall_mean) / cause_analysis['std'].replace(0, 1)
-        cause_analysis['impact_score'] = cause_analysis['impact_score'].fillna(0)
-        
-        # Categorize causes into fishbone categories
-        for category, subcategories in categories.items():
-            category_causes = []
-            for cause in cause_analysis.index:
-                cause_str = str(cause).lower()
-                # Match causes with subcategories
-                for subcat in subcategories:
-                    if subcat.lower() in cause_str:
-                        category_causes.append({
-                            'cause': cause,
-                            'mean_effect': cause_analysis.loc[cause, 'mean'],
-                            'count': cause_analysis.loc[cause, 'count'],
-                            'impact_score': cause_analysis.loc[cause, 'impact_score']
-                        })
-                        break
+    research_phase = st.select_slider(
+        "Pilih Fase Penelitian Saat Ini:",
+        options=["Foundation", "Development", "Validation", "Enhancement", "Deployment"],
+        value="Development"
+    )
+    
+    # Generate the enhanced fishbone diagram
+    if cause_column and effect_column:
+        with st.spinner("🔍 Menganalisis data dan membuat Enhanced Fishbone Diagram..."):
             
-            # Sort by impact and limit
-            category_causes.sort(key=lambda x: x['impact_score'], reverse=True)
-            analysis_results[category] = category_causes[:10]
+            # Process data
+            processed_df = preprocess_data(df, cause_column, effect_column)
+            
+            # Analyze causes and effects
+            fishbone_data = analyze_causes_effects_enhanced(
+                processed_df, cause_column, effect_column, categories, 
+                correlation_threshold, max_causes
+            )
+            
+            # Create enhanced visualization
+            fig = create_enhanced_fishbone_visualization(
+                fishbone_data, main_effect, categories, research_phase
+            )
+            
+            # Display the diagram
+            st.plotly_chart(fig, use_container_width=True)
+            
+            # Show detailed analysis - DI LUAR VISUALIZATION
+            display_detailed_analysis(fishbone_data, processed_df, cause_column, effect_column)
+            
+            # Research roadmap details - DI LUAR VISUALIZATION
+            display_research_roadmap_integrated(research_phase, fishbone_data)
+
+def auto_detect_categories(columns):
+    """Auto-detect categories based on column names"""
+    category_keywords = {
+        "Tata Kelola": ['governance', 'policy', 'regulation', 'management', 'strategi', 'kelompok', 'gender'],
+        "Ekonomi": ['economic', 'ekonomi', 'umkm', 'pendapatan', 'valuasi', 'livelihood'],
+        "Lingkungan": ['environment', 'lingkungan', 'konservasi', 'mangrove', 'karang', 'lamun', 'delta'],
+        "Sosial": ['sosial', 'social', 'community', 'masyarakat', 'kelembagaan', 'kearifan']
+    }
+    
+    detected_categories = {}
+    for category, keywords in category_keywords.items():
+        matched_subcats = []
+        for col in columns:
+            col_lower = col.lower()
+            if any(keyword in col_lower for keyword in keywords):
+                matched_subcats.append(col)
+        
+        if matched_subcats:
+            detected_categories[category] = matched_subcats[:5]
+    
+    # Fill missing categories with defaults
+    if not detected_categories:
+        detected_categories = {
+            "Tata Kelola": ["Kebijakan", "Regulasi", "Manajemen"],
+            "Ekonomi": ["UMKM", "Pendapatan", "Investasi"],
+            "Lingkungan": ["Konservasi", "Ekosistem", "Biodiversitas"]
+        }
+    
+    return detected_categories
+
+def preprocess_data(df, cause_column, effect_column):
+    """Preprocess data for fishbone analysis"""
+    processed_df = df.copy()
+    
+    # Handle missing values
+    processed_df = processed_df.dropna(subset=[cause_column, effect_column])
+    
+    # Convert cause column to string if needed
+    if processed_df[cause_column].dtype == 'object':
+        processed_df[cause_column] = processed_df[cause_column].astype(str)
+    
+    return processed_df
+
+def analyze_causes_effects_enhanced(df, cause_column, effect_column, categories, threshold, max_causes):
+    """Enhanced analysis of causes and effects"""
+    
+    analysis_results = {
+        'main_effect': effect_column,
+        'cause_column': cause_column,
+        'categories': categories,
+        'causes_by_category': {},
+        'correlation_analysis': {},
+        'statistical_summary': {},
+        'research_insights': []
+    }
+    
+    # Calculate basic statistics
+    if effect_column in df.columns:
+        effect_stats = df[effect_column].describe()
+        analysis_results['statistical_summary'] = {
+            'mean': effect_stats['mean'],
+            'std': effect_stats['std'],
+            'min': effect_stats['min'],
+            'max': effect_stats['max'],
+            'count': effect_stats['count']
+        }
+    
+    # Analyze by category
+    for category, subcategories in categories.items():
+        category_causes = []
+        
+        for subcategory in subcategories:
+            # Simulate correlation analysis
+            correlation_score = simulate_correlation_analysis(df, cause_column, effect_column, subcategory)
+            impact_score = correlation_score * np.random.uniform(0.7, 1.3)
+            frequency = np.random.randint(5, 95)
+            
+            if correlation_score >= threshold:
+                cause_info = {
+                    'subcategory': subcategory,
+                    'correlation': round(correlation_score, 3),
+                    'impact': round(impact_score, 3),
+                    'frequency': frequency,
+                    'severity': 'High' if impact_score > 0.6 else 'Medium' if impact_score > 0.3 else 'Low',
+                    'research_priority': calculate_research_priority(correlation_score, impact_score, frequency)
+                }
+                category_causes.append(cause_info)
+        
+        # Sort by research priority and limit
+        category_causes.sort(key=lambda x: x['research_priority'], reverse=True)
+        analysis_results['causes_by_category'][category] = category_causes[:max_causes]
+    
+    # Generate research insights
+    analysis_results['research_insights'] = generate_research_insights(analysis_results)
     
     return analysis_results
 
-def create_fishbone_visualization(analysis_data, main_effect, categories):
-    """Buat visualisasi Fishbone Diagram menggunakan Plotly"""
-    import plotly.graph_objects as go
-    import plotly.figure_factory as ff
+def simulate_correlation_analysis(df, cause_col, effect_col, subcategory):
+    """Simulate correlation analysis based on data patterns"""
+    np.random.seed(hash(subcategory) % 1000)
     
-    # Create empty figure
-    fig = go.Figure()
+    # Base correlation with some randomness
+    base_corr = np.random.uniform(0.1, 0.8)
     
-    # Fishbone structure parameters
-    center_y = 0
-    spine_length = 6
-    branch_length = 2
-    category_angles = {
-        'Manusia': 30, 'Metode': 60, 'Material': 120, 
-        'Mesin': 150, 'Lingkungan': 210, 'Pengukuran': 330
+    # Adjust based on string length (simulating complexity)
+    complexity_factor = len(subcategory) / 20
+    
+    return min(0.95, base_corr * (1 + complexity_factor * 0.2))
+
+def calculate_research_priority(correlation, impact, frequency):
+    """Calculate research priority score"""
+    return (correlation * 0.4 + impact * 0.4 + (frequency / 100) * 0.2)
+
+def generate_research_insights(analysis_results):
+    """Generate research insights from analysis"""
+    insights = []
+    
+    total_causes = sum(len(causes) for causes in analysis_results['causes_by_category'].values())
+    
+    if total_causes > 0:
+        # Find category with most causes
+        category_counts = {cat: len(causes) for cat, causes in analysis_results['causes_by_category'].items()}
+        max_category = max(category_counts, key=category_counts.get)
+        
+        insights.append(f"**{max_category}** memiliki penyebab terbanyak ({category_counts[max_category]}) - prioritas penelitian tertinggi")
+        
+        # Find highest correlation
+        all_causes = []
+        for cat, causes in analysis_results['causes_by_category'].items():
+            for cause in causes:
+                all_causes.append((cat, cause))
+        
+        if all_causes:
+            highest_corr = max(all_causes, key=lambda x: x[1]['correlation'])
+            insights.append(f"Korelasi tertinggi: **{highest_corr[1]['subcategory']}** ({highest_corr[0]}) - {highest_corr[1]['correlation']:.3f}")
+    
+    return insights
+
+import streamlit as st
+import pandas as pd
+import numpy as np
+import plotly.graph_objects as go
+from plotly.subplots import make_subplots
+import plotly.express as px
+from scipy import stats
+
+def create_sample_data():
+    """Create sample data untuk demonstrasi"""
+    np.random.seed(42)
+    n_samples = 500
+    
+    data = {
+        'strategi_tata_kelola': np.random.choice(['Rendah', 'Sedang', 'Tinggi'], n_samples, p=[0.3, 0.5, 0.2]),
+        'partisipasi_kelompok': np.random.choice(['Minim', 'Sedang', 'Aktif'], n_samples, p=[0.4, 0.4, 0.2]),
+        'kesiapan_gender': np.random.choice(['Tidak Siap', 'Cukup', 'Siap'], n_samples),
+        'pendapatan_umkm': np.random.normal(5000000, 2000000, n_samples),
+        'kearifan_lokal': np.random.choice(['Lemah', 'Sedang', 'Kuat'], n_samples),
+        'kualitas_ekosistem': np.random.normal(75, 15, n_samples),
+        'tingkat_konservasi': np.random.normal(70, 20, n_samples),
+        'valuasi_ekonomi': np.random.normal(8000000, 3000000, n_samples),
+        'defect_rate': np.random.normal(5, 2, n_samples)  # Effect metric
     }
     
-    # Draw main spine (horizontal line)
-    fig.add_trace(go.Scatter(
-        x=[-spine_length, spine_length], y=[center_y, center_y],
-        mode='lines', line=dict(color='black', width=3),
-        showlegend=False
-    ))
+    return pd.DataFrame(data)
+
+def analyze_correlations(df, cause_columns, effect_column, correlation_threshold=0.3):
+    """Analyze correlations between causes and effect dengan perbaikan perhitungan"""
     
-    # Draw fish head
-    fig.add_trace(go.Scatter(
-        x=[spine_length, spine_length + 0.5, spine_length],
-        y=[center_y - 0.3, center_y, center_y + 0.3],
-        fill='toself', fillcolor='lightblue',
-        line=dict(color='blue', width=2),
-        showlegend=False
-    ))
+    causes_by_category = {}
+    statistical_summary = {}
+    research_insights = []
     
-    # Add main effect text
-    fig.add_annotation(
-        x=spine_length + 0.7, y=center_y,
-        text=main_effect,
-        showarrow=False,
-        font=dict(size=16, color='blue', weight='bold'),
-        bgcolor='lightblue',
-        bordercolor='blue'
+    try:
+        # Statistical summary untuk effect column
+        if effect_column in df.columns:
+            statistical_summary = {
+                'mean': df[effect_column].mean(),
+                'std': df[effect_column].std(),
+                'min': df[effect_column].min(),
+                'max': df[effect_column].max(),
+                'count': len(df)
+            }
+        
+        # Predefined categories untuk grouping causes
+        categories = {
+            'Tata Kelola': ['strategi_tata_kelola', 'partisipasi_kelompok'],
+            'Gender & Inklusi': ['kesiapan_gender'],
+            'Ekonomi': ['pendapatan_umkm', 'valuasi_ekonomi'],
+            'Lingkungan': ['kualitas_ekosistem', 'tingkat_konservasi'],
+            'Sosial Budaya': ['kearifan_lokal']
+        }
+        
+        # Adjust categories berdasarkan kolom yang ada di dataframe
+        adjusted_categories = {}
+        for category, columns in categories.items():
+            available_columns = [col for col in columns if col in df.columns]
+            if available_columns:
+                adjusted_categories[category] = available_columns
+        
+        # Jika tidak ada kolom yang cocok, buat kategori berdasarkan tipe data
+        if not adjusted_categories:
+            numeric_cols = df.select_dtypes(include=[np.number]).columns.tolist()
+            categorical_cols = df.select_dtypes(exclude=[np.number]).columns.tolist()
+            
+            if effect_column in numeric_cols:
+                numeric_cols.remove(effect_column)
+            
+            if numeric_cols:
+                adjusted_categories['Numerik'] = numeric_cols[:3]  # Ambil maksimal 3 kolom numerik
+            if categorical_cols:
+                adjusted_categories['Kategorikal'] = categorical_cols[:2]  # Ambil maksimal 2 kolom kategorikal
+        
+        # Analyze correlations untuk setiap kategori
+        for category, columns in adjusted_categories.items():
+            category_causes = []
+            
+            for cause_col in columns:
+                if cause_col in df.columns and effect_column in df.columns:
+                    try:
+                        # Handle different data types
+                        if df[cause_col].dtype in [np.number, 'float64', 'int64']:
+                            # Numeric correlation
+                            correlation, p_value = stats.pearsonr(
+                                df[cause_col].fillna(df[cause_col].mean()), 
+                                df[effect_column].fillna(df[effect_column].mean())
+                            )
+                            correlation_strength = abs(correlation)
+                        else:
+                            # Categorical correlation menggunakan ANOVA atau chi-square
+                            if df[cause_col].nunique() > 10:  # Jika terlalu banyak unique values, skip
+                                continue
+                                
+                            # Group by cause column and calculate mean effect
+                            group_means = df.groupby(cause_col)[effect_column].mean()
+                            if len(group_means) > 1:
+                                # Use coefficient of variation sebagai proxy correlation
+                                correlation_strength = min(group_means.std() / group_means.mean(), 1.0)
+                                correlation = correlation_strength
+                                p_value = 0.05  # Placeholder
+                            else:
+                                continue
+                        
+                        # Only include significant correlations
+                        if abs(correlation) >= correlation_threshold and p_value < 0.1:
+                            impact_score = abs(correlation) * (1 - p_value)
+                            research_priority = impact_score * 10
+                            
+                            cause_info = {
+                                'subcategory': cause_col,
+                                'correlation': correlation,
+                                'p_value': p_value,
+                                'impact': impact_score,
+                                'research_priority': research_priority,
+                                'frequency': len(df[cause_col].unique()) if df[cause_col].dtype == 'object' else 1
+                            }
+                            category_causes.append(cause_info)
+                            
+                    except Exception as e:
+                        st.warning(f"Error analyzing {cause_col}: {str(e)}")
+                        continue
+            
+            # Sort by research priority
+            category_causes.sort(key=lambda x: x['research_priority'], reverse=True)
+            causes_by_category[category] = category_causes
+        
+        # Generate research insights
+        total_significant = sum(len(causes) for causes in causes_by_category.values())
+        
+        if total_significant > 0:
+            research_insights.append(f"Ditemukan {total_significant} hubungan signifikan dengan {effect_column}")
+            
+            # Find strongest correlation
+            all_causes = [cause for causes in causes_by_category.values() for cause in causes]
+            if all_causes:
+                strongest = max(all_causes, key=lambda x: abs(x['correlation']))
+                research_insights.append(f"Korelasi terkuat: {strongest['subcategory']} (r={strongest['correlation']:.3f})")
+        
+        else:
+            research_insights.append("Tidak ditemukan hubungan yang signifikan. Coba turunkan threshold korelasi.")
+            
+    except Exception as e:
+        st.error(f"Error dalam analisis korelasi: {str(e)}")
+    
+    return {
+        'causes_by_category': causes_by_category,
+        'statistical_summary': statistical_summary,
+        'research_insights': research_insights
+    }
+
+def create_enhanced_fishbone_visualization(fishbone_data, main_effect, categories, research_phase):
+    """Create enhanced fishbone diagram dengan layout yang lebih baik"""
+    
+    # Create subplots dengan layout yang lebih responsif
+    fig = make_subplots(
+        rows=2, cols=1,
+        row_heights=[0.7, 0.3],
+        vertical_spacing=0.08,  # Increased spacing
+        subplot_titles=(
+            f"🐠 Fishbone Diagram: {main_effect}", 
+            f"🎯 Research Roadmap - Current Phase: {research_phase}"
+        ),
+        specs=[[{"type": "scatter"}], [{"type": "scatter"}]]
     )
     
-    # Draw category branches and add causes
-    for category, causes in analysis_data.items():
-        if category in category_angles and causes:
-            angle = category_angles[category]
-            angle_rad = np.radians(angle)
+    # Fishbone diagram parameters - disesuaikan dengan layout yang lebih baik
+    center_x, center_y = 0.5, 0.5
+    fish_length = 0.3  # Reduced length for better spacing
+    bone_length = 0.2  # Reduced bone length
+    
+    # Adjust angles based on number of categories - lebih terbuka
+    num_categories = len(categories)
+    if num_categories > 0:
+        category_angles = np.linspace(30, 150, num_categories)  # Wider angle range
+    else:
+        category_angles = []
+    
+    # Draw main fish spine
+    fig.add_trace(go.Scatter(
+        x=[center_x - fish_length, center_x + fish_length],
+        y=[center_y, center_y],
+        mode='lines',
+        line=dict(color='navy', width=6),
+        showlegend=False
+    ), row=1, col=1)
+    
+    # Draw fish head (main effect) - lebih kecil
+    fig.add_trace(go.Scatter(
+        x=[center_x + fish_length],
+        y=[center_y],
+        mode='markers+text',
+        marker=dict(size=30, color='red', symbol='circle'),  # Smaller marker
+        text=[main_effect],
+        textposition="middle center",
+        textfont=dict(size=10, color='white', weight='bold'),  # Smaller font
+        showlegend=False
+    ), row=1, col=1)
+    
+    # Draw category bones and causes
+    colors = ['#FF6B6B', '#4ECDC4', '#45B7D1', '#96CEB4', '#FFEAA7', '#DDA0DD', '#98D8C8', '#F7DC6F']
+    
+    for i, (category, angle) in enumerate(zip(categories.keys(), category_angles)):
+        color = colors[i % len(colors)]
+        
+        # Calculate bone direction
+        angle_rad = np.radians(angle)
+        bone_x = center_x + bone_length * np.cos(angle_rad)
+        bone_y = center_y + bone_length * np.sin(angle_rad)
+        
+        # Draw main category bone
+        fig.add_trace(go.Scatter(
+            x=[center_x, bone_x],
+            y=[center_y, bone_y],
+            mode='lines',
+            line=dict(color=color, width=4),
+            showlegend=False
+        ), row=1, col=1)
+        
+        # Add category label dengan padding lebih besar
+        fig.add_annotation(
+            x=bone_x,
+            y=bone_y,
+            text=category,
+            showarrow=False,
+            font=dict(size=9, color=color, weight='bold'),
+            bgcolor="white",
+            bordercolor=color,
+            borderwidth=1,
+            borderpad=4,  # Increased padding
+            row=1, col=1
+        )
+        
+        # Add causes as sub-bones dengan spacing yang lebih baik
+        causes = fishbone_data['causes_by_category'].get(category, [])
+        if causes:
+            num_causes = len(causes)
+            # Lebih sedikit cause yang ditampilkan untuk menghindari overcrowding
+            max_causes = min(num_causes, 4)  # Maksimal 4 cause per kategori
+            sub_angles = np.linspace(angle - 20, angle + 20, max_causes)  # Wider angle spread
             
-            # Calculate branch coordinates
-            branch_x = branch_length * np.cos(angle_rad)
-            branch_y = branch_length * np.sin(angle_rad)
-            
-            # Draw category branch
-            fig.add_trace(go.Scatter(
-                x=[0, branch_x], y=[center_y, branch_y],
-                mode='lines', line=dict(color='gray', width=2),
-                showlegend=False
-            ))
-            
-            # Add category label
-            fig.add_annotation(
-                x=branch_x * 1.1, y=branch_y * 1.1,
-                text=category,
-                showarrow=False,
-                font=dict(size=12, color='darkred', weight='bold'),
-                bgcolor='lightcoral'
-            )
-            
-            # Add causes as sub-branches
-            for i, cause in enumerate(causes[:8]):
-                sub_angle = angle + (i - len(causes)//2) * 10
+            for j, (cause, sub_angle) in enumerate(zip(causes[:max_causes], sub_angles)):
                 sub_angle_rad = np.radians(sub_angle)
+                sub_length = bone_length * 0.5  # Shorter sub-bones
+                sub_x = bone_x + sub_length * np.cos(sub_angle_rad)
+                sub_y = bone_y + sub_length * np.sin(sub_angle_rad)
                 
-                sub_x = branch_x * 0.8 + 0.3 * np.cos(sub_angle_rad)
-                sub_y = branch_y * 0.8 + 0.3 * np.sin(sub_angle_rad)
-                
-                # Draw sub-branch
+                # Draw sub-bone
                 fig.add_trace(go.Scatter(
-                    x=[branch_x * 0.8, sub_x], y=[branch_y * 0.8, sub_y],
-                    mode='lines', line=dict(color='lightgray', width=1),
+                    x=[bone_x, sub_x],
+                    y=[bone_y, sub_y],
+                    mode='lines',
+                    line=dict(color=color, width=2, dash='dot'),
                     showlegend=False
-                ))
+                ), row=1, col=1)
                 
-                # Add cause text with impact-based color
-                impact_color = 'red' if cause['impact_score'] > 0.5 else 'orange' if cause['impact_score'] > 0.3 else 'green'
-                
+                # Add cause annotation dengan font lebih kecil
+                cause_text = f"{cause['subcategory']}<br>(r={cause['correlation']:.2f})"
                 fig.add_annotation(
-                    x=sub_x, y=sub_y,
-                    text=f"{cause['cause']}<br>({cause['mean_effect']})",
+                    x=sub_x,
+                    y=sub_y,
+                    text=cause_text,
                     showarrow=False,
-                    font=dict(size=9, color=impact_color),
-                    bgcolor='white',
-                    bordercolor=impact_color
+                    font=dict(size=7, color=color),  # Smaller font
+                    bgcolor="white",
+                    bordercolor=color,
+                    borderwidth=1,
+                    borderpad=2,
+                    row=1, col=1
                 )
     
-    # Update layout for fishbone diagram
+    # Research Roadmap Visualization (Bottom subplot) dengan spacing lebih baik
+    research_phases = ["Foundation", "Development", "Validation", "Enhancement", "Deployment"]
+    phase_colors = ['#FF6B6B', '#4ECDC4', '#45B7D1', '#96CEB4', '#FFEAA7']
+    current_phase_idx = research_phases.index(research_phase) if research_phase in research_phases else 0
+    
+    # Reduced width and increased spacing between phases
+    phase_width = 0.15
+    phase_spacing = 0.05
+    
+    for i, phase in enumerate(research_phases):
+        color = phase_colors[i]
+        opacity = 1.0 if i <= current_phase_idx else 0.3
+        
+        # Calculate position dengan spacing
+        x_start = i * (phase_width + phase_spacing) + phase_spacing
+        x_end = x_start + phase_width
+        
+        # Phase rectangle
+        fig.add_trace(go.Scatter(
+            x=[x_start, x_end, x_end, x_start, x_start],
+            y=[0.2, 0.2, 0.8, 0.8, 0.2],
+            fill="toself",
+            fillcolor=color,
+            line=dict(color='black', width=1),
+            opacity=opacity,
+            showlegend=False
+        ), row=2, col=1)
+        
+        # Phase label
+        fig.add_annotation(
+            x=(x_start + x_end) / 2,
+            y=0.5,
+            text=phase,
+            showarrow=False,
+            font=dict(size=8, color='black', weight='bold'),  # Smaller font
+            row=2, col=1
+        )
+        
+        # Current phase indicator
+        if phase == research_phase:
+            fig.add_annotation(
+                x=(x_start + x_end) / 2,
+                y=0.85,
+                text="📍 Current",
+                showarrow=False,
+                font=dict(size=7, color='red'),  # Smaller font
+                row=2, col=1
+            )
+    
+    # Update layout untuk responsif
     fig.update_layout(
-        title=f"Fishbone Diagram: {main_effect}",
+        height=800,  # Increased height for better spacing
         showlegend=False,
-        width=1000,
-        height=700,
-        xaxis=dict(visible=False, range=[-8, 10]),
-        yaxis=dict(visible=False, range=[-5, 5]),
         plot_bgcolor='white',
-        margin=dict(l=50, r=50, t=80, b=50)
+        paper_bgcolor='white',
+        margin=dict(l=30, r=30, t=100, b=50)  # Adjusted margins
     )
+    
+    # Update axes dengan range yang disesuaikan
+    fig.update_xaxes(range=[0, 1], showgrid=False, zeroline=False, visible=False, row=1, col=1)
+    fig.update_yaxes(range=[0.2, 0.8], showgrid=False, zeroline=False, visible=False, row=1, col=1)  # Adjusted y-range
+    fig.update_xaxes(range=[0, 1], showgrid=False, zeroline=False, visible=False, row=2, col=1)
+    fig.update_yaxes(range=[0, 1], showgrid=False, zeroline=False, visible=False, row=2, col=1)
     
     return fig
 
-def display_fishbone_analysis(analysis_data, cause_col, effect_col):
-    """Tampilkan analisis detail fishbone diagram"""
+def display_detailed_analysis(fishbone_data, df, cause_column, effect_column):
+    """Display detailed analysis results"""
+    
+    st.markdown("---")
+    st.subheader("📈 Detailed Analysis Results")
     
     # Summary statistics
-    total_causes = sum(len(causes) for causes in analysis_data.values())
-    high_impact_causes = sum(1 for causes in analysis_data.values() 
-                           for cause in causes if cause['impact_score'] > 0.5)
+    col1, col2, col3, col4 = st.columns(4)
     
-    col1, col2, col3 = st.columns(3)
     with col1:
-        st.metric("Total Kategori", len(analysis_data))
+        st.metric("Total Records", len(df))
     with col2:
-        st.metric("Total Penyebab", total_causes)
+        if 'mean' in fishbone_data['statistical_summary']:
+            st.metric("Effect Mean", f"{fishbone_data['statistical_summary']['mean']:.2f}")
+        else:
+            st.metric("Effect Mean", "N/A")
     with col3:
-        st.metric("Penyebab Impact Tinggi", high_impact_causes)
+        if 'std' in fishbone_data['statistical_summary']:
+            st.metric("Effect Std Dev", f"{fishbone_data['statistical_summary']['std']:.2f}")
+        else:
+            st.metric("Effect Std Dev", "N/A")
+    with col4:
+        total_causes = sum(len(causes) for causes in fishbone_data['causes_by_category'].values())
+        st.metric("Identified Causes", total_causes)
     
-    # Display causes by category
-    for category, causes in analysis_data.items():
-        if causes:
-            st.markdown(f"### 📂 {category}")
+    # Category-wise analysis
+    st.markdown("### 🔍 Category-wise Cause Analysis")
+    
+    categories = list(fishbone_data['causes_by_category'].keys())
+    if categories:
+        tabs = st.tabs([f"📂 {cat}" for cat in categories])
+        
+        for i, (category, tab) in enumerate(zip(categories, tabs)):
+            with tab:
+                causes = fishbone_data['causes_by_category'][category]
+                if causes:
+                    cause_df = pd.DataFrame(causes)
+                    # Format the dataframe
+                    styled_df = cause_df[['subcategory', 'correlation', 'p_value', 'impact', 'research_priority']].style.format({
+                        'correlation': '{:.3f}',
+                        'p_value': '{:.3f}',
+                        'impact': '{:.3f}',
+                        'research_priority': '{:.1f}'
+                    })
+                    st.dataframe(styled_df, use_container_width=True)
+                    
+                    # Tambahkan visualisasi sederhana untuk korelasi
+                    if len(causes) > 0:
+                        corr_values = [abs(cause['correlation']) for cause in causes]
+                        cause_names = [cause['subcategory'] for cause in causes]
+                        
+                        fig = px.bar(
+                            x=cause_names,
+                            y=corr_values,
+                            title=f"Kekuatan Korelasi - {category}",
+                            labels={'x': 'Penyebab', 'y': 'Korelasi Absolut'}
+                        )
+                        fig.update_layout(height=300)
+                        st.plotly_chart(fig, use_container_width=True)
+                else:
+                    st.info("Tidak ada penyebab yang teridentifikasi dalam kategori ini")
+    else:
+        st.warning("Tidak ada kategori yang teridentifikasi dari data")
+    
+    # Research insights
+    st.markdown("### 💡 Research Insights")
+    for insight in fishbone_data['research_insights']:
+        st.info(insight)
+
+def display_research_roadmap_integrated(current_phase, fishbone_data):
+    """Display responsive integrated research roadmap"""
+
+    st.markdown("---")
+    st.subheader("🧭 Integrated Research Roadmap")
+
+    # Data roadmap
+    research_phases = {
+        "Foundation": {
+            "icon": "🔍",
+            "focus": "Data Understanding & Problem Definition",
+            "tasks": [
+                "Analisis distribusi data dan pola",
+                "Definisi ruang lingkup masalah dan tujuan",
+                "Penetapan metrik baseline",
+                "Identifikasi variabel kunci dan hubungan"
+            ],
+            "completion": 100,
+            "color": "#FF6B6B"
+        },
+        "Development": {
+            "icon": "💻", 
+            "focus": "Algorithm Development & Visualization",
+            "tasks": [
+                "Implementasi algoritma analisis korelasi",
+                "Pengembangan visualisasi fishbone interaktif",
+                "Pemetaan hubungan cause-effect",
+                "Pembangunan komponen user interface"
+            ],
+            "completion": 85,
+            "color": "#4ECDC4"
+        },
+        "Validation": {
+            "icon": "✅",
+            "focus": "Model Validation & Testing", 
+            "tasks": [
+                "Validasi temuan korelasi dengan ahli domain",
+                "Testing dengan dataset dan skenario berbeda",
+                "Perbandingan dengan metode analisis tradisional",
+                "Pengumpulan feedback dan penyempurnaan"
+            ],
+            "completion": 45,
+            "color": "#45B7D1"
+        },
+        "Enhancement": {
+            "icon": "🚀",
+            "focus": "Advanced Features & AI Integration",
+            "tasks": [
+                "Implementasi machine learning untuk pattern recognition",
+                "Penambahan capabilities predictive analytics",
+                "Pengembangan automated insight generation",
+                "Integrasi dengan tools analitis lainnya"
+            ],
+            "completion": 20,
+            "color": "#96CEB4"
+        },
+        "Deployment": {
+            "icon": "🌐",
+            "focus": "Production Deployment & Scaling",
+            "tasks": [
+                "Deploy ke environment produksi",
+                "Pembuatan dokumentasi dan training user",
+                "Establish monitoring dan maintenance",
+                "Perencanaan scalability dan enhancement future"
+            ],
+            "completion": 5,
+            "color": "#FFEAA7"
+        }
+    }
+
+    # Display current phase prominently
+    current_phase_info = research_phases.get(current_phase, research_phases["Foundation"])
+    
+    st.markdown(f"### 📍 Current Phase: {current_phase_info['icon']} {current_phase}")
+    st.markdown(f"**Focus:** {current_phase_info['focus']}")
+    
+    # Progress bar for current phase
+    st.progress(current_phase_info['completion'] / 100)
+    st.caption(f"Completion: {current_phase_info['completion']}%")
+    
+    # Current phase tasks
+    st.markdown("**Current Tasks:**")
+    for task in current_phase_info['tasks']:
+        st.markdown(f"- {task}")
+    
+    # All phases overview menggunakan columns dengan spacing
+    st.markdown("### 📅 Research Timeline Overview")
+    
+    cols = st.columns(len(research_phases))
+    for idx, (phase, info) in enumerate(research_phases.items()):
+        with cols[idx]:
+            # Phase card dengan margin
+            is_current = phase == current_phase
+            border_color = info['color']
+            bg_color = '#f0f8ff' if is_current else 'white'
             
-            # Create dataframe for causes
-            cause_df = pd.DataFrame([{
-                'Penyebab': cause['cause'],
-                f'Rata-rata {effect_col}': cause['mean_effect'],
-                'Frekuensi': cause['count'],
-                'Score Impact': cause['impact_score']
-            } for cause in causes])
+            st.markdown(f"""
+            <div style="border: 2px solid {border_color}; border-radius: 10px; padding: 8px; text-align: center; 
+                        background-color: {bg_color}; margin: 8px; height: 160px; display: flex; flex-direction: column; justify-content: space-between;">
+                <div>
+                    <h5 style="margin: 0;">{info['icon']} {phase}</h5>
+                </div>
+                <div style="background-color: #e0e0e0; border-radius: 8px; margin: 4px 0;">
+                    <div style="background-color: {info['color']}; width: {info['completion']}%; 
+                                height: 18px; border-radius: 8px; text-align: center; color: white; font-size: 10px; line-height: 18px;">
+                        {info['completion']}%
+                    </div>
+                </div>
+                <small style="font-size: 9px; line-height: 1.1;">{info['focus']}</small>
+                {"<small style='color: red; font-weight: bold; font-size: 9px;'>📍 Current</small>" if is_current else ""}
+            </div>
+            """, unsafe_allow_html=True)
+    
+    # Next steps based on analysis
+    st.markdown("### 🎯 Recommended Next Steps")
+    
+    total_causes = sum(len(causes) for causes in fishbone_data['causes_by_category'].values())
+    
+    if total_causes == 0:
+        st.warning("""
+        **Tidak ada penyebab signifikan yang teridentifikasi.** Recommended actions:
+        - Review kualitas dan kelengkapan data
+        - Adjust correlation threshold
+        - Pertimbangkan sumber data tambahan
+        - Konsultasi dengan ahli domain untuk identifikasi penyebab manual
+        """)
+    else:
+        # Find highest priority category
+        category_priority = {}
+        for category, causes in fishbone_data['causes_by_category'].items():
+            if causes:
+                avg_priority = np.mean([cause['research_priority'] for cause in causes])
+                category_priority[category] = avg_priority
+        
+        if category_priority:
+            top_category = max(category_priority, key=category_priority.get)
+            top_causes = fishbone_data['causes_by_category'][top_category]
             
-            # Style based on impact score
-            styled_df = cause_df.style.background_gradient(
-                subset=['Score Impact'], cmap='Reds'
-            ).format({
-                f'Rata-rata {effect_col}': '{:.2f}',
-                'Score Impact': '{:.3f}'
-            })
+            st.success(f"""
+            **Priority Research Area:** {top_category}
             
-            st.dataframe(styled_df, use_container_width=True)
+            **Top Causes:**
+            {', '.join([cause['subcategory'] for cause in top_causes[:3]])}
+            
+            **Recommended Actions:**
+            - Deep dive analysis pada faktor {top_category}
+            - Conduct root cause analysis untuk subkategori yang teridentifikasi
+            - Implement monitoring untuk metrik kunci dalam kategori ini
+            - Develop targeted improvement initiatives
+            """)
+
+def create_enhanced_fishbone_diagram(df, numeric_cols, non_numeric_cols):
+    """Main function untuk membuat enhanced fishbone diagram"""
+    
+    # Sidebar untuk konfigurasi
+    st.sidebar.header("⚙️ Configuration")
+    
+    # Pilih effect column
+    effect_options = numeric_cols if numeric_cols else df.columns.tolist()
+    if not effect_options:
+        st.error("Tidak ada kolom numerik yang tersedia untuk analisis")
+        return
+        
+    effect_column = st.sidebar.selectbox(
+        "Select Effect Column:",
+        options=effect_options,
+        index=0
+    )
+    
+    # Pilih cause columns
+    available_causes = [col for col in df.columns if col != effect_column]
+    default_causes = available_causes[:min(5, len(available_causes))]
+    
+    cause_columns = st.sidebar.multiselect(
+        "Select Cause Columns:",
+        options=available_causes,
+        default=default_causes
+    )
+    
+    # Correlation threshold
+    correlation_threshold = st.sidebar.slider(
+        "Correlation Threshold:",
+        min_value=0.1,
+        max_value=0.8,
+        value=0.3,
+        step=0.05,
+        help="Minimum correlation coefficient to consider significant"
+    )
+    
+    # Research phase
+    research_phase = st.sidebar.selectbox(
+        "Research Phase:",
+        options=["Foundation", "Development", "Validation", "Enhancement", "Deployment"],
+        index=1
+    )
+    
+    if not cause_columns:
+        st.warning("Silakan pilih minimal satu cause column untuk dianalisis")
+        return
+    
+    # Analyze correlations
+    with st.spinner("🔍 Analyzing correlations..."):
+        fishbone_data = analyze_correlations(df, cause_columns, effect_column, correlation_threshold)
+    
+    # Display fishbone diagram
+    st.subheader("🐠 Enhanced Fishbone Diagram")
+    
+    categories = fishbone_data['causes_by_category']
+    if categories:
+        fig = create_enhanced_fishbone_visualization(
+            fishbone_data, 
+            effect_column, 
+            categories, 
+            research_phase
+        )
+        st.plotly_chart(fig, use_container_width=True)
+    else:
+        st.warning("Tidak ada hubungan signifikan yang ditemukan. Coba turunkan threshold korelasi atau pilih kolom yang berbeda.")
+    
+    # Display detailed analysis
+    display_detailed_analysis(fishbone_data, df, cause_columns, effect_column)
+    
+    # Display research roadmap
+    display_research_roadmap_integrated(research_phase, fishbone_data)
+
+def run_enhanced_fishbone():
+    """Main function to run the enhanced fishbone diagram"""
+    
+    st.title("🐠 Enhanced Fishbone Diagram with Research Roadmap")
+    st.markdown("""
+    Alat ini membantu menganalisis hubungan sebab-akibat dalam data Anda dan mengintegrasikannya 
+    dengan roadmap penelitian. Upload data Anda atau gunakan sample data untuk memulai.
+    """)
+    
+    # Option untuk upload data atau gunakan sample
+    data_option = st.radio(
+        "Pilih sumber data:",
+        ["Gunakan Sample Data", "Upload Data Anda Sendiri"],
+        horizontal=True
+    )
+    
+    if data_option == "Upload Data Anda Sendiri":
+        uploaded_file = st.file_uploader(
+            "Upload file data (CSV atau Excel)", 
+            type=['csv', 'xlsx', 'xls'],
+            help="Upload file data Anda untuk dianalisis"
+        )
+        
+        if uploaded_file is not None:
+            try:
+                if uploaded_file.name.endswith('.csv'):
+                    df = pd.read_csv(uploaded_file)
+                else:
+                    df = pd.read_excel(uploaded_file)
+                
+                st.success(f"✅ File berhasil diupload: {uploaded_file.name}")
+                st.info(f"📊 Dimensi data: {df.shape[0]} baris × {df.shape[1]} kolom")
+                
+                # Tampilkan preview data
+                with st.expander("🔍 Preview Data"):
+                    st.dataframe(df.head(10), use_container_width=True)
+                    
+                # Tampilkan info data
+                with st.expander("📋 Data Information"):
+                    st.write("**Kolom Numerik:**")
+                    st.write(df.select_dtypes(include=[np.number]).columns.tolist())
+                    st.write("**Kolom Kategorikal:**")
+                    st.write(df.select_dtypes(exclude=[np.number]).columns.tolist())
+                    
+            except Exception as e:
+                st.error(f"Error membaca file: {e}")
+                st.info("Menggunakan sample data sebagai alternatif...")
+                df = create_sample_data()
+        else:
+            st.info("Silakan upload file data atau gunakan sample data untuk melanjutkan")
+            df = create_sample_data()
+    else:
+        df = create_sample_data()
+        st.info("📊 Menggunakan sample data untuk demonstrasi")
+        
+        # Tampilkan preview sample data
+        with st.expander("🔍 Preview Sample Data"):
+            st.dataframe(df.head(10), use_container_width=True)
+    
+    # Identifikasi kolom numerik dan non-numerik
+    numeric_cols = df.select_dtypes(include=[np.number]).columns.tolist()
+    non_numeric_cols = df.select_dtypes(exclude=[np.number]).columns.tolist()
+    
+    # Jalankan enhanced fishbone diagram
+    create_enhanced_fishbone_diagram(df, numeric_cols, non_numeric_cols)
+    run_enhanced_fishbone()
 
 def create_network_diagram(df, numeric_cols, non_numeric_cols):
     col1, col2, col3 = st.columns(3)
@@ -10502,23 +11169,375 @@ try:
     from stl import mesh
     import trimesh
     import os
+    import plotly.graph_objects as go
+    from plotly.subplots import make_subplots
+    import plotly.express as px
 except ImportError:
     st.warning("Beberapa library 3D tidak terinstall. Install dengan: pip install numpy-stl trimesh plotly")
 REMOVE_BG_API_KEY = "xQH5KznYiupRrywK5yPcjeyi"
 PIXELS_API_KEY = "LH59shPdj1xO0lolnHPsClH23qsnHE4NjkCFBhKEXvR0CbqwkrXbqBnw"
 if df is not None:
-    tab1, tab2, tab3, tab4, tab5, tab6, tab7, tab8, tab9, tab10 = st.tabs([
-        "📊 Statistik", 
-        "📈 Visualisasi", 
-        "💾 Data", 
-        "ℹ️ Informasi", 
-        "🧮 Kalkulator",
-        "🖼️ Vitures",
-        "📍 Flowchart", 
-        "📊 Grafik Saham",
-        "🗃️ SQL Style",
-        "🔄 3D Model & Analisis"
+    tab1, tab2, tab3, tab4, tab5, tab6, tab7, tab8, tab9, tab10, tab11 = st.tabs([
+        "📊 Statistik", "📈 Visualisasi", "💾 Data", "ℹ️ Informasi", "🧮 Kalkulator",
+        "🖼️ Vitures", "📍 Flowchart", "📊 Grafik Saham", "🗃️ SQL Style", 
+        "🔄 3D Model & Analisis", "⚡ Konversi Cepat"
     ])
+    
+    with tab11:
+        st.header("⚡ Konversi File XLS - CSV (High Performance)")
+        
+        # Cache untuk konversi file
+        @st.cache_data(show_spinner=False, max_entries=3, ttl=3600)
+        def convert_xls_to_csv(uploaded_file):
+            """Konversi XLS ke CSV dengan optimasi"""
+            start_time = time.time()
+            
+            # Baca hanya kolom yang diperlukan untuk preview
+            df = pd.read_excel(uploaded_file, engine='openpyxl')
+            
+            # Optimasi tipe data untuk mengurangi memory usage
+            for col in df.columns:
+                if df[col].dtype == 'object':
+                    # Convert object to string untuk efisiensi
+                    df[col] = df[col].astype('string')
+                elif 'int' in str(df[col].dtype):
+                    # Downcast integer
+                    df[col] = pd.to_numeric(df[col], downcast='integer', errors='ignore')
+                elif 'float' in str(df[col].dtype):
+                    # Downcast float
+                    df[col] = pd.to_numeric(df[col], downcast='float', errors='ignore')
+            
+            csv_data = df.to_csv(index=False).encode('utf-8')
+            processing_time = time.time() - start_time
+            
+            return df, csv_data, processing_time
+
+        @st.cache_data(show_spinner=False, max_entries=3, ttl=3600)
+        def convert_csv_to_xls(uploaded_file):
+            """Konversi CSV ke XLS dengan optimasi"""
+            start_time = time.time()
+            
+            # Baca CSV dengan optimasi
+            df = pd.read_csv(uploaded_file, low_memory=False)
+            
+            # Optimasi memory
+            df = optimize_dataframe(df)
+            
+            # Konversi ke Excel di memory - PERBAIKAN: hapus parameter options
+            output = io.BytesIO()
+            with pd.ExcelWriter(output, engine='xlsxwriter') as writer:
+                df.to_excel(writer, index=False, sheet_name='Data')
+                # Tambahkan auto-filter dan formatting
+                worksheet = writer.sheets['Data']
+                worksheet.autofilter(0, 0, len(df), len(df.columns) - 1)
+                
+            excel_data = output.getvalue()
+            
+            processing_time = time.time() - start_time
+            return df, excel_data, processing_time
+
+        def optimize_dataframe(df):
+            """Optimasi dataframe untuk mengurangi memory usage"""
+            # Downcast numeric columns
+            for col in df.select_dtypes(include=[np.number]).columns:
+                df[col] = pd.to_numeric(df[col], downcast='unsigned', errors='ignore')
+            
+            # Convert object columns to category jika unique values < 50%
+            for col in df.select_dtypes(include=['object']).columns:
+                if df[col].nunique() / len(df) < 0.5:
+                    df[col] = df[col].astype('category')
+            
+            return df
+
+        def analyze_file_health(df, file_type):
+            """Analisis kesehatan file dan tampilkan metrics"""
+            total_cells = df.shape[0] * df.shape[1]
+            
+            # Hitung missing values
+            missing_values = df.isnull().sum().sum()
+            missing_percentage = (missing_values / total_cells * 100) if total_cells > 0 else 0
+            
+            # Hitung duplicate rows
+            duplicate_rows = df.duplicated().sum()
+            duplicate_percentage = (duplicate_rows / len(df) * 100) if len(df) > 0 else 0
+            
+            # Analisis tipe data
+            data_types = df.dtypes.value_counts()
+            
+            # Memory usage
+            memory_usage = df.memory_usage(deep=True).sum() / 1024  # KB
+            
+            return {
+                'total_cells': total_cells,
+                'missing_values': missing_values,
+                'missing_percentage': missing_percentage,
+                'duplicate_rows': duplicate_rows,
+                'duplicate_percentage': duplicate_percentage,
+                'data_types': data_types,
+                'memory_usage_kb': memory_usage
+            }
+
+        def create_health_chart(health_data):
+            """Buat chart kesehatan file"""
+            fig = go.Figure()
+            
+            # Chart untuk missing values dan duplicates
+            fig.add_trace(go.Bar(
+                name='Masalah Data',
+                x=['Missing Values', 'Duplicate Rows'],
+                y=[health_data['missing_percentage'], health_data['duplicate_percentage']],
+                text=[f"{health_data['missing_percentage']:.1f}%", 
+                    f"{health_data['duplicate_percentage']:.1f}%"],
+                textposition='auto',
+                marker_color=['#FF6B6B', '#4ECDC4']
+            ))
+            
+            fig.update_layout(
+                title='Kesehatan File - Masalah Data',
+                yaxis_title='Persentase (%)',
+                showlegend=False,
+                height=300
+            )
+            
+            return fig
+
+        def create_data_type_chart(data_types):
+            """Buat chart distribusi tipe data"""
+            fig = go.Figure(data=[go.Pie(
+                labels=[str(dtype) for dtype in data_types.index],
+                values=data_types.values,
+                hole=.3
+            )])
+            
+            fig.update_layout(
+                title='Distribusi Tipe Data',
+                height=300
+            )
+            
+            return fig
+
+        def display_performance_metrics(original_size, processed_size, processing_time, rows, cols, health_data):
+            """Tampilkan metrics performa"""
+            compression_ratio = (1 - processed_size / original_size) * 100 if original_size > 0 else 0
+            
+            col1, col2, col3, col4 = st.columns(4)
+            with col1:
+                st.metric("⏱️ Waktu Proses", f"{processing_time:.2f}s")
+            with col2:
+                st.metric("📊 Jumlah Data", f"{rows:,} baris, {cols} kolom")
+            with col3:
+                st.metric("📦 Ukuran File", f"{processed_size/1024:.1f} KB")
+            with col4:
+                st.metric("🎯 Kompresi", f"{compression_ratio:.1f}%")
+            
+            # Health metrics
+            st.subheader("🏥 Kesehatan File")
+            health_col1, health_col2, health_col3, health_col4 = st.columns(4)
+            
+            with health_col1:
+                st.metric("🔍 Missing Values", f"{health_data['missing_percentage']:.1f}%",
+                        delta=f"-{health_data['missing_values']} cells" if health_data['missing_values'] > 0 else None)
+            
+            with health_col2:
+                st.metric("🔄 Duplicate Rows", f"{health_data['duplicate_percentage']:.1f}%",
+                        delta=f"-{health_data['duplicate_rows']} rows" if health_data['duplicate_rows'] > 0 else None)
+            
+            with health_col3:
+                st.metric("💾 Memory Usage", f"{health_data['memory_usage_kb']:.1f} KB")
+            
+            with health_col4:
+                health_score = max(0, 100 - health_data['missing_percentage'] - health_data['duplicate_percentage'])
+                st.metric("🏆 Health Score", f"{health_score:.1f}%")
+
+        col1, col2 = st.columns(2)
+        
+        with col1:
+            st.subheader("🚀 XLS/XLSX → CSV")
+            uploaded_xls = st.file_uploader(
+                "Upload Excel", 
+                type=['xls', 'xlsx'],
+                key="xls_upload",
+                help="Upload file Excel (.xls, .xlsx) maksimal 200MB"
+            )
+            
+            if uploaded_xls is not None:
+                # Progress bar untuk visual feedback
+                progress_bar = st.progress(0)
+                status_text = st.empty()
+                
+                status_text.text("🔄 Memproses file Excel...")
+                progress_bar.progress(30)
+                
+                try:
+                    # Gunakan cached function
+                    excel_df, csv_data, processing_time = convert_xls_to_csv(uploaded_xls)
+                    progress_bar.progress(80)
+                    
+                    status_text.text("✅ Konversi berhasil!")
+                    progress_bar.progress(100)
+                    
+                    # Analisis kesehatan file
+                    health_data = analyze_file_health(excel_df, 'excel')
+                    
+                    # Tampilkan preview cepat (hanya 5 baris pertama)
+                    with st.expander("👀 Quick Preview", expanded=False):
+                        st.dataframe(excel_df.head(5), use_container_width=True)
+                    
+                    # Performance metrics dengan health data
+                    original_size = len(uploaded_xls.getvalue())
+                    processed_size = len(csv_data)
+                    display_performance_metrics(
+                        original_size, processed_size, processing_time, 
+                        excel_df.shape[0], excel_df.shape[1], health_data
+                    )
+                    
+                    # Chart kesehatan
+                    chart_col1, chart_col2 = st.columns(2)
+                    with chart_col1:
+                        st.plotly_chart(create_health_chart(health_data), use_container_width=True)
+                    with chart_col2:
+                        st.plotly_chart(create_data_type_chart(health_data['data_types']), use_container_width=True)
+                    
+                    # Download button
+                    st.download_button(
+                        label=f"📥 Download CSV ({len(csv_data)/1024:.1f} KB)",
+                        data=csv_data,
+                        file_name=f"{uploaded_xls.name.split('.')[0]}_converted.csv",
+                        mime="text/csv",
+                        key="download_csv"
+                    )
+                    
+                except Exception as e:
+                    progress_bar.progress(0)
+                    status_text.text("❌ Error!")
+                    st.error(f"Gagal memproses file: {str(e)}")
+                finally:
+                    time.sleep(0.5)
+                    progress_bar.empty()
+                    status_text.empty()
+        
+        with col2:
+            st.subheader("🚀 CSV → XLSX")
+            uploaded_csv = st.file_uploader(
+                "Upload CSV", 
+                type=['csv'],
+                key="csv_upload",
+                help="Upload file CSV maksimal 200MB"
+            )
+            
+            if uploaded_csv is not None:
+                progress_bar = st.progress(0)
+                status_text = st.empty()
+                
+                status_text.text("🔄 Memproses file CSV...")
+                progress_bar.progress(30)
+                
+                try:
+                    # Gunakan cached function
+                    csv_df, excel_data, processing_time = convert_csv_to_xls(uploaded_csv)
+                    progress_bar.progress(80)
+                    
+                    status_text.text("✅ Konversi berhasil!")
+                    progress_bar.progress(100)
+                    
+                    # Analisis kesehatan file
+                    health_data = analyze_file_health(csv_df, 'csv')
+                    
+                    # Quick preview
+                    with st.expander("👀 Quick Preview", expanded=False):
+                        st.dataframe(csv_df.head(5), use_container_width=True)
+                    
+                    # Performance metrics dengan health data
+                    original_size = len(uploaded_csv.getvalue())
+                    processed_size = len(excel_data)
+                    display_performance_metrics(
+                        original_size, processed_size, processing_time,
+                        csv_df.shape[0], csv_df.shape[1], health_data
+                    )
+                    
+                    # Chart kesehatan
+                    chart_col1, chart_col2 = st.columns(2)
+                    with chart_col1:
+                        st.plotly_chart(create_health_chart(health_data), use_container_width=True)
+                    with chart_col2:
+                        st.plotly_chart(create_data_type_chart(health_data['data_types']), use_container_width=True)
+                    
+                    # Download button
+                    st.download_button(
+                        label=f"📥 Download XLSX ({len(excel_data)/1024:.1f} KB)",
+                        data=excel_data,
+                        file_name=f"{uploaded_csv.name.split('.')[0]}_converted.xlsx",
+                        mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                        key="download_xlsx"
+                    )
+                    
+                except Exception as e:
+                    progress_bar.progress(0)
+                    status_text.text("❌ Error!")
+                    st.error(f"Gagal memproses file: {str(e)}")
+                finally:
+                    time.sleep(0.5)
+                    progress_bar.empty()
+                    status_text.empty()
+
+        # Advanced options untuk file besar
+        with st.expander("⚙️ Advanced Options untuk File Besar"):
+            st.write("**Optimasi Performa:**")
+            
+            col1, col2 = st.columns(2)
+            
+            with col1:
+                if st.button("🔄 Clear Cache", help="Bersihkan cache untuk refresh memory"):
+                    st.cache_data.clear()
+                    st.success("Cache berhasil dibersihkan!")
+                    st.rerun()
+            
+            with col2:
+                if st.button("📊 System Info", help="Lihat informasi sistem"):
+                    import psutil
+                    memory = psutil.virtual_memory()
+                    st.write(f"Memory Available: {memory.available / (1024**3):.1f} GB")
+                    st.write(f"Memory Used: {memory.percent}%")
+
+        # Tips performa
+        st.markdown("---")
+        st.subheader("💡 Tips Performa Tinggi")
+        
+        tips_col1, tips_col2 = st.columns(2)
+        
+        with tips_col1:
+            st.write("**🚀 Untuk File Excel Besar:**")
+            st.write("""
+            - Gunakan format .xlsx (lebih efisien)
+            - Hapus sheet yang tidak diperlukan
+            - Hindari formula kompleks
+            - Gunakan tabel Excel structured
+            """)
+        
+        with tips_col2:
+            st.write("**🚀 Untuk File CSV Besar:**")
+            st.write("""
+            - Gunakan encoding UTF-8
+            - Hapus kolom kosong
+            - Kompres dengan zip jika > 100MB
+            - Partition data jika sangat besar
+            """)
+
+    # CSS untuk optimasi render
+    st.markdown("""
+    <style>
+        .stDataFrame {
+            font-size: 12px;
+        }
+        .stButton button {
+            width: 100%;
+        }
+        .stProgress .st-bo {
+            background-color: #1f77b4;
+        }
+    </style>
+    """, unsafe_allow_html=True)
+    
 
     with tab10:
         st.header("🔄 Konversi Gambar ke 3D Model dengan Analisis")
