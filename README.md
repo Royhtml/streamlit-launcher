@@ -42,6 +42,40 @@
 - **Researchers** - Eksperimen dan presentasi hasil penelitian
 - **Educators** - Materi pembelajaran interaktif
 
+### 📊 Fitur
+
+- 📊 Analisis DNA
+- 📈 Statistik
+- 📈 Visualisasi
+- 📈 Editor File
+- 📈 Grafik Saham
+- 📈 SQL Style
+- 📈 Konversi Cepat
+- 📈 Database
+- 📈 Machine Learning
+- 📈 Laporan
+- 📈 Dashboard
+- 📈 Simulasi
+- 📈 Deeplearning
+- 📈 Pencarian
+- 📈 Remove Background
+- 📈 dll
+
+
+## 📊 Analisis DNA
+
+Fitur analisis DNA yang tersedia:
+
+<img src="https://github.com/DwiDevelopes/gambar/raw/main/Screenshot%202025-10-26%20021559.png" width="100%" height="100%">
+
+1. 📊 Komposisi Basa
+2. 🔍 Motif & Pattern
+3. 🧮 Biophysical Properties
+4. 📈 Sequence Features
+5. 🧪 Aplikasi Penelitian
+
+
+
 ## 🚀 Installation
 
 ### Prerequisites System:
