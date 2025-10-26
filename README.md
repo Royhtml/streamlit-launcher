@@ -74,7 +74,17 @@ Fitur analisis DNA yang tersedia:
 4. 📈 Sequence Features
 5. 🧪 Aplikasi Penelitian
 
+## 📚 Vitur Keamanan CSV Data
 
+<img src="https://github.com/DwiDevelopes/gambar/raw/main/Screenshot%202025-10-26%20211631.png" width="100%" height="100%">
+
+1. Encrypsi Data
+2. Denkripsi Data
+3. Sistem Keamanan Data
+4. Keamanan Data
+5. Data Terenkripsi
+6. Python dan Data Encryption
+7. Text dan Encryption
 
 ## 🚀 Installation
 
