@@ -82,6 +82,13 @@ st.set_page_config(
 )
 st.title("📊 STREAMLIT LAUNCHER ANALYSIS PENELITIAN LANJUTAN")
 
+hide_footer = """
+<style>
+footer {visibility: hidden;}
+</style>
+"""
+st.markdown(hide_footer, unsafe_allow_html=True)
+
 
 st.markdown(
     """
