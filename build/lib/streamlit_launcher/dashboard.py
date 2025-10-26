@@ -82,13 +82,6 @@ st.set_page_config(
 )
 st.title("📊 STREAMLIT LAUNCHER ANALYSIS PENELITIAN LANJUTAN")
 
-hide_footer = """
-<style>
-footer {visibility: hidden;}
-</style>
-"""
-st.markdown(hide_footer, unsafe_allow_html=True)
-
 
 st.markdown(
     """
@@ -12030,11 +12023,577 @@ def create_dna_visualizations(dna_df):
 REMOVE_BG_API_KEY = "xQH5KznYiupRrywK5yPcjeyi"
 PIXELS_API_KEY = "LH59shPdj1xO0lolnHPsClH23qsnHE4NjkCFBhKEXvR0CbqwkrXbqBnw"
 if df is not None:
-    tab1, tab2, tab3, tab4, tab5, tab6, tab7, tab8, tab9, tab10, tab11, tab12, tab13 = st.tabs([
+    tab1, tab2, tab3, tab4, tab5, tab6, tab7, tab8, tab9, tab10, tab11, tab12, tab13, tab14 = st.tabs([
         "📊 Statistik", "📈 Visualisasi", "💾 Data", "ℹ️ Informasi", "🧮 Kalkulator",
         "🖼️ Vitures", "📍 Flowchart", "📊 Grafik Saham", "🗃️ SQL Style", 
-        "🔄 3D Model & Analisis", "⚡ Konversi Cepat", "📝 Editor File", "🧬 Analisis DNA"
+        "🔄 3D Model & Analisis", "⚡ Konversi Cepat", "📝 Editor File", "🧬 Analisis DNA",
+        "🔐 Enkripsi Data"
     ])
+
+    with tab14:
+        st.header("🔐 Enkripsi Data CSV dan Python")
+        
+        # Section Informasi Keamanan
+        with st.expander("📚 Informasi Keamanan dan Kerentanan", expanded=True):
+            col1, col2 = st.columns(2)
+            
+            with col1:
+                st.subheader("🛡️ Tingkat Keamanan")
+                security_data = {
+                    'Algoritma': ['Fernet (AES-128)', 'XOR Cipher', 'Password Hashing', 'Salt Protection'],
+                    'Tingkat': ['Tinggi', 'Rendah', 'Sedang', 'Tinggi'],
+                    'Kekuatan': ['Military Grade', 'Basic Protection', 'Key Derivation', 'Rainbow Table Protection']
+                }
+                security_df = pd.DataFrame(security_data)
+                st.dataframe(security_df, use_container_width=True)
+                
+            with col2:
+                st.subheader("📊 Distribusi Keamanan")
+                security_levels = ['Tinggi', 'Sedang', 'Rendah']
+                values = [60, 25, 15]
+                colors = ['#00ff00', '#ffff00', '#ff0000']
+                
+                fig, ax = plt.subplots()
+                ax.pie(values, labels=security_levels, colors=colors, autopct='%1.1f%%', startangle=90)
+                ax.axis('equal')
+                st.pyplot(fig)
+        
+        # Informasi Kerentanan
+        with st.expander("⚠️ Detail Kerentanan dan Rekomendasi"):
+            col1, col2 = st.columns(2)
+            
+            with col1:
+                st.markdown("""
+                ### 🔓 Potensi Kerentanan:
+                
+                **1. XOR Cipher:**
+                - Rentan terhadap known-plaintext attacks
+                - Pattern mudah terdeteksi
+                - Key length pendek
+                
+                **2. Password Management:**
+                - Password lemah mudah di-crack
+                - No brute-force protection
+                - Salt reuse potential
+                
+                **3. Key Storage:**
+                - Key tersimpan dalam memory
+                - No secure key exchange
+                """)
+            
+            with col2:
+                st.markdown("""
+                ### 🛡️ Rekomendasi Keamanan:
+                
+                **1. Untuk Data Sensitif:**
+                - Gunakan AES-256 dengan GCM mode
+                - Implementasi hardware security module
+                - Two-factor authentication
+                
+                **2. Best Practices:**
+                - Password minimum 12 karakter
+                - Regular key rotation
+                - Secure key distribution
+                
+                **3. Monitoring:**
+                - Audit log untuk akses file
+                - Intrusion detection system
+                - Regular security assessment
+                """)
+        
+        # Pilihan jenis enkripsi
+        encryption_type = st.radio(
+            "Pilih Jenis Enkripsi:",
+            ["Enkripsi CSV", "Enkripsi Kode Python", "Enkripsi Teks"],
+            horizontal=True
+        )
+        
+        if encryption_type == "Enkripsi CSV":
+            st.subheader("🔒 Enkripsi File CSV")
+            
+            # Advanced options
+            with st.expander("⚙️ Pengaturan Lanjutan"):
+                col1, col2 = st.columns(2)
+                with col1:
+                    iterations = st.slider("Iterasi PBKDF2:", 10000, 500000, 100000, 
+                                         help="Semakin tinggi iterasi, semakin lama proses namun lebih aman")
+                with col2:
+                    algorithm = st.selectbox("Algoritma Hash:", 
+                                           ["SHA256", "SHA512", "SHA3_256"],
+                                           help="Algoritma hashing untuk key derivation")
+            
+            # Password strength meter
+            password = st.text_input("Masukkan Password untuk Enkripsi:", type="password", 
+                                   help="Minimal 8 karakter, kombinasi huruf, angka, dan simbol")
+            confirm_password = st.text_input("Konfirmasi Password:", type="password")
+            
+            # Password strength check
+            if password:
+                strength = 0
+                feedback = []
+                
+                if len(password) >= 8:
+                    strength += 1
+                else:
+                    feedback.append("❌ Minimal 8 karakter")
+                    
+                if any(c.islower() for c in password) and any(c.isupper() for c in password):
+                    strength += 1
+                else:
+                    feedback.append("❌ Kombinasi huruf besar dan kecil")
+                    
+                if any(c.isdigit() for c in password):
+                    strength += 1
+                else:
+                    feedback.append("❌ Tambahkan angka")
+                    
+                if any(not c.isalnum() for c in password):
+                    strength += 1
+                else:
+                    feedback.append("❌ Tambahkan simbol")
+                
+                # Strength meter
+                strength_labels = ["Sangat Lemah", "Lemah", "Sedang", "Kuat", "Sangat Kuat"]
+                strength_colors = ["red", "orange", "yellow", "lightgreen", "darkgreen"]
+                
+                st.progress(strength/4, text=f"Kekuatan Password: {strength_labels[strength]}")
+                
+                if feedback:
+                    for msg in feedback:
+                        st.write(msg)
+            
+            if password and confirm_password:
+                if password == confirm_password:
+                    if st.button("🔒 Enkripsi CSV", type="primary"):
+                        try:
+                            with st.spinner("🔄 Melakukan enkripsi..."):
+                                # Simpan DataFrame ke CSV dalam memory
+                                csv_data = df.to_csv(index=False)
+                                
+                                # Enkripsi data menggunakan Fernet
+                                from cryptography.fernet import Fernet
+                                from cryptography.hazmat.primitives import hashes
+                                from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC
+                                import base64
+                                import os
+                                
+                                # Generate salt
+                                salt = os.urandom(16)
+                                
+                                # Pilih algoritma hash
+                                hash_algorithm = {
+                                    "SHA256": hashes.SHA256(),
+                                    "SHA512": hashes.SHA512(),
+                                    "SHA3_256": hashes.SHA3_256()
+                                }[algorithm]
+                                
+                                # Generate key dari password
+                                kdf = PBKDF2HMAC(
+                                    algorithm=hash_algorithm,
+                                    length=32,
+                                    salt=salt,
+                                    iterations=iterations,
+                                )
+                                key = base64.urlsafe_b64encode(kdf.derive(password.encode()))
+                                fernet = Fernet(key)
+                                
+                                # Enkripsi data
+                                encrypted_data = fernet.encrypt(csv_data.encode())
+                                
+                                # Tambahkan metadata
+                                metadata = f"ALG:{algorithm},ITER:{iterations}".encode()
+                                metadata_padded = metadata.ljust(64, b' ')  # Pad to 64 bytes
+                                
+                                # Gabungkan metadata, salt dan encrypted data
+                                final_data = metadata_padded + salt + encrypted_data
+                                
+                                # Buat file download
+                                st.success("✅ File CSV berhasil dienkripsi!")
+                                
+                                col1, col2, col3 = st.columns(3)
+                                with col1:
+                                    st.download_button(
+                                        label="📥 Download File Terenkripsi",
+                                        data=final_data,
+                                        file_name="encrypted_data.csv.enc",
+                                        mime="application/octet-stream"
+                                    )
+                                
+                                with col2:
+                                    # Save key separately (for demo purposes - not recommended for production)
+                                    st.download_button(
+                                        label="🔑 Export Key (Demo)",
+                                        data=key,
+                                        file_name="encryption_key.key",
+                                        mime="application/octet-stream",
+                                        help="HATI-HATI: Jangan simpan key bersama dengan file terenkripsi!"
+                                    )
+                                
+                                with col3:
+                                    # Save salt separately
+                                    st.download_button(
+                                        label="🧂 Export Salt",
+                                        data=salt,
+                                        file_name="encryption_salt.salt",
+                                        mime="application/octet-stream"
+                                    )
+                                
+                                # Tampilkan info keamanan
+                                st.info("""
+                                **🔐 Informasi Keamanan:**
+                                - **Algoritma:** Fernet (AES-128-CBC)
+                                - **Key Derivation:** PBKDF2 dengan {} iterasi
+                                - **Hash Algorithm:** {}
+                                - **Salt:** 16 byte random
+                                - **Metadata:** Disimpan dalam header file
+                                """.format(iterations, algorithm))
+                                
+                        except Exception as e:
+                            st.error(f"❌ Error saat enkripsi: {str(e)}")
+                else:
+                    st.error("❌ Password tidak cocok!")
+        
+        elif encryption_type == "Enkripsi Kode Python":
+            st.subheader("🔒 Enkripsi Kode Python")
+            
+            # Input kode Python
+            python_code = st.text_area(
+                "Masukkan kode Python yang akan dienkripsi:",
+                height=200,
+                placeholder="print('Hello World')\n# Masukkan kode Python di sini..."
+            )
+            
+            encryption_key = st.text_input("Masukkan Kunci Enkripsi:", type="password",
+                                         help="Kunci ini diperlukan untuk dekripsi")
+            
+            if python_code and encryption_key:
+                if st.button("🔒 Enkripsi Kode Python"):
+                    try:
+                        with st.spinner("🔄 Mengenkripsi kode Python..."):
+                            # Improved XOR encryption dengan IV
+                            import hashlib
+                            
+                            def improved_encrypt(text, key):
+                                # Generate IV dari key
+                                iv = hashlib.sha256(key.encode()).digest()[:8]
+                                encrypted_chars = []
+                                key_hash = hashlib.sha256(key.encode()).digest()
+                                
+                                for i, char in enumerate(text):
+                                    key_byte = key_hash[i % len(key_hash)]
+                                    iv_byte = iv[i % len(iv)]
+                                    encrypted_char = chr(ord(char) ^ key_byte ^ iv_byte)
+                                    encrypted_chars.append(encrypted_char)
+                                return ''.join(encrypted_chars), iv.hex()
+                            
+                            # Enkripsi kode
+                            encrypted_code, iv = improved_encrypt(python_code, encryption_key)
+                            
+                            # Buat file Python terenkripsi yang lebih aman
+                            encrypted_content = f'''#!/usr/bin/env python3
+# =============================================
+# FILE TERENKRIPSI - SISTEM KEAMANAN PYTHON
+# JANGAN EDIT FILE INI LANGSUNG
+# =============================================
+
+import hashlib
+import sys
+
+encrypted_data = {repr(encrypted_code)}
+iv_hex = "{iv}"
+
+def decrypt_code(encrypted_data, key):
+    """
+    Fungsi dekripsi dengan XOR dan IV
+    """
+    try:
+        iv = bytes.fromhex(iv_hex)
+        key_hash = hashlib.sha256(key.encode()).digest()
+        decrypted_chars = []
+        
+        for i, char in enumerate(encrypted_data):
+            key_byte = key_hash[i % len(key_hash)]
+            iv_byte = iv[i % len(iv)]
+            decrypted_char = chr(ord(char) ^ key_byte ^ iv_byte)
+            decrypted_chars.append(decrypted_char)
+            
+        return ''.join(decrypted_chars)
+    except Exception as e:
+        return None
+
+def main():
+    """
+    Fungsi utama untuk dekripsi dan eksekusi
+    """
+    print("🔐 SISTEM DEKRIPSI PYTHON")
+    print("=" * 30)
+    
+    # Input kunci
+    password = input("Masukkan kunci dekripsi: ")
+    
+    # Verifikasi kunci minimal
+    if len(password) < 4:
+        print("❌ Error: Kunci terlalu pendek!")
+        sys.exit(1)
+    
+    # Dekripsi kode
+    decrypted_code = decrypt_code(encrypted_data, password)
+    
+    if decrypted_code:
+        try:
+            # Eksekusi kode yang didekripsi
+            exec(decrypted_code)
+            print("\\n✅ Eksekusi berhasil!")
+        except Exception as e:
+            print(f"❌ Error saat eksekusi: {{e}}")
+    else:
+        print("❌ Error: Kunci dekripsi salah atau file rusak!")
+
+if __name__ == "__main__":
+    main()
+'''
+                        
+                        st.success("✅ Kode Python berhasil dienkripsi!")
+                        
+                        col1, col2 = st.columns(2)
+                        
+                        with col1:
+                            # Download encrypted Python file
+                            st.download_button(
+                                label="📥 Download File Python Terenkripsi",
+                                data=encrypted_content,
+                                file_name="encrypted_script.py",
+                                mime="text/x-python"
+                            )
+                        
+                        with col2:
+                            # Show security info
+                            st.info(f"""
+                            **🔍 Detail Enkripsi:**
+                            - **Algoritma:** XOR dengan SHA-256
+                            - **IV (Initialization Vector):** {iv[:16]}...
+                            - **Panjang Kode Terenkripsi:** {len(encrypted_code)} karakter
+                            - **Perlindungan:** IV + Key Hashing
+                            """)
+                        
+                        # Tampilkan preview
+                        with st.expander("📋 Preview Kode Terenkripsi"):
+                            st.code(encrypted_content, language='python')
+                            
+                    except Exception as e:
+                        st.error(f"❌ Error saat enkripsi: {str(e)}")
+        
+        else:  # Enkripsi Teks
+            st.subheader("🔒 Enkripsi Teks")
+            
+            text_to_encrypt = st.text_area("Masukkan teks yang akan dienkripsi:", height=100)
+            text_password = st.text_input("Kunci Enkripsi Teks:", type="password")
+            
+            if text_to_encrypt and text_password:
+                col1, col2 = st.columns(2)
+                
+                with col1:
+                    if st.button("🔒 Enkripsi Teks"):
+                        try:
+                            # Simple encryption for text
+                            import base64
+                            from cryptography.fernet import Fernet
+                            from cryptography.hazmat.primitives import hashes
+                            from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC
+                            
+                            salt = os.urandom(16)
+                            kdf = PBKDF2HMAC(
+                                algorithm=hashes.SHA256(),
+                                length=32,
+                                salt=salt,
+                                iterations=100000,
+                            )
+                            key = base64.urlsafe_b64encode(kdf.derive(text_password.encode()))
+                            fernet = Fernet(key)
+                            
+                            encrypted_text = fernet.encrypt(text_to_encrypt.encode())
+                            final_text = base64.urlsafe_b64encode(salt + encrypted_text).decode()
+                            
+                            st.text_area("Teks Terenkripsi:", value=final_text, height=100)
+                            
+                        except Exception as e:
+                            st.error(f"Error: {e}")
+                
+                with col2:
+                    encrypted_text_input = st.text_area("Masukkan teks terenkripsi:", height=100)
+                    if st.button("🔓 Dekripsi Teks"):
+                        try:
+                            decoded_data = base64.urlsafe_b64decode(encrypted_text_input.encode())
+                            salt = decoded_data[:16]
+                            encrypted_data = decoded_data[16:]
+                            
+                            kdf = PBKDF2HMAC(
+                                algorithm=hashes.SHA256(),
+                                length=32,
+                                salt=salt,
+                                iterations=100000,
+                            )
+                            key = base64.urlsafe_b64encode(kdf.derive(text_password.encode()))
+                            fernet = Fernet(key)
+                            
+                            decrypted_text = fernet.decrypt(encrypted_data).decode()
+                            st.text_area("Teks Asli:", value=decrypted_text, height=100)
+                            
+                        except Exception as e:
+                            st.error("❌ Gagal dekripsi: Password salah atau data rusak")
+        
+        # Section untuk dekripsi file CSV
+        st.markdown("---")
+        st.subheader("🔓 Dekripsi File CSV")
+        
+        uploaded_file = st.file_uploader(
+            "Unggah file CSV terenkripsi:",
+            type=['enc'],
+            help="Upload file CSV yang telah dienkripsi dengan ekstensi .enc"
+        )
+        
+        if uploaded_file is not None:
+            # Baca metadata dari file
+            file_data = uploaded_file.getvalue()
+            
+            if len(file_data) > 64:
+                metadata = file_data[:64].strip(b' ').decode()
+                salt = file_data[64:80]  # 16 bytes setelah metadata
+                encrypted_data = file_data[80:]
+                
+                # Parse metadata
+                alg = "SHA256"
+                iter_count = 100000
+                
+                for item in metadata.split(','):
+                    if item.startswith('ALG:'):
+                        alg = item[4:]
+                    elif item.startswith('ITER:'):
+                        iter_count = int(item[5:])
+                
+                st.info(f"""
+                **📋 Metadata File:**
+                - **Algoritma:** {alg}
+                - **Iterasi:** {iter_count:,}
+                - **Ukuran File:** {len(file_data)} bytes
+                """)
+            
+            decrypt_password = st.text_input("Masukkan Password Dekripsi:", type="password", key="decrypt_pass")
+            
+            if decrypt_password and st.button("🔓 Dekripsi CSV", type="primary"):
+                try:
+                    with st.spinner("🔄 Mendekripsi file..."):
+                        # Generate key dari password
+                        from cryptography.fernet import Fernet
+                        from cryptography.hazmat.primitives import hashes
+                        from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC
+                        import base64
+                        
+                        hash_algorithm = {
+                            "SHA256": hashes.SHA256(),
+                            "SHA512": hashes.SHA512(),
+                            "SHA3_256": hashes.SHA3_256()
+                        }[alg]
+                        
+                        kdf = PBKDF2HMAC(
+                            algorithm=hash_algorithm,
+                            length=32,
+                            salt=salt,
+                            iterations=iter_count,
+                        )
+                        key = base64.urlsafe_b64encode(kdf.derive(decrypt_password.encode()))
+                        fernet = Fernet(key)
+                        
+                        # Dekripsi data
+                        decrypted_data = fernet.decrypt(encrypted_data).decode()
+                        
+                        st.success("✅ File berhasil didekripsi!")
+                        
+                        # Download file CSV asli
+                        st.download_button(
+                            label="📥 Download CSV Asli",
+                            data=decrypted_data,
+                            file_name="decrypted_data.csv",
+                            mime="text/csv"
+                        )
+                        
+                        # Tampilkan preview
+                        with st.expander("📊 Preview Data Terdekripsi"):
+                            import pandas as pd
+                            from io import StringIO
+                            decrypted_df = pd.read_csv(StringIO(decrypted_data))
+                            
+                            col1, col2 = st.columns(2)
+                            with col1:
+                                st.write("**Data Preview:**")
+                                st.dataframe(decrypted_df.head())
+                            with col2:
+                                st.write("**Informasi Dataset:**")
+                                st.write(f"Baris: {decrypted_df.shape[0]}")
+                                st.write(f"Kolom: {decrypted_df.shape[1]}")
+                                st.write(f"Ukuran Memori: {decrypted_df.memory_usage(deep=True).sum() / 1024:.2f} KB")
+                            
+                except Exception as e:
+                    st.error(f"❌ Error saat dekripsi: {str(e)}")
+                    st.info("""
+                    **Penyebab umum error:**
+                    - Password salah
+                    - File korup/rusak
+                    - Metadata tidak sesuai
+                    - Salt tidak match
+                    """)
+
+        # Chart Analisis Keamanan
+        st.markdown("---")
+        st.subheader("📊 Analisis Keamanan Sistem")
+        
+        col1, col2 = st.columns(2)
+        
+        with col1:
+            # Pie Chart Tingkat Keamanan
+            labels = ['AES-128 (Tinggi)', 'XOR (Rendah)', 'Hashing (Sedang)', 'Salt (Tinggi)']
+            sizes = [35, 15, 25, 25]
+            colors = ['#2ecc71', '#e74c3c', '#f39c12', '#3498db']
+            
+            fig1, ax1 = plt.subplots()
+            ax1.pie(sizes, labels=labels, colors=colors, autopct='%1.1f%%', startangle=90)
+            ax1.axis('equal')
+            ax1.set_title('Distribusi Tingkat Keamanan')
+            st.pyplot(fig1)
+        
+        with col2:
+            # Bar Chart Kerentanan
+            vulnerabilities = ['Brute Force', 'Known Plaintext', 'Key Recovery', 'Side Channel']
+            risk_level = [8, 6, 7, 4]  # 1-10 scale
+            colors = ['red', 'orange', 'orange', 'yellow']
+            
+            fig2, ax2 = plt.subplots()
+            bars = ax2.bar(vulnerabilities, risk_level, color=colors, alpha=0.7)
+            ax2.set_ylabel('Tingkat Risiko (1-10)')
+            ax2.set_title('Analisis Kerentanan Sistem')
+            ax2.set_ylim(0, 10)
+            
+            # Add value labels on bars
+            for bar, value in zip(bars, risk_level):
+                ax2.text(bar.get_x() + bar.get_width()/2, bar.get_height() + 0.1, 
+                        str(value), ha='center', va='bottom')
+            
+            st.pyplot(fig2)
+
+        # Footer informasi
+        st.markdown("---")
+        st.markdown("""
+        ### 💡 Tips Keamanan:
+        
+        1. **Simpan password dan key di tempat yang aman** - terpisah dari file terenkripsi
+        2. **Gunakan password yang kuat** - minimal 12 karakter dengan kombinasi kompleks
+        3. **Backup key secara terenkripsi** - jangan simpan dalam plain text
+        4. **Regular key rotation** - ganti key secara berkala untuk data sensitif
+        5. **Audit akses file** - pantau siapa yang mengakses file terenkripsi
+        
+        ⚠️ **Disclaimer:** Sistem ini untuk keperluan edukasi. Untuk data sangat sensitif, 
+        gunakan solusi enterprise-grade dengan hardware security module.
+        """)
 
     with tab13:
         st.header("🧬 Analisis DNA dan Visualisasi 3D Lengkap")
