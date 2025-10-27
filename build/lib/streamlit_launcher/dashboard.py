@@ -11092,7 +11092,121 @@ with st.expander("📜 PENJELASAN LENGKAP MENGENAI ROY ACADEMY", expanded=False)
     """)
 
 # Sidebar
-st.sidebar.header("🎛️ Kontrol Aplikasi")
+
+import streamlit as st
+import random
+import string
+from streamlit_modal import Modal
+
+# Fungsi untuk generate random member ID
+def generate_member_id():
+    prefix = "SL-PM-"
+    random_chars = ''.join(random.choices(string.ascii_uppercase + string.digits, k=6))
+    return prefix + random_chars
+
+# Informasi profile
+st.sidebar.image("https://github.com/DwiDevelopes/gambar/raw/main/Desain%20tanpa%20judul%20(8).jpg", 
+                 caption="Roy Academy", width=100)
+
+st.sidebar.markdown("""
+**Nama:** Roy Academy  
+**Role:** Community Streamlit Launcher
+**Status:** Premium Member  
+**Bergabung:** Streamlit Launcher
+""")
+
+# Generate member ID sekali saja menggunakan session state
+if 'member_id' not in st.session_state:
+    st.session_state.member_id = generate_member_id()
+
+# CSS untuk membuat modal di tengah
+st.markdown("""
+<style>
+    /* Target the modal container */
+    div[data-modal-container='true'][key='member-card-modal'] {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+    
+    /* Target the modal content */
+    div[data-modal-container='true'][key='member-card-modal'] > div:first-child {
+        position: relative;
+        margin: auto;
+    }
+    
+    /* Make sure modal is centered */
+    .element-container:has(div[data-modal-container='true'][key='member-card-modal']) {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        height: 100vh;
+    }
+</style>
+""", unsafe_allow_html=True)
+
+# Membuat modal
+modal = Modal(
+    "🎴 Streamlit Launcher Card", 
+    key="member-card-modal",
+    padding=20,
+    max_width=600
+)
+
+# Button untuk membuka modal di sidebar
+if st.sidebar.button("🎴 Streamlit Launcher Card"):
+    modal.open()
+
+# Jika modal terbuka
+if modal.is_open():
+    with modal.container():
+        # Card design
+        st.markdown(
+            f"""
+            <div style='
+                background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                padding: 20px;
+                border-radius: 15px;
+                color: white;
+                margin: 10px 0;
+                box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+            '>
+                <h3 style='color: white; margin-bottom: 10px; text-align: center;'>🌟 PREMIUM MEMBER CARD</h3>
+                <div style='display: flex; align-items: center; margin-bottom: 15px;'>
+                    <img src='https://github.com/DwiDevelopes/gambar/raw/main/Screenshot%202025-10-17%20100808.png' 
+                         style='width: 60px; height: 60px; border-radius: 50%; margin-right: 15px;'>
+                    <div>
+                        <h4 style='color: white; margin: 0;'>Roy Academy</h4>
+                        <p style='color: #e0e0e0; margin: 0; font-size: 12px;'>Community Streamlit Launcher</p>
+                    </div>
+                </div>
+                <div style='background: rgba(255,255,255,0.2); padding: 10px; border-radius: 8px; margin: 10px 0;'>
+                    <p style='margin: 5px 0; font-size: 12px;'><strong>Status:</strong> 🏆 Premium Member</p>
+                    <p style='margin: 5px 0; font-size: 12px;'><strong>Bergabung:</strong> Streamlit Launcher Community</p>
+                    <p style='margin: 5px 0; font-size: 12px;'><strong>Member ID:</strong> {st.session_state.member_id}</p>
+                    <p style='margin: 5px 0; font-size: 12px;'><strong>Comunity:</strong> Streamlit Launcher</p>
+                </div>
+                <div style='text-align: center; margin-top: 15px;'>
+                    <p style='font-size: 10px; color: #e0e0e0;'>Official Member of Streamlit Launcher Community</p>
+                </div>
+            </div>
+            """, 
+            unsafe_allow_html=True
+        )
+        
+        # Interactive elements
+        col1, col2 = st.columns(1)
+        with col1:
+            if st.button("🔄 Generate New ID", use_container_width=True):
+                st.session_state.member_id = generate_member_id()
+                st.rerun()
+        with col2:
+            if st.button("📋 Copy ID", use_container_width=True):
+                st.code(st.session_state.member_id)
+                st.success(f"ID {st.session_state.member_id} copied to clipboard!")
+                
+                
+st.sidebar.header("🎛️ Dwonload File Saham")
 
 if st.sidebar.button("📁 Buat File Contoh"):
     example_data = create_sample_file()
@@ -12000,7 +12114,7 @@ def get_database_references(gene_name):
     
     return databases
 
-# [Fungsi-fungsi lainnya tetap sama seperti sebelumnya: show_base_composition, find_dna_motifs, calculate_biophysical_properties, analyze_sequence_features, create_advanced_3d_dna, dll.]
+# Fungsi-fungsi tetap sama semuah 
 
 def create_dna_visualizations(dna_df):
     """Create various DNA visualizations from dataframe"""
@@ -12023,12 +12137,14 @@ def create_dna_visualizations(dna_df):
 REMOVE_BG_API_KEY = "xQH5KznYiupRrywK5yPcjeyi"
 PIXELS_API_KEY = "LH59shPdj1xO0lolnHPsClH23qsnHE4NjkCFBhKEXvR0CbqwkrXbqBnw"
 if df is not None:
-    tab1, tab2, tab3, tab4, tab5, tab6, tab7, tab8, tab9, tab10, tab11, tab12, tab13, tab14 = st.tabs([
+    tab1, tab2, tab3, tab4, tab5, tab6, tab7, tab8, tab9, tab10, tab11, tab12, tab13, tab14= st.tabs([
         "📊 Statistik", "📈 Visualisasi", "💾 Data", "ℹ️ Informasi", "🧮 Kalkulator",
         "🖼️ Vitures", "📍 Flowchart", "📊 Grafik Saham", "🗃️ SQL Style", 
         "🔄 3D Model & Analisis", "⚡ Konversi Cepat", "📝 Editor File", "🧬 Analisis DNA",
         "🔐 Enkripsi Data"
     ])
+        
+    
 
     with tab14:
         st.header("🔐 Enkripsi Data CSV dan Python")
