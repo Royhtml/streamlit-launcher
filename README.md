@@ -86,6 +86,31 @@ Fitur analisis DNA yang tersedia:
 6. Python dan Data Encryption
 7. Text dan Encryption
 
+## 📚 Vitur Profile And Analytics Source Code
+
+<img src="https://github.com/DwiDevelopes/gambar/raw/main/Screenshot%202025-10-27%20213625.png" width="100%" height="100%">
+
+1. Source Code
+2. Member Premium
+3. AI Unlimited Free
+4. Realtime Data
+5. Data Visualization
+6. Data Analysis
+7. Data Export
+8. Data Import
+9. Data Encryption
+10. Data Security
+11. Data Privacy
+12. Data Anonymization
+13. Data Anomaly Detection
+14. Data Clustering
+15. Data Dimensionality Reduction
+16. Data Feature Selection
+17. Data Feature Engineering
+18. Data Feature Extraction
+19. Data Feature Selection
+20. Data Feature Selection
+
 ## 🚀 Installation
 
 ### Prerequisites System:
