@@ -11119,7 +11119,7 @@ st.sidebar.markdown("""
 if 'member_id' not in st.session_state:
     st.session_state.member_id = generate_member_id()
 
-# CSS untuk membuat modal di tengah dan lebih ringan
+# CSS responsive untuk mobile dan desktop
 st.markdown("""
 <style>
     /* Target the modal container */
@@ -11133,6 +11133,7 @@ st.markdown("""
     div[data-modal-container='true'][key='member-card-modal'] > div:first-child {
         position: relative;
         margin: auto;
+        width: 90%;
         max-width: 500px;
     }
     
@@ -11146,19 +11147,91 @@ st.markdown("""
         max-width: 100%;
         height: auto;
     }
+    
+    /* Responsive card styling */
+    .member-card {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        padding: 20px;
+        border-radius: 12px;
+        color: white;
+        margin: 5px 0;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        width: 100%;
+    }
+    
+    /* Desktop styling */
+    @media (min-width: 768px) {
+        .member-card {
+            padding: 20px;
+        }
+        .card-title {
+            font-size: 18px !important;
+        }
+        .card-content {
+            font-size: 14px !important;
+        }
+        .card-small-text {
+            font-size: 11px !important;
+        }
+        .profile-img {
+            width: 60px !important;
+            height: 60px !important;
+        }
+    }
+    
+    /* Mobile styling */
+    @media (max-width: 767px) {
+        .member-card {
+            padding: 15px;
+        }
+        .card-title {
+            font-size: 16px !important;
+        }
+        .card-content {
+            font-size: 12px !important;
+        }
+        .card-small-text {
+            font-size: 9px !important;
+        }
+        .profile-img {
+            width: 50px !important;
+            height: 50px !important;
+        }
+        /* Adjust button size for mobile */
+        .stButton button {
+            width: 100%;
+            font-size: 12px;
+            padding: 8px 12px;
+        }
+    }
+    
+    /* Button container responsive */
+    .button-container {
+        display: flex;
+        gap: 10px;
+        margin-top: 15px;
+    }
+    
+    @media (max-width: 767px) {
+        .button-container {
+            flex-direction: column;
+            gap: 8px;
+        }
+    }
 </style>
 """, unsafe_allow_html=True)
 
-# Membuat modal
+# Membuat modal dengan ukuran responsive
 modal = Modal(
     "🎴 Streamlit Launcher Card", 
     key="member-card-modal",
-    padding=10,  # Kurangi padding untuk lebih ringan
-    max_width=450  # Lebih kecil dari sebelumnya
+    padding=15,
+    max_width="90%",  # Responsive width
 )
 
-# Button untuk membuka modal di sidebar
-if st.sidebar.button("🎴 Streamlit Launcher Card"):
+# Button untuk membuka modal di sidebar - versi responsive
+st.sidebar.markdown("---")
+if st.sidebar.button("🎴 Streamlit Launcher Card", use_container_width=True):
     modal.open()
 
 # Jika modal terbuka
@@ -11168,31 +11241,24 @@ if modal.is_open():
         @st.cache_data(ttl=3600)  # Cache untuk 1 jam
         def get_card_html(member_id):
             return f"""
-            <div style='
-                background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-                padding: 15px;
-                border-radius: 12px;
-                color: white;
-                margin: 5px 0;
-                box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-            '>
-                <h3 style='color: white; margin-bottom: 8px; text-align: center; font-size: 16px;'>🌟 PREMIUM MEMBER CARD</h3>
-                <div style='display: flex; align-items: center; margin-bottom: 12px;'>
+            <div class='member-card'>
+                <h3 class='card-title' style='color: white; margin-bottom: 10px; text-align: center;'>🌟 PREMIUM MEMBER CARD</h3>
+                <div style='display: flex; align-items: center; margin-bottom: 15px;'>
                     <img src='https://github.com/DwiDevelopes/gambar/raw/main/Screenshot%202025-10-17%20100808.png' 
-                         style='width: 50px; height: 50px; border-radius: 50%; margin-right: 12px;'>
+                         class='profile-img' style='border-radius: 50%; margin-right: 15px;'>
                     <div>
-                        <h4 style='color: white; margin: 0; font-size: 14px;'>Roy Academy</h4>
-                        <p style='color: #e0e0e0; margin: 0; font-size: 11px;'>Community Streamlit Launcher</p>
+                        <h4 style='color: white; margin: 0; font-size: 16px;'>Roy Academy</h4>
+                        <p class='card-content' style='color: #e0e0e0; margin: 0;'>Community Streamlit Launcher</p>
                     </div>
                 </div>
-                <div style='background: rgba(255,255,255,0.2); padding: 8px; border-radius: 6px; margin: 8px 0;'>
-                    <p style='margin: 4px 0; font-size: 11px;'><strong>Status:</strong> 🏆 Premium Member</p>
-                    <p style='margin: 4px 0; font-size: 11px;'><strong>Bergabung:</strong> Streamlit Launcher Community</p>
-                    <p style='margin: 4px 0; font-size: 11px;'><strong>Member ID:</strong> {member_id}</p>
-                    <p style='margin: 4px 0; font-size: 11px;'><strong>Community:</strong> Streamlit Launcher</p>
+                <div style='background: rgba(255,255,255,0.2); padding: 12px; border-radius: 8px; margin: 10px 0;'>
+                    <p class='card-content' style='margin: 5px 0;'><strong>Status:</strong> 🏆 Premium Member</p>
+                    <p class='card-content' style='margin: 5px 0;'><strong>Bergabung:</strong> Streamlit Launcher Community</p>
+                    <p class='card-content' style='margin: 5px 0;'><strong>Member ID:</strong> {member_id}</p>
+                    <p class='card-content' style='margin: 5px 0;'><strong>Community:</strong> Streamlit Launcher</p>
                 </div>
-                <div style='text-align: center; margin-top: 12px;'>
-                    <p style='font-size: 9px; color: #e0e0e0;'>Official Member of Streamlit Launcher Community</p>
+                <div style='text-align: center; margin-top: 15px;'>
+                    <p class='card-small-text' style='color: #e0e0e0;'>Official Member of Streamlit Launcher Community</p>
                 </div>
             </div>
             """
@@ -11200,18 +11266,21 @@ if modal.is_open():
         # Render card yang sudah di-cache
         st.markdown(get_card_html(st.session_state.member_id), unsafe_allow_html=True)
         
-        # Interactive elements dengan callback untuk menghindari rerun
-        col1, col2 = st.columns(2)
+        # Interactive elements dengan layout responsive
+        st.markdown('<div class="button-container">', unsafe_allow_html=True)
+        
+        col1, col2 = st.columns([1, 1])
         
         with col1:
-            if st.button("🔄 Generate New ID", key="generate_btn"):
+            if st.button("🔄 Generate New ID", key="generate_btn", use_container_width=True):
                 st.session_state.member_id = generate_member_id()
-                # Tidak perlu st.rerun() - perubahan akan terlihat saat interaksi berikutnya
         
         with col2:
-            if st.button("📋 Copy ID", key="copy_btn"):
+            if st.button("📋 Copy ID", key="copy_btn", use_container_width=True):
                 # Simpan ID ke session state untuk ditampilkan
                 st.session_state.copied_id = st.session_state.member_id
+        
+        st.markdown('</div>', unsafe_allow_html=True)
         
         # Tampilkan ID yang dicopy jika ada
         if 'copied_id' in st.session_state:
@@ -11219,11 +11288,11 @@ if modal.is_open():
             st.success(f"ID {st.session_state.copied_id} copied to clipboard!")
             
             # Hapus setelah beberapa detik (opsional)
-            if st.button("OK", key="ok_btn"):
+            if st.button("OK", key="ok_btn", use_container_width=True):
                 if 'copied_id' in st.session_state:
                     del st.session_state.copied_id
 
-# Tambahkan JavaScript untuk handling copy yang lebih smooth
+# Tambahkan JavaScript untuk handling copy dan responsive behavior
 st.components.v1.html("""
 <script>
 // Function untuk copy text ke clipboard
@@ -11235,10 +11304,29 @@ function copyToClipboard(text) {
     });
 }
 
-// Listen untuk events dari Streamlit
-window.addEventListener('DOMContentLoaded', function() {
-    console.log('Member card modal optimized');
-});
+// Detect screen size and adjust accordingly
+function handleResponsive() {
+    const screenWidth = window.innerWidth;
+    const isMobile = screenWidth <= 767;
+    
+    // Adjust modal size based on screen
+    const modalContent = document.querySelector('div[data-modal-container="true"][key="member-card-modal"] > div:first-child');
+    if (modalContent) {
+        if (isMobile) {
+            modalContent.style.width = '95%';
+            modalContent.style.maxWidth = '400px';
+        } else {
+            modalContent.style.width = '90%';
+            modalContent.style.maxWidth = '500px';
+        }
+    }
+}
+
+// Listen untuk events dari Streamlit dan resize
+window.addEventListener('DOMContentLoaded', handleResponsive);
+window.addEventListener('resize', handleResponsive);
+
+console.log('Responsive member card modal loaded');
 </script>
 """, height=0)
                 
