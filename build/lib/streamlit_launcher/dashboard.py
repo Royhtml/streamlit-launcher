@@ -11119,7 +11119,7 @@ st.sidebar.markdown("""
 if 'member_id' not in st.session_state:
     st.session_state.member_id = generate_member_id()
 
-# CSS untuk membuat modal di tengah
+# CSS untuk membuat modal di tengah dan lebih ringan
 st.markdown("""
 <style>
     /* Target the modal container */
@@ -11133,14 +11133,18 @@ st.markdown("""
     div[data-modal-container='true'][key='member-card-modal'] > div:first-child {
         position: relative;
         margin: auto;
+        max-width: 500px;
     }
     
-    /* Make sure modal is centered */
-    .element-container:has(div[data-modal-container='true'][key='member-card-modal']) {
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        height: 100vh;
+    /* Make modal background lighter */
+    .stModal {
+        background-color: rgba(0,0,0,0.5);
+    }
+    
+    /* Optimize images to load faster */
+    img {
+        max-width: 100%;
+        height: auto;
     }
 </style>
 """, unsafe_allow_html=True)
@@ -11149,8 +11153,8 @@ st.markdown("""
 modal = Modal(
     "🎴 Streamlit Launcher Card", 
     key="member-card-modal",
-    padding=20,
-    max_width=600
+    padding=10,  # Kurangi padding untuk lebih ringan
+    max_width=450  # Lebih kecil dari sebelumnya
 )
 
 # Button untuk membuka modal di sidebar
@@ -11160,50 +11164,83 @@ if st.sidebar.button("🎴 Streamlit Launcher Card"):
 # Jika modal terbuka
 if modal.is_open():
     with modal.container():
-        # Card design
-        st.markdown(
-            f"""
+        # Gunakan cache untuk card design agar tidak reload
+        @st.cache_data(ttl=3600)  # Cache untuk 1 jam
+        def get_card_html(member_id):
+            return f"""
             <div style='
                 background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-                padding: 20px;
-                border-radius: 15px;
+                padding: 15px;
+                border-radius: 12px;
                 color: white;
-                margin: 10px 0;
-                box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+                margin: 5px 0;
+                box-shadow: 0 2px 4px rgba(0,0,0,0.1);
             '>
-                <h3 style='color: white; margin-bottom: 10px; text-align: center;'>🌟 PREMIUM MEMBER CARD</h3>
-                <div style='display: flex; align-items: center; margin-bottom: 15px;'>
+                <h3 style='color: white; margin-bottom: 8px; text-align: center; font-size: 16px;'>🌟 PREMIUM MEMBER CARD</h3>
+                <div style='display: flex; align-items: center; margin-bottom: 12px;'>
                     <img src='https://github.com/DwiDevelopes/gambar/raw/main/Screenshot%202025-10-17%20100808.png' 
-                         style='width: 60px; height: 60px; border-radius: 50%; margin-right: 15px;'>
+                         style='width: 50px; height: 50px; border-radius: 50%; margin-right: 12px;'>
                     <div>
-                        <h4 style='color: white; margin: 0;'>Roy Academy</h4>
-                        <p style='color: #e0e0e0; margin: 0; font-size: 12px;'>Community Streamlit Launcher</p>
+                        <h4 style='color: white; margin: 0; font-size: 14px;'>Roy Academy</h4>
+                        <p style='color: #e0e0e0; margin: 0; font-size: 11px;'>Community Streamlit Launcher</p>
                     </div>
                 </div>
-                <div style='background: rgba(255,255,255,0.2); padding: 10px; border-radius: 8px; margin: 10px 0;'>
-                    <p style='margin: 5px 0; font-size: 12px;'><strong>Status:</strong> 🏆 Premium Member</p>
-                    <p style='margin: 5px 0; font-size: 12px;'><strong>Bergabung:</strong> Streamlit Launcher Community</p>
-                    <p style='margin: 5px 0; font-size: 12px;'><strong>Member ID:</strong> {st.session_state.member_id}</p>
-                    <p style='margin: 5px 0; font-size: 12px;'><strong>Comunity:</strong> Streamlit Launcher</p>
+                <div style='background: rgba(255,255,255,0.2); padding: 8px; border-radius: 6px; margin: 8px 0;'>
+                    <p style='margin: 4px 0; font-size: 11px;'><strong>Status:</strong> 🏆 Premium Member</p>
+                    <p style='margin: 4px 0; font-size: 11px;'><strong>Bergabung:</strong> Streamlit Launcher Community</p>
+                    <p style='margin: 4px 0; font-size: 11px;'><strong>Member ID:</strong> {member_id}</p>
+                    <p style='margin: 4px 0; font-size: 11px;'><strong>Community:</strong> Streamlit Launcher</p>
                 </div>
-                <div style='text-align: center; margin-top: 15px;'>
-                    <p style='font-size: 10px; color: #e0e0e0;'>Official Member of Streamlit Launcher Community</p>
+                <div style='text-align: center; margin-top: 12px;'>
+                    <p style='font-size: 9px; color: #e0e0e0;'>Official Member of Streamlit Launcher Community</p>
                 </div>
             </div>
-            """, 
-            unsafe_allow_html=True
-        )
+            """
         
-        # Interactive elements
-        col1, col2 = st.columns(1)
+        # Render card yang sudah di-cache
+        st.markdown(get_card_html(st.session_state.member_id), unsafe_allow_html=True)
+        
+        # Interactive elements dengan callback untuk menghindari rerun
+        col1, col2 = st.columns(2)
+        
         with col1:
-            if st.button("🔄 Generate New ID", use_container_width=True):
+            if st.button("🔄 Generate New ID", key="generate_btn"):
                 st.session_state.member_id = generate_member_id()
-                st.rerun()
+                # Tidak perlu st.rerun() - perubahan akan terlihat saat interaksi berikutnya
+        
         with col2:
-            if st.button("📋 Copy ID", use_container_width=True):
-                st.code(st.session_state.member_id)
-                st.success(f"ID {st.session_state.member_id} copied to clipboard!")
+            if st.button("📋 Copy ID", key="copy_btn"):
+                # Simpan ID ke session state untuk ditampilkan
+                st.session_state.copied_id = st.session_state.member_id
+        
+        # Tampilkan ID yang dicopy jika ada
+        if 'copied_id' in st.session_state:
+            st.code(st.session_state.copied_id)
+            st.success(f"ID {st.session_state.copied_id} copied to clipboard!")
+            
+            # Hapus setelah beberapa detik (opsional)
+            if st.button("OK", key="ok_btn"):
+                if 'copied_id' in st.session_state:
+                    del st.session_state.copied_id
+
+# Tambahkan JavaScript untuk handling copy yang lebih smooth
+st.components.v1.html("""
+<script>
+// Function untuk copy text ke clipboard
+function copyToClipboard(text) {
+    navigator.clipboard.writeText(text).then(function() {
+        console.log('Text copied to clipboard');
+    }, function(err) {
+        console.error('Could not copy text: ', err);
+    });
+}
+
+// Listen untuk events dari Streamlit
+window.addEventListener('DOMContentLoaded', function() {
+    console.log('Member card modal optimized');
+});
+</script>
+""", height=0)
                 
                 
 st.sidebar.header("🎛️ Dwonload File Saham")
@@ -12137,13 +12174,485 @@ def create_dna_visualizations(dna_df):
 REMOVE_BG_API_KEY = "xQH5KznYiupRrywK5yPcjeyi"
 PIXELS_API_KEY = "LH59shPdj1xO0lolnHPsClH23qsnHE4NjkCFBhKEXvR0CbqwkrXbqBnw"
 if df is not None:
-    tab1, tab2, tab3, tab4, tab5, tab6, tab7, tab8, tab9, tab10, tab11, tab12, tab13, tab14= st.tabs([
+    tab1, tab2, tab3, tab4, tab5, tab6, tab7, tab8, tab9, tab10, tab11, tab12, tab13, tab14, tab15= st.tabs([
         "📊 Statistik", "📈 Visualisasi", "💾 Data", "ℹ️ Informasi", "🧮 Kalkulator",
         "🖼️ Vitures", "📍 Flowchart", "📊 Grafik Saham", "🗃️ SQL Style", 
         "🔄 3D Model & Analisis", "⚡ Konversi Cepat", "📝 Editor File", "🧬 Analisis DNA",
-        "🔐 Enkripsi Data"
+        "🔐 Enkripsi Data", "📊 Source Elements Lanjutan"
     ])
         
+        
+    with tab15:
+        st.header("📊 Source Elements Lanjutan")
+        
+        # Section 1: Basic Charts
+        st.subheader("1. Basic Charts")
+        
+        col1, col2 = st.columns(2)
+        
+        with col1:
+            # Line Chart
+            st.write("**Line Chart**")
+            
+            with st.expander("📝 Source Code - Line Chart"):
+                st.code('''
+    # Line Chart
+    line_data = pd.DataFrame({
+        'x': [1, 2, 3, 4, 5],
+        'y': [10, 20, 15, 25, 30]
+    })
+    st.line_chart(line_data.set_index('x'))
+    ''', language='python')
+            
+            line_data = pd.DataFrame({
+                'x': [1, 2, 3, 4, 5],
+                'y': [10, 20, 15, 25, 30]
+            })
+            st.line_chart(line_data.set_index('x'))
+            
+            # Area Chart
+            st.write("**Area Chart**")
+            
+            with st.expander("📝 Source Code - Area Chart"):
+                st.code('''
+    # Area Chart
+    area_data = pd.DataFrame({
+        'x': [1, 2, 3, 4, 5],
+        'y1': [10, 20, 15, 25, 30],
+        'y2': [5, 15, 10, 20, 25]
+    })
+    st.area_chart(area_data.set_index('x'))
+    ''', language='python')
+            
+            area_data = pd.DataFrame({
+                'x': [1, 2, 3, 4, 5],
+                'y1': [10, 20, 15, 25, 30],
+                'y2': [5, 15, 10, 20, 25]
+            })
+            st.area_chart(area_data.set_index('x'))
+                
+        with col2:
+            # Bar Chart
+            st.write("**Bar Chart**")
+            
+            with st.expander("📝 Source Code - Bar Chart"):
+                st.code('''
+    # Bar Chart
+    bar_data = pd.DataFrame({
+        'Category': ['A', 'B', 'C', 'D'],
+        'Values': [25, 40, 30, 35]
+    })
+    st.bar_chart(bar_data.set_index('Category'))
+    ''', language='python')
+            
+            bar_data = pd.DataFrame({
+                'Category': ['A', 'B', 'C', 'D'],
+                'Values': [25, 40, 30, 35]
+            })
+            st.bar_chart(bar_data.set_index('Category'))
+            
+            # Scatter Plot
+            st.write("**Scatter Plot**")
+            
+            with st.expander("📝 Source Code - Scatter Plot"):
+                st.code('''
+    # Scatter Plot
+    scatter_data = pd.DataFrame({
+        'x': np.random.randn(50),
+        'y': np.random.randn(50)
+    })
+    st.scatter_chart(scatter_data)
+    ''', language='python')
+            
+            scatter_data = pd.DataFrame({
+                'x': np.random.randn(50),
+                'y': np.random.randn(50)
+            })
+            st.scatter_chart(scatter_data)
+        
+        # Section 2: Advanced Charts
+        st.subheader("2. Advanced Charts")
+        
+        col3, col4 = st.columns(2)
+        
+        with col3:
+            # Map Chart
+            st.write("**Map Visualization**")
+            
+            with st.expander("📝 Source Code - Map Chart"):
+                st.code('''
+    # Map Chart
+    map_data = pd.DataFrame({
+        'lat': [-6.2, -6.3, -6.25],
+        'lon': [106.8, 106.9, 106.85]
+    })
+    st.map(map_data)
+    ''', language='python')
+            
+            map_data = pd.DataFrame({
+                'lat': [-6.2, -6.3, -6.25],
+                'lon': [106.8, 106.9, 106.85]
+            })
+            st.map(map_data)
+                
+        with col4:
+            # PyDeck Chart
+            st.write("**3D Map (PyDeck)**")
+            
+            with st.expander("📝 Source Code - PyDeck Chart"):
+                st.code('''
+    # PyDeck Chart
+    import pydeck as pdk
+
+    deck_data = pd.DataFrame({
+        'lat': [-6.2, -6.3, -6.25],
+        'lon': [106.8, 106.9, 106.85],
+        'size': [100, 150, 200]
+    })
+
+    layer = pdk.Layer(
+        'ScatterplotLayer',
+        deck_data,
+        get_position=['lon', 'lat'],
+        get_radius='size',
+        get_color=[255, 0, 0],
+        pickable=True
+    )
+
+    view_state = pdk.ViewState(
+        latitude=-6.25,
+        longitude=106.85,
+        zoom=10
+    )
+
+    st.pydeck_chart(pdk.Deck(layers=[layer], initial_view_state=view_state))
+    ''', language='python')
+            
+            try:
+                import pydeck as pdk
+                
+                deck_data = pd.DataFrame({
+                    'lat': [-6.2, -6.3, -6.25],
+                    'lon': [106.8, 106.9, 106.85],
+                    'size': [100, 150, 200]
+                })
+                
+                layer = pdk.Layer(
+                    'ScatterplotLayer',
+                    deck_data,
+                    get_position=['lon', 'lat'],
+                    get_radius='size',
+                    get_color=[255, 0, 0],
+                    pickable=True
+                )
+                
+                view_state = pdk.ViewState(
+                    latitude=-6.25,
+                    longitude=106.85,
+                    zoom=10
+                )
+                
+                st.pydeck_chart(pdk.Deck(layers=[layer], initial_view_state=view_state))
+            except ImportError:
+                st.warning("PyDeck not installed. Install with: pip install pydeck")
+        
+        # Section 3: Interactive Charts with Plotly
+        st.subheader("3. Interactive Charts (Plotly)")
+        
+        col5, col6 = st.columns(2)
+        
+        with col5:
+            try:
+                import plotly.express as px
+                import plotly.graph_objects as go
+                
+                # Interactive Line Chart
+                st.write("**Interactive Line Chart**")
+                
+                with st.expander("📝 Source Code - Plotly Line Chart"):
+                    st.code('''
+    # Interactive Line Chart with Plotly
+    import plotly.express as px
+
+    fig_line = px.line(
+        line_data, x='x', y='y', 
+        title='Interactive Line Chart',
+        template='plotly_white'
+    )
+    st.plotly_chart(fig_line, use_container_width=True)
+    ''', language='python')
+                
+                fig_line = px.line(
+                    line_data, x='x', y='y', 
+                    title='Interactive Line Chart',
+                    template='plotly_white'
+                )
+                st.plotly_chart(fig_line, use_container_width=True)
+                
+            except ImportError:
+                st.warning("Plotly not installed. Install with: pip install plotly")
+        
+        with col6:
+            try:
+                # Interactive Bar Chart
+                st.write("**Interactive Bar Chart**")
+                
+                with st.expander("📝 Source Code - Plotly Bar Chart"):
+                    st.code('''
+    # Interactive Bar Chart with Plotly
+    import plotly.express as px
+
+    fig_bar = px.bar(
+        bar_data, x='Category', y='Values',
+        title='Interactive Bar Chart',
+        color='Category',
+        template='plotly_white'
+    )
+    st.plotly_chart(fig_bar, use_container_width=True)
+    ''', language='python')
+                
+                fig_bar = px.bar(
+                    bar_data, x='Category', y='Values',
+                    title='Interactive Bar Chart',
+                    color='Category',
+                    template='plotly_white'
+                )
+                st.plotly_chart(fig_bar, use_container_width=True)
+                    
+            except ImportError:
+                st.warning("Plotly not installed. Install with: pip install plotly")
+        
+        # Section 4: Customizable Chart Builder
+        st.subheader("4. Custom Chart Builder")
+        
+        chart_col1, chart_col2 = st.columns([1, 2])
+        
+        with chart_col1:
+            st.write("**Chart Configuration**")
+            
+            chart_type = st.selectbox(
+                "Select Chart Type",
+                ["Line Chart", "Bar Chart", "Area Chart", "Scatter Plot"]
+            )
+            
+            num_points = st.slider("Number of Data Points", 5, 50, 20)
+            
+            show_grid = st.checkbox("Show Grid", True)
+            show_legend = st.checkbox("Show Legend", True)
+            
+            color_theme = st.selectbox(
+                "Color Theme",
+                ["Blue", "Red", "Green", "Purple", "Orange"]
+            )
+            
+        with chart_col2:
+            st.write("**Custom Chart Preview**")
+            
+            with st.expander("📝 Source Code - Custom Chart Builder"):
+                st.code(f'''
+    # Custom Chart Builder
+    np.random.seed(42)
+    custom_data = pd.DataFrame({{
+        'x': range(1, {num_points} + 1),
+        'y': np.random.randint(10, 100, {num_points}) + np.arange({num_points}) * 2
+    }})
+
+    if chart_type == "Line Chart":
+        st.line_chart(custom_data.set_index('x'))
+    elif chart_type == "Bar Chart":
+        st.bar_chart(custom_data.set_index('x'))
+    elif chart_type == "Area Chart":
+        st.area_chart(custom_data.set_index('x'))
+    elif chart_type == "Scatter Plot":
+        st.scatter_chart(custom_data)
+    ''', language='python')
+            
+            # Generate sample data based on configuration
+            np.random.seed(42)
+            custom_data = pd.DataFrame({
+                'x': range(1, num_points + 1),
+                'y': np.random.randint(10, 100, num_points) + np.arange(num_points) * 2
+            })
+            
+            if chart_type == "Line Chart":
+                st.line_chart(custom_data.set_index('x'))
+            elif chart_type == "Bar Chart":
+                st.bar_chart(custom_data.set_index('x'))
+            elif chart_type == "Area Chart":
+                st.area_chart(custom_data.set_index('x'))
+            elif chart_type == "Scatter Plot":
+                st.scatter_chart(custom_data)
+        
+        # Section 5: Chart Comparison
+        st.subheader("5. Chart Comparison")
+        
+        compare_col1, compare_col2 = st.columns(2)
+        
+        with compare_col1:
+            st.write("**Dataset A**")
+            
+            with st.expander("📝 Source Code - Chart Comparison A"):
+                st.code('''
+    # Chart Comparison - Dataset A
+    data_a = pd.DataFrame({
+        'Month': ['Jan', 'Feb', 'Mar', 'Apr', 'May'],
+        'Sales': [120, 150, 180, 90, 200]
+    })
+    st.bar_chart(data_a.set_index('Month'))
+    ''', language='python')
+            
+            data_a = pd.DataFrame({
+                'Month': ['Jan', 'Feb', 'Mar', 'Apr', 'May'],
+                'Sales': [120, 150, 180, 90, 200]
+            })
+            st.bar_chart(data_a.set_index('Month'))
+            
+        with compare_col2:
+            st.write("**Dataset B**")
+            
+            with st.expander("📝 Source Code - Chart Comparison B"):
+                st.code('''
+    # Chart Comparison - Dataset B
+    data_b = pd.DataFrame({
+        'Month': ['Jan', 'Feb', 'Mar', 'Apr', 'May'],
+        'Sales': [80, 160, 140, 110, 170]
+    })
+    st.bar_chart(data_b.set_index('Month'))
+    ''', language='python')
+            
+            data_b = pd.DataFrame({
+                'Month': ['Jan', 'Feb', 'Mar', 'Apr', 'May'],
+                'Sales': [80, 160, 140, 110, 170]
+            })
+            st.bar_chart(data_b.set_index('Month'))
+        
+        # Section 6: Statistical Charts
+        st.subheader("6. Statistical Visualization")
+        
+        stat_col1, stat_col2 = st.columns(2)
+        
+        with stat_col1:
+            # Histogram
+            st.write("**Histogram**")
+            
+            with st.expander("📝 Source Code - Histogram"):
+                st.code('''
+    # Histogram
+    hist_data = pd.DataFrame({
+        'values': np.random.normal(0, 1, 1000)
+    })
+    st.bar_chart(hist_data['values'].value_counts().sort_index())
+    ''', language='python')
+            
+            hist_data = pd.DataFrame({
+                'values': np.random.normal(0, 1, 1000)
+            })
+            st.bar_chart(hist_data['values'].value_counts().sort_index())
+            
+        with stat_col2:
+            # Box Plot (using Plotly)
+            try:
+                st.write("**Box Plot**")
+                
+                with st.expander("📝 Source Code - Box Plot"):
+                    st.code('''
+    # Box Plot with Plotly
+    import plotly.express as px
+
+    box_data = pd.DataFrame({
+        'Category': ['A']*100 + ['B']*100,
+        'Values': list(np.random.normal(0, 1, 100)) + list(np.random.normal(1, 1.5, 100))
+    })
+    fig_box = px.box(box_data, x='Category', y='Values', title='Box Plot Comparison')
+    st.plotly_chart(fig_box, use_container_width=True)
+    ''', language='python')
+                
+                box_data = pd.DataFrame({
+                    'Category': ['A']*100 + ['B']*100,
+                    'Values': list(np.random.normal(0, 1, 100)) + list(np.random.normal(1, 1.5, 100))
+                })
+                fig_box = px.box(box_data, x='Category', y='Values', title='Box Plot Comparison')
+                st.plotly_chart(fig_box, use_container_width=True)
+            except:
+                st.info("Install Plotly for box plots")
+        
+        # Section 7: Real-time Data Simulation
+        st.subheader("7. Real-time Data Simulation")
+        
+        with st.expander("📝 Source Code - Real-time Simulation"):
+            st.code('''
+    # Real-time Data Simulation
+    if st.button("Generate Real-time Data"):
+        placeholder = st.empty()
+        
+        for seconds in range(10):
+            real_time_data = pd.DataFrame({
+                'Time': range(seconds + 1),
+                'Value': np.random.randint(1, 100, seconds + 1)
+            })
+            
+            with placeholder.container():
+                st.line_chart(real_time_data.set_index('Time'))
+                st.write(f"Data points: {seconds + 1}")
+            
+            time.sleep(1)
+    ''', language='python')
+        
+        if st.button("Generate Real-time Data"):
+            placeholder = st.empty()
+            
+            for seconds in range(10):
+                real_time_data = pd.DataFrame({
+                    'Time': range(seconds + 1),
+                    'Value': np.random.randint(1, 100, seconds + 1)
+                })
+                
+                with placeholder.container():
+                    st.line_chart(real_time_data.set_index('Time'))
+                    st.write(f"Data points: {seconds + 1}")
+                
+                time.sleep(1)
+        
+        # Section 8: Chart Export
+        st.subheader("8. Chart Export & Settings")
+        
+        export_col1, export_col2 = st.columns(2)
+        
+        with export_col1:
+            st.write("**Export Data**")
+            
+            with st.expander("📝 Source Code - Data Export"):
+                st.code('''
+    # Data Export
+    st.download_button(
+        label="Download Sample Data as CSV",
+        data=line_data.to_csv(index=False),
+        file_name="chart_data.csv",
+        mime="text/csv"
+    )
+    ''', language='python')
+            
+            st.download_button(
+                label="Download Sample Data as CSV",
+                data=line_data.to_csv(index=False),
+                file_name="chart_data.csv",
+                mime="text/csv"
+            )
+                
+        with export_col2:
+            st.write("**Chart Settings**")
+            
+            with st.expander("📝 Source Code - Chart Settings"):
+                st.code('''
+    # Chart Settings
+    chart_width = st.slider("Chart Width", 200, 1000, 600)
+    chart_height = st.slider("Chart Height", 200, 800, 400)
+    ''', language='python')
+            
+            chart_width = st.slider("Chart Width", 200, 1000, 600)
+            chart_height = st.slider("Chart Height", 200, 800, 400)
+            
+        st.info("💡 **Tips**: Gunakan menu di atas untuk menyesuaikan tampilan chart sesuai kebutuhan Anda. Semua chart dapat diinteraksikan dan dikustomisasi.")
     
 
     with tab14:
