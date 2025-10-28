@@ -111,6 +111,32 @@ Fitur analisis DNA yang tersedia:
 19. Data Feature Selection
 20. Data Feature Selection
 
+## Vitur Map Data
+
+<img src="https://github.com/DwiDevelopes/gambar/raw/main/mapchart4.png" width="100%" height="100%">
+<img src="https://github.com/DwiDevelopes/gambar/raw/main/mapchar3.png" width="100%" height="100%">
+<img src="https://github.com/DwiDevelopes/gambar/raw/main/mapchart2.png" width="100%" height="100%">
+<img src="https://github.com/DwiDevelopes/gambar/raw/main/mapchart.png" width="100%" height="100%">
+
+1. Peta Interaktif
+2. Data Points pada Peta
+3. Tampilkan semua kolom
+4. Tampilkan kolom lat, lon
+5. Tampilkan kolom lat, lon, nama
+6. Peta Internasional
+7. Peta Global
+8. Peta Glob
+9. Information Map
+10. Analisis Map
+11. Statistik Map
+12. Visualisasi Map
+13. Visualisasi Map dengan Marker
+14. Visualisasi Map dengan Marker dengan Cluster
+15. Visualisasi Map dengan Marker dengan Cluster dengan Tooltip
+16. Peta Satelit
+17. Peta Typograpy
+18. Peta Dark
+
 ## 🚀 Installation
 
 ### Prerequisites System:
