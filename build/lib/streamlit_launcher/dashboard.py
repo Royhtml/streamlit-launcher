@@ -67,6 +67,8 @@ from sklearn.impute import SimpleImputer
 from sklearn.pipeline import Pipeline
 import keras
 import re
+import pydeck as pdk
+from sklearn.cluster import DBSCAN
 
 
 
@@ -310,6 +312,7 @@ def create_all_visualizations(df):
         "☁️ Word Cloud",
         "📅 Grafik Gantt (Gantt Chart)",
         "🗺️ Grafik Peta (Map Chart)",
+        "🗾 Grafik Map (Map Chart)",
         "🌊 Grafik Peta Aliran (Flow Map)",
         "🔥 Heatmap",
         "🤖 Model Penelitian (Regression Chart)"
@@ -380,6 +383,9 @@ def create_all_visualizations(df):
                 
             elif chart_type == "🗺️ Grafik Peta (Map Chart)":
                 create_map_chart(df)
+                
+            elif chart_type == "🗾 Grafik Map (Map Chart)":
+                grafik_map_chart(df)
                 
             elif chart_type == "🌊 Grafik Peta Aliran (Flow Map)":
                 create_flow_map(df)
@@ -6838,158 +6844,801 @@ st.markdown("""
 
 
 def create_map_chart(df):
+    st.markdown("## 🗺️ Visualisasi Data Geospasial")
+    
+    # Sidebar untuk konfigurasi
+    st.sidebar.header("Konfigurasi Peta")
     
     # Optimasi: Cache deteksi kolom
     @st.cache_data
     def detect_geo_columns(df):
-        geo_patterns = ['lat', 'latitude', 'lon', 'long', 'longitude', 'country', 'state', 'city', 'region', 'province', 'kota', 'kabupaten', 'address', 'location']
-        return [col for col in df.columns if any(geo in col.lower() for geo in geo_patterns)]
-    
-    possible_geo_cols = detect_geo_columns(df)
-    
-    if possible_geo_cols:
-        st.success(f"✅ Kolom geografis terdeteksi: {', '.join(possible_geo_cols)}")
+        geo_patterns = {
+            'latitude': ['lat', 'latitude', 'ycoord', 'y_coord'],
+            'longitude': ['lon', 'long', 'longitude', 'xcoord', 'x_coord'],
+            'location': ['country', 'state', 'city', 'region', 'province', 'kota', 'kabupaten', 'address', 'location', 'name', 'lokasi']
+        }
         
-        # Kategorikan kolom dengan caching
-        @st.cache_data
-        def categorize_columns(_possible_geo_cols):
-            lat_cols = [col for col in _possible_geo_cols if any(pat in col.lower() for pat in ['lat', 'latitude'])]
-            lon_cols = [col for col in _possible_geo_cols if any(pat in col.lower() for pat in ['lon', 'long', 'longitude'])]
-            name_cols = [col for col in _possible_geo_cols if any(pat in col.lower() for pat in ['country', 'state', 'city', 'region', 'province', 'kota', 'kabupaten', 'name'])]
-            return lat_cols, lon_cols, name_cols
+        detected = {}
+        for col_type, patterns in geo_patterns.items():
+            detected[col_type] = [col for col in df.columns if any(pat in col.lower() for pat in patterns)]
         
-        lat_cols, lon_cols, name_cols = categorize_columns(possible_geo_cols)
+        return detected
+    
+    geo_columns = detect_geo_columns(df)
+    
+    if any(geo_columns.values()):
+        # Tampilkan summary kolom yang terdeteksi
+        col1, col2, col3 = st.columns(3)
+        with col1:
+            st.metric("📍 Latitude", f"{len(geo_columns['latitude'])} kolom")
+        with col2:
+            st.metric("🌐 Longitude", f"{len(geo_columns['longitude'])} kolom")
+        with col3:
+            st.metric("🏷️ Lokasi", f"{len(geo_columns['location'])} kolom")
         
         # Pilih kolom untuk mapping
+        st.subheader("🗂️ Pilih Kolom Geospasial")
+        
         col1, col2, col3 = st.columns(3)
         
         with col1:
-            if lat_cols:
-                lat_col = st.selectbox("Pilih kolom Latitude", lat_cols, key="map_lat")
+            if geo_columns['latitude']:
+                lat_col = st.selectbox(
+                    "Kolom Latitude", 
+                    geo_columns['latitude'],
+                    help="Pilih kolom yang berisi koordinat latitude",
+                    key="map_lat"
+                )
             else:
-                st.warning("Tidak ada kolom latitude terdeteksi")
+                st.error("❌ Tidak ada kolom latitude terdeteksi")
                 lat_col = None
                 
         with col2:
-            if lon_cols:
-                lon_col = st.selectbox("Pilih kolom Longitude", lon_cols, key="map_lon")
+            if geo_columns['longitude']:
+                lon_col = st.selectbox(
+                    "Kolom Longitude", 
+                    geo_columns['longitude'],
+                    help="Pilih kolom yang berisi koordinat longitude", 
+                    key="map_lon"
+                )
             else:
-                st.warning("Tidak ada kolom longitude terdeteksi")
+                st.error("❌ Tidak ada kolom longitude terdeteksi")
                 lon_col = None
                 
         with col3:
-            if name_cols:
-                name_col = st.selectbox("Pilih kolom Nama Lokasi", name_cols, key="map_name")
+            if geo_columns['location']:
+                name_col = st.selectbox(
+                    "Kolom Nama Lokasi", 
+                    geo_columns['location'],
+                    help="Pilih kolom yang berisi nama lokasi",
+                    key="map_name"
+                )
             else:
                 name_col = None
         
-        # Optimasi: Sampling data untuk dataset besar
-        sample_size = st.slider("Jumlah sampel data untuk peta", 
-                               min_value=100, 
-                               max_value=min(5000, len(df)), 
-                               value=min(1000, len(df)),
-                               key="map_sample")
+        # Konfigurasi peta di sidebar
+        st.sidebar.subheader("⚙️ Pengaturan Peta")
+        
+        # Pilih tipe base map
+        base_maps = {
+            "OpenStreetMap": "OpenStreetMap",
+            "Satelit": "Esri.WorldImagery", 
+            "Topografi": "Esri.WorldTopoMap",
+            "Dark": "CartoDB.DarkMatter"
+        }
+        selected_base = st.sidebar.selectbox("Tipe Peta Dasar", list(base_maps.keys()))
+        
+        # Sampling data
+        st.sidebar.subheader("📊 Sampling Data")
+        sample_size = st.sidebar.slider(
+            "Jumlah sampel data", 
+            min_value=100, 
+            max_value=min(10000, len(df)), 
+            value=min(2000, len(df)),
+            help="Atur jumlah data yang akan ditampilkan di peta"
+        )
+        
+        # Ukuran marker
+        marker_size = st.sidebar.slider("Ukuran Marker", 1, 10, 5)
+        
+        # Warna marker
+        marker_color = st.sidebar.color_picker("Warna Marker", "#FF0000")
         
         # Filter data yang valid dengan sampling
         if lat_col and lon_col:
-            valid_data = df[(pd.notna(df[lat_col])) & (pd.notna(df[lon_col]))].copy()
-            
-            if len(valid_data) > 0:
-                # Sampling untuk dataset besar
-                if len(valid_data) > sample_size:
-                    valid_data = valid_data.sample(n=sample_size, random_state=42)
-                    st.info(f"📊 Menampilkan {sample_size} sampel acak dari {len(valid_data)} data valid")
-                else:
-                    st.success(f"📊 Menampilkan {len(valid_data)} titik data")
+            # Progress bar untuk loading data
+            with st.spinner('Memproses data geospasial...'):
+                valid_data = df[(pd.notna(df[lat_col])) & (pd.notna(df[lon_col]))].copy()
                 
-                # Progress bar untuk proses yang lama
-                progress_bar = st.progress(0)
-                status_text = st.empty()
-                
-                # Buat peta
-                try:
-                    import folium
-                    from streamlit_folium import folium_static
+                if len(valid_data) > 0:
+                    # Sampling untuk dataset besar
+                    if len(valid_data) > sample_size:
+                        valid_data = valid_data.sample(n=sample_size, random_state=42)
+                        st.success(f"📊 Menampilkan {sample_size} sampel acak dari {len(df)} total data")
+                    else:
+                        st.success(f"📊 Menampilkan semua {len(valid_data)} data valid")
                     
-                    status_text.text("Membuat peta...")
+                    # Tampilkan statistik data
+                    col1, col2, col3, col4 = st.columns(4)
+                    with col1:
+                        st.metric("Total Data", len(df))
+                    with col2:
+                        st.metric("Data Valid", len(valid_data))
+                    with col3:
+                        st.metric("Latitude Range", f"{valid_data[lat_col].min():.4f} - {valid_data[lat_col].max():.4f}")
+                    with col4:
+                        st.metric("Longitude Range", f"{valid_data[lon_col].min():.4f} - {valid_data[lon_col].max():.4f}")
                     
-                    # Hitung center map dengan caching
-                    @st.cache_data
-                    def calculate_center(_data, lat_col, lon_col):
-                        return _data[lat_col].mean(), _data[lon_col].mean()
-                    
-                    center_lat, center_lon = calculate_center(valid_data, lat_col, lon_col)
-                    
-                    # Buat peta dasar
-                    m = folium.Map(location=[center_lat, center_lon], zoom_start=10)
-                    
-                    # Optimasi: Batasi jumlah marker atau gunakan clustering untuk data besar
-                    if len(valid_data) > 500:
-                        from folium.plugins import MarkerCluster
-                        marker_cluster = MarkerCluster().add_to(m)
-                    
-                    # Tambahkan markers dengan progress update
-                    total_rows = len(valid_data)
-                    for idx, row in valid_data.iterrows():
-                        if idx % 100 == 0:  # Update progress setiap 100 rows
-                            progress_bar.progress(min((idx + 1) / total_rows, 1.0))
+                    # Buat peta
+                    try:
+                        import folium
+                        from folium.plugins import MarkerCluster, HeatMap
+                        from streamlit_folium import folium_static
                         
-                        popup_text = f"Lokasi {idx+1}"
-                        if name_col and pd.notna(row[name_col]):
-                            popup_text = f"{row[name_col]}"
-                        
-                        marker = folium.Marker(
-                            [row[lat_col], row[lon_col]],
-                            popup=popup_text,
-                            tooltip=f"Click untuk detail"
+                        # Pilihan visualisasi
+                        viz_type = st.radio(
+                            "Tipe Visualisasi",
+                            ["Marker", "Heatmap", "Cluster"],
+                            horizontal=True,
+                            help="Pilih jenis tampilan peta"
                         )
                         
-                        # Tambahkan ke cluster jika data banyak, langsung ke map jika sedikit
-                        if len(valid_data) > 500:
-                            marker.add_to(marker_cluster)
-                        else:
-                            marker.add_to(m)
+                        # Hitung center map
+                        center_lat = valid_data[lat_col].mean()
+                        center_lon = valid_data[lon_col].mean()
+                        
+                        # Buat peta dasar
+                        m = folium.Map(
+                            location=[center_lat, center_lon], 
+                            zoom_start=10,
+                            tiles=base_maps[selected_base]
+                        )
+                        
+                        # Tambahkan fitur berdasarkan tipe visualisasi
+                        if viz_type == "Heatmap":
+                            # Heatmap data
+                            heat_data = [[row[lat_col], row[lon_col]] for _, row in valid_data.iterrows()]
+                            HeatMap(heat_data, radius=15, blur=10, gradient={0.4: 'blue', 0.65: 'lime', 1: 'red'}).add_to(m)
+                            st.info("🔥 Heatmap: Warna menunjukkan kepadatan data")
+                            
+                        elif viz_type == "Cluster":
+                            # Marker clustering untuk data banyak
+                            marker_cluster = MarkerCluster(
+                                name="Data Points",
+                                overlay=True,
+                                control=True,
+                                icon_create_function=None
+                            ).add_to(m)
+                            
+                            for _, row in valid_data.iterrows():
+                                popup_text = f"Lat: {row[lat_col]:.4f}, Lon: {row[lon_col]:.4f}"
+                                if name_col and pd.notna(row[name_col]):
+                                    popup_text = f"{row[name_col]}<br>{popup_text}"
+                                
+                                folium.Marker(
+                                    [row[lat_col], row[lon_col]],
+                                    popup=folium.Popup(popup_text, max_width=300),
+                                    tooltip="Klik untuk detail",
+                                    icon=folium.Icon(color='red', icon='info-sign')
+                                ).add_to(marker_cluster)
+                                
+                        else:  # Marker biasa
+                            for _, row in valid_data.iterrows():
+                                popup_text = f"Lat: {row[lat_col]:.4f}, Lon: {row[lon_col]:.4f}"
+                                if name_col and pd.notna(row[name_col]):
+                                    popup_text = f"<b>{row[name_col]}</b><br>{popup_text}"
+                                
+                                folium.CircleMarker(
+                                    location=[row[lat_col], row[lon_col]],
+                                    radius=marker_size,
+                                    popup=folium.Popup(popup_text, max_width=300),
+                                    tooltip="Klik untuk detail",
+                                    color=marker_color,
+                                    fill=True,
+                                    fillOpacity=0.6
+                                ).add_to(m)
+                        
+                        # Tambahkan kontrol layer
+                        folium.LayerControl().add_to(m)
+                        
+                        # Tampilkan peta
+                        st.subheader("🗺️ Peta Interaktif")
+                        folium_static(m, width=1200, height=800)
+                        
+                        # Download data peta
+                        st.sidebar.subheader("💾 Export Data")
+                        if st.sidebar.button("Download Data Peta sebagai CSV"):
+                            csv = valid_data[[lat_col, lon_col] + ([name_col] if name_col else [])].to_csv(index=False)
+                            st.sidebar.download_button(
+                                label="📥 Download CSV",
+                                data=csv,
+                                file_name="map_data.csv",
+                                mime="text/csv"
+                            )
+                        
+                    except ImportError as e:
+                        st.error(f"""
+                        ❌ Library peta tidak tersedia. 
+                        
+                        **Install required packages:**
+                        ```bash
+                        pip install folium streamlit-folium
+                        ```
+                        
+                        Error: {str(e)}
+                        """)
                     
-                    progress_bar.progress(1.0)
-                    status_text.text("✅ Peta selesai dibuat!")
-                    
-                    # Tampilkan peta
-                    folium_static(m, width=700, height=500)
-                    
-                    # Tampilkan data table dengan pagination
-                    with st.expander("📋 Lihat Data Peta"):
+                    # Tampilkan data table dengan fitur lengkap
+                    with st.expander("📊 Tabel Data Geospasial", expanded=False):
+                        st.subheader("Data Points pada Peta")
+                        
+                        # Filter data
+                        col1, col2 = st.columns([3, 1])
+                        with col2:
+                            show_raw_data = st.checkbox("Tampilkan semua kolom", value=False)
+                        
                         display_cols = [lat_col, lon_col]
                         if name_col:
                             display_cols.append(name_col)
                         
-                        # Pagination untuk data besar
-                        page_size = 20
-                        total_pages = max(1, len(valid_data) // page_size)
-                        page = st.number_input("Halaman", min_value=1, max_value=total_pages, value=1)
+                        if show_raw_data:
+                            display_data = valid_data
+                        else:
+                            display_data = valid_data[display_cols]
                         
-                        start_idx = (page - 1) * page_size
-                        end_idx = min(start_idx + page_size, len(valid_data))
+                        # Pagination yang lebih baik
+                        rows_per_page = st.selectbox("Baris per halaman", [10, 20, 50, 100], index=1)
+                        total_pages = max(1, len(display_data) // rows_per_page + (1 if len(display_data) % rows_per_page else 0))
                         
-                        st.dataframe(valid_data[display_cols].iloc[start_idx:end_idx])
-                        st.caption(f"Menampilkan data {start_idx + 1}-{end_idx} dari {len(valid_data)}")
+                        page_number = st.number_input(
+                            "Halaman", 
+                            min_value=1, 
+                            max_value=total_pages, 
+                            value=1,
+                            key="map_page"
+                        )
                         
-                except ImportError:
-                    st.error("❌ Library peta tidak tersedia. Install: pip install folium streamlit-folium")
+                        start_idx = (page_number - 1) * rows_per_page
+                        end_idx = min(start_idx + rows_per_page, len(display_data))
+                        
+                        st.dataframe(
+                            display_data.iloc[start_idx:end_idx],
+                            use_container_width=True,
+                            height=400
+                        )
+                        
+                        st.caption(f"Menampilkan data {start_idx + 1}-{end_idx} dari {len(display_data)} records")
+                        
+                        # Quick stats
+                        col1, col2, col3 = st.columns(3)
+                        with col1:
+                            st.metric("Data pada halaman", end_idx - start_idx)
+                        with col2:
+                            st.metric("Total halaman", total_pages)
+                        with col3:
+                            st.metric("Data terfilter", len(display_data))
+                        
+                else:
+                    st.error("""
+                    ❌ Tidak ada data dengan koordinat yang valid
                     
-            else:
-                st.error("❌ Tidak ada data dengan koordinat yang valid")
-                
+                    **Pastikan:**
+                    - Kolom latitude dan longitude berisi angka
+                    - Format koordinat benar (contoh: -6.2088, 106.8456)
+                    - Tidak ada nilai null atau text dalam kolom koordinat
+                    """)
+                    
         else:
-            st.warning("⚠️ Pilih kolom latitude dan longitude untuk menampilkan peta")
+            st.warning("""
+            ⚠️ Pilih kolom latitude dan longitude untuk menampilkan peta
+            
+            **Tips:** Pastikan data Anda mengandung kolom dengan nama seperti:
+            - Latitude: 'lat', 'latitude', 'y_coord'  
+            - Longitude: 'lon', 'long', 'longitude', 'x_coord'
+            """)
             
     else:
-        st.warning("""
-        ⚠️ Tidak terdeteksi kolom geografis. 
+        st.error("""
+        🗺️ Tidak terdeteksi kolom geografis
         
-        **Untuk menampilkan peta, data harus mengandung:**
-        - Kolom latitude (contoh: lat, latitude) 
-        - Kolom longitude (contoh: lon, long, longitude)
-        - Opsional: Kolom nama lokasi (country, state, city, region, etc.)
+        **Untuk menampilkan peta, data harus mengandung kolom dengan pola nama:** 
+        
+        ### 🔍 Latitude (salah satu):
+        - lat, latitude, ycoord, y_coord
+        
+        ### 🌐 Longitude (salah satu):  
+        - lon, long, longitude, xcoord, x_coord
+        
+        ### 🏷️ Lokasi (opsional):
+        - country, state, city, region, province, kota, kabupaten, address, location, name
+        
+        **Contoh format data yang didukung:**
+        ```csv
+        latitude,longitude,city_name
+        -6.2088,106.8456,Jakarta
+        -6.9175,107.6191,Bandung
+        -7.2504,112.7688,Surabaya
+        ```
+        """)
+        
+        # Contoh data format
+        with st.expander("📝 Lihat Contoh Format Data"):
+            example_data = pd.DataFrame({
+                'latitude': [-6.2088, -6.9175, -7.2504, -8.4095],
+                'longitude': [106.8456, 107.6191, 112.7688, 115.1889],
+                'city_name': ['Jakarta', 'Bandung', 'Surabaya', 'Denpasar'],
+                'population': [10560000, 2500000, 2870000, 900000]
+            })
+            st.dataframe(example_data, use_container_width=True)
+        
+        
+
+def grafik_map_chart(df):
+    """
+    Fungsi untuk membuat visualisasi peta interaktif dari DataFrame
+    Menggunakan PyDeck untuk performa yang lebih baik dengan dataset besar
+    """
+    
+    st.header("🗺️ Visualisasi Data Geospasial")
+    
+    # Optimasi: Cache deteksi kolom
+    @st.cache_data
+    def detect_geo_columns(df):
+        geo_patterns = {
+            'latitude': ['lat', 'latitude', 'y', 'ycoord'],
+            'longitude': ['lon', 'long', 'longitude', 'x', 'xcoord'],
+            'location_names': ['country', 'state', 'city', 'region', 'province', 
+                             'kota', 'kabupaten', 'address', 'location', 'name', 'lokasi']
+        }
+        
+        detected_cols = {}
+        for col_type, patterns in geo_patterns.items():
+            detected_cols[col_type] = [col for col in df.columns 
+                                     if any(pat in col.lower() for pat in patterns)]
+        
+        return detected_cols
+    
+    # Deteksi kolom geografis
+    geo_cols = detect_geo_columns(df)
+    
+    # Tampilkan informasi kolom yang terdeteksi
+    with st.expander("🔍 Informasi Deteksi Kolom Geografis", expanded=True):
+        col1, col2, col3 = st.columns(3)
+        
+        with col1:
+            st.metric("📍 Kolom Latitude", len(geo_cols['latitude']))
+            if geo_cols['latitude']:
+                st.write("📌", ", ".join(geo_cols['latitude']))
+            else:
+                st.write("❌ Tidak terdeteksi")
+                
+        with col2:
+            st.metric("📍 Kolom Longitude", len(geo_cols['longitude']))
+            if geo_cols['longitude']:
+                st.write("📌", ", ".join(geo_cols['longitude']))
+            else:
+                st.write("❌ Tidak terdeteksi")
+                
+        with col3:
+            st.metric("🏷️ Kolom Nama Lokasi", len(geo_cols['location_names']))
+            if geo_cols['location_names']:
+                st.write("📌", ", ".join(geo_cols['location_names']))
+            else:
+                st.write("❌ Tidak terdeteksi")
+    
+    # Konfigurasi peta
+    st.subheader("⚙️ Konfigurasi Peta")
+    
+    col1, col2, col3 = st.columns(3)
+    
+    with col1:
+        # Pilih kolom latitude
+        if geo_cols['latitude']:
+            lat_col = st.selectbox(
+                "📍 Pilih Kolom Latitude", 
+                geo_cols['latitude'],
+                help="Pilih kolom yang berisi koordinat latitude"
+            )
+        else:
+            st.error("❌ Tidak ada kolom latitude terdeteksi")
+            st.info("""
+            **🔧 Kolom latitude yang didukung:**
+            - lat, latitude, y, ycoord
+            """)
+            return
+    
+    with col2:
+        # Pilih kolom longitude
+        if geo_cols['longitude']:
+            lon_col = st.selectbox(
+                "📍 Pilih Kolom Longitude", 
+                geo_cols['longitude'],
+                help="Pilih kolom yang berisi koordinat longitude"
+            )
+        else:
+            st.error("❌ Tidak ada kolom longitude terdeteksi")
+            st.info("""
+            **🔧 Kolom longitude yang didukung:**
+            - lon, long, longitude, x, xcoord
+            """)
+            return
+    
+    with col3:
+        # Pilih kolom nama lokasi (opsional)
+        name_col = None
+        if geo_cols['location_names']:
+            name_col = st.selectbox(
+                "🏷️ Pilih Kolom Nama Lokasi (Opsional)",
+                [""] + geo_cols['location_names'],
+                help="Pilih kolom untuk label lokasi (opsional)"
+            )
+            if name_col == "":
+                name_col = None
+        else:
+            st.warning("⚠️ Tidak ada kolom nama lokasi terdeteksi")
+    
+    # Filter data yang valid
+    valid_data = df[(pd.notna(df[lat_col])) & (pd.notna(df[lon_col]))].copy()
+    
+    if len(valid_data) == 0:
+        st.error("❌ Tidak ada data dengan koordinat yang valid")
+        st.info("""
+        **💡 Tips:**
+        - Pastikan kolom latitude dan longitude berisi angka
+        - Periksa apakah ada nilai kosong atau null
+        - Format koordinat harus numerik
+        """)
+        return
+    
+    # Informasi dataset
+    st.success(f"**📊 Statistik Dataset:** {len(valid_data)} dari {len(df)} data memiliki koordinat valid")
+    
+    # Sampling untuk dataset besar
+    if len(valid_data) > 1000:
+        sample_size = st.slider(
+            "📏 Ukuran Sampel Data",
+            min_value=500,
+            max_value=min(10000, len(valid_data)),
+            value=min(2000, len(valid_data)),
+            help="Pilih jumlah sampel untuk optimasi performa"
+        )
+        if sample_size < len(valid_data):
+            valid_data = valid_data.sample(n=sample_size, random_state=42)
+            st.warning(f"⚠️ Menampilkan {sample_size} sampel acak dari {len(valid_data)} data valid")
+    else:
+        sample_size = len(valid_data)
+        st.info(f"✅ Menampilkan semua {sample_size} data points")
+    
+    # Konfigurasi visualisasi peta
+    st.subheader("🎨 Pengaturan Visualisasi")
+    
+    col1, col2, col3 = st.columns(3)
+    
+    with col1:
+        map_style = st.selectbox(
+            "🗾 Style Peta",
+            ["road", "dark", "light", "satellite"],
+            help="Pilih gaya tampilan peta"
+        )
+        
+        # Konversi ke pydeck style
+        style_mapping = {
+            "road": "road",
+            "dark": "dark",
+            "light": "light",
+            "satellite": "satellite"
+        }
+    
+    with col2:
+        point_radius = st.slider(
+            "⭕ Radius Titik",
+            min_value=10,
+            max_value=500,
+            value=50,
+            help="Ukuran titik pada peta"
+        )
+    
+    with col3:
+        opacity = st.slider(
+            "💧 Transparansi",
+            min_value=0.1,
+            max_value=1.0,
+            value=0.8,
+            step=0.1,
+            help="Tingkat transparansi titik"
+        )
+    
+    # Warna berdasarkan density atau fixed
+    color_option = st.radio(
+        "🎨 Skema Warna",
+        ["Single Color", "Berdasarkan Kepadatan"],
+        horizontal=True,
+        help="Pilih metode pewarnaan titik"
+    )
+    
+    if color_option == "Single Color":
+        color = st.color_picker("🌈 Pilih Warna Titik", "#FF6B6B")
+        valid_data['color'] = [color] * len(valid_data)
+    else:
+        # Hitung density berdasarkan clustering
+        try:
+            coords = valid_data[[lat_col, lon_col]].values
+            
+            with st.spinner("🔍 Menghitung kepadatan titik..."):
+                # Normalisasi koordinat
+                coords_normalized = (coords - coords.mean(axis=0)) / coords.std(axis=0)
+                
+                # Clustering untuk density
+                clustering = DBSCAN(eps=0.1, min_samples=5).fit(coords_normalized)
+                labels = clustering.labels_
+                
+                # Assign color berdasarkan cluster density
+                unique_labels = set(labels)
+                colors = []
+                
+                for label in labels:
+                    if label == -1:
+                        # Noise points - merah
+                        colors.append([255, 107, 107, int(200 * opacity)])
+                    else:
+                        # Cluster points - gradien biru-hijau berdasarkan ukuran cluster
+                        cluster_size = np.sum(labels == label)
+                        if cluster_size > 50:
+                            colors.append([65, 182, 196, int(200 * opacity)])  # Biru tua - high density
+                        elif cluster_size > 20:
+                            colors.append([102, 205, 170, int(200 * opacity)])  # Hijau biru - medium density
+                        else:
+                            colors.append([173, 216, 230, int(200 * opacity)])  # Biru muda - low density
+                
+                valid_data['color'] = colors
+                
+            st.success("✅ Analisis kepadatan selesai")
+            
+        except Exception as e:
+            st.error(f"❌ Error dalam analisis kepadatan: {str(e)}")
+            st.info("Menggunakan warna default...")
+            color = "#FF6B6B"
+            valid_data['color'] = [color] * len(valid_data)
+    
+    # Buat visualisasi peta dengan PyDeck
+    try:
+        # Hitung view state
+        avg_lat = valid_data[lat_col].mean()
+        avg_lon = valid_data[lon_col].mean()
+        
+        # Konfigurasi layer
+        scatter_layer = pdk.Layer(
+            'ScatterplotLayer',
+            data=valid_data,
+            get_position=[lon_col, lat_col],
+            get_color='color',
+            get_radius=point_radius,
+            pickable=True,
+            opacity=opacity,
+            stroked=True,
+            filled=True,
+            line_width_min_pixels=1
+        )
+        
+        # Konfigurasi view state
+        view_state = pdk.ViewState(
+            latitude=avg_lat,
+            longitude=avg_lon,
+            zoom=10,
+            pitch=0,
+            bearing=0
+        )
+        
+        # Buat peta
+        r = pdk.Deck(
+            layers=[scatter_layer],
+            initial_view_state=view_state,
+            map_style=style_mapping[map_style],
+            tooltip={
+                'html': '''
+                    <b>📍 Latitude:</b> {''' + lat_col + '''}<br/>
+                    <b>📍 Longitude:</b> {''' + lon_col + '''}<br/>
+                    ''' + (f'<b>🏷️ Lokasi:</b> {{{name_col}}}' if name_col else ''),
+                'style': {
+                    'backgroundColor': 'steelblue',
+                    'color': 'white',
+                    'padding': '10px',
+                    'borderRadius': '5px'
+                }
+            }
+        )
+        
+        # Tampilkan peta
+        st.pydeck_chart(r, use_container_width=True)
+        
+        # Informasi interaksi
+        st.info("""
+        **🖱️ Interaksi Peta:**
+        - **🔍 Zoom:** Scroll mouse
+        - **↔️ Pan:** Klik dan drag
+        - **🔄 Rotate:** Shift + klik dan drag
+        - **ℹ️ Info:** Hover di atas titik untuk detail
+        - **📱 Mobile:** Pinch to zoom, drag to pan
+        """)
+        
+    except Exception as e:
+        st.error(f"❌ Error membuat peta: {str(e)}")
+        st.info("""
+        **🔧 Troubleshooting:**
+        - Pastikan data koordinat dalam format numerik yang valid
+        - Periksa koneksi internet untuk load map tiles
+        - Coba kurangi ukuran dataset
+        """)
+    
+    # Tampilkan data tabel dengan analisis
+    with st.expander("📋 Data dan Analisis", expanded=False):
+        tab1111, tab2222, tab3333, tab4444 = st.tabs(["📊 Data Points", "📈 Statistik", "🗂️ Ekspor", "🔍 Analisis Lanjutan"])
+        
+        with tab1111:
+            # Pagination untuk data
+            page_size = st.slider("📏 Baris per halaman", 5, 50, 20, key="page_size")
+            total_pages = max(1, len(valid_data) // page_size)
+            
+            col1, col2, col3 = st.columns([1,2,1])
+            with col2:
+                page = st.number_input("📄 Halaman", 1, total_pages, 1)
+            
+            start_idx = (page - 1) * page_size
+            end_idx = min(start_idx + page_size, len(valid_data))
+            
+            display_cols = [lat_col, lon_col]
+            if name_col:
+                display_cols.append(name_col)
+            
+            st.dataframe(
+                valid_data[display_cols].iloc[start_idx:end_idx],
+                use_container_width=True,
+                height=400
+            )
+            st.caption(f"📊 Menampilkan {start_idx + 1}-{end_idx} dari {len(valid_data)} data points")
+        
+        with tab2222:
+            # Statistik koordinat
+            col1, col2 = st.columns(2)
+            
+            with col1:
+                st.subheader("📍 Latitude")
+                st.metric("📊 Rata-rata", f"{valid_data[lat_col].mean():.6f}")
+                st.metric("📐 Std Dev", f"{valid_data[lat_col].std():.6f}")
+                st.metric("📉 Min", f"{valid_data[lat_col].min():.6f}")
+                st.metric("📈 Max", f"{valid_data[lat_col].max():.6f}")
+            
+            with col2:
+                st.subheader("📍 Longitude")
+                st.metric("📊 Rata-rata", f"{valid_data[lon_col].mean():.6f}")
+                st.metric("📐 Std Dev", f"{valid_data[lon_col].std():.6f}")
+                st.metric("📉 Min", f"{valid_data[lon_col].min():.6f}")
+                st.metric("📈 Max", f"{valid_data[lon_col].max():.6f}")
+            
+            # Distribusi data
+            st.subheader("📈 Distribusi Data")
+            col1, col2 = st.columns(2)
+            
+            with col1:
+                st.bar_chart(valid_data[lat_col].value_counts().head(10))
+                st.caption("10 Nilai Latitude Terbanyak")
+            
+            with col2:
+                st.bar_chart(valid_data[lon_col].value_counts().head(10))
+                st.caption("10 Nilai Longitude Terbanyak")
+        
+        with tab3333:
+            # Opsi ekspor
+            st.subheader("💾 Opsi Ekspor Data")
+            
+            col1, col2 = st.columns(2)
+            
+            with col1:
+                # Ekspor CSV
+                csv_data = valid_data[display_cols].to_csv(index=False)
+                st.download_button(
+                    label="📥 Download CSV",
+                    data=csv_data,
+                    file_name="map_data.csv",
+                    mime="text/csv",
+                    help="Download data dalam format CSV"
+                )
+            
+            with col2:
+                # Ekspor JSON
+                json_data = valid_data[display_cols].to_json(orient='records', indent=2)
+                st.download_button(
+                    label="📥 Download JSON",
+                    data=json_data,
+                    file_name="map_data.json",
+                    mime="application/json",
+                    help="Download data dalam format JSON"
+                )
+            
+            # Informasi ekspor
+            st.info("""
+            **📁 Format Ekspor:**
+            - **CSV:** Format tabel standar, kompatibel dengan Excel
+            - **JSON:** Format structured data, baik untuk web applications
+            """)
+        
+        with tab4444:
+            st.subheader("🔍 Analisis Lanjutan")
+            
+            # Heatmap density
+            if st.checkbox("🔄 Tampilkan Heatmap Density"):
+                try:
+                    heatmap_layer = pdk.Layer(
+                        'HeatmapLayer',
+                        data=valid_data,
+                        get_position=[lon_col, lat_col],
+                        aggregation='MEAN',
+                        get_weight=1,
+                        radius_pixels=100,
+                    )
+                    
+                    heatmap_deck = pdk.Deck(
+                        layers=[heatmap_layer],
+                        initial_view_state=view_state,
+                        map_style=style_mapping[map_style],
+                    )
+                    
+                    st.pydeck_chart(heatmap_deck, use_container_width=True)
+                    st.success("✅ Heatmap berhasil dibuat")
+                    
+                except Exception as e:
+                    st.error(f"❌ Error membuat heatmap: {str(e)}")
+            
+            # Cluster analysis
+            if st.checkbox("👥 Analisis Cluster"):
+                try:
+                    from sklearn.cluster import KMeans
+                    
+                    coords = valid_data[[lat_col, lon_col]].values
+                    kmeans = KMeans(n_clusters=min(5, len(coords)), random_state=42)
+                    clusters = kmeans.fit_predict(coords)
+                    
+                    valid_data['cluster'] = clusters
+                    
+                    st.success(f"✅ {len(set(clusters))} cluster teridentifikasi")
+                    st.bar_chart(pd.Series(clusters).value_counts())
+                    st.caption("📊 Distribusi Jumlah Data per Cluster")
+                    
+                except Exception as e:
+                    st.error(f"❌ Error analisis cluster: {str(e)}")
+    
+    # Informasi penggunaan
+    with st.expander("ℹ️ Panduan Penggunaan"):
+        st.markdown("""
+        ## 📖 Cara Menggunakan Visualisasi Peta
+        
+        ### 🎯 Langkah-langkah:
+        1. **🔍 Deteksi Otomatis:** Sistem akan otomatis mendeteksi kolom geografis
+        2. **📍 Pilih Kolom:** Pilih kolom latitude dan longitude yang sesuai
+        3. **🎨 Konfigurasi:** Atur tampilan peta sesuai preferensi
+        4. **🖱️ Interaksi:** Gunakan kontrol mouse untuk menjelajahi peta
+        
+        ### 🔧 Fitur yang Tersedia:
+        - **🗾 Multiple map styles** (road, dark, light, satellite)
+        - **⭕ Customizable point radius** and opacity
+        - **🎨 Density-based coloring**
+        - **ℹ️ Interactive tooltips**
+        - **📊 Data pagination**
+        - **📈 Statistical analysis**
+        - **💾 Data export**
+        - **🔥 Heatmap visualization**
+        - **👥 Cluster analysis**
+        
+        ### 📝 Format Data yang Didukung:
+        - **📍 Latitude/Longitude** dalam format numerik
+        - **🏷️ Nama lokasi** untuk labeling
+        - **📁 Dataset besar** dengan sampling otomatis
+        
+        ### ⚠️ Troubleshooting:
+        - Pastikan data koordinat berupa angka
+        - Periksa nilai null atau kosong
+        - Gunakan sampling untuk dataset besar
+        - Refresh halaman jika peta tidak loading
         """)
         
         
@@ -18795,6 +19444,8 @@ st.markdown("""
     <p style="margin: 15px 0 5px 0; font-style: italic;">Dikembangkan dengan ❤️ oleh:</p>
     <p style="margin: 0; font-weight: bold; color: #636EFA; font-size: 16px;">Dwi Bakti N Dev</p>
     <p style="margin: 5px 0; font-size: 12px;">Data Scientist & Business Intelligence Developer</p>
+    <p style="margin: 5px 0; font-size: 12px;">V3.4.8 Streamlit Launcher</p>
+    <p style="margin: 5px 0; font-size: 12px;">🍰 <a href="https://pypi.org/project/streamlit-launcher/" target="_blank">Python Install Offline Streamlit Launcher</a></p>
 </div>
 """, unsafe_allow_html=True)
 
