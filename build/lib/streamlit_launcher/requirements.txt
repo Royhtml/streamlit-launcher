@@ -15,12 +15,13 @@ wordcloud==1.9.4
 streamlit-folium==0.23.1
 graphviz==0.20.3
 pillow==10.4.0
+pydeck==0.9.1  
 
 # =============================
 # Statistics & Scientific
 # =============================
 scipy==1.14.1
-scikit-learn==1.5.2
+scikit-learn==1.5.2   # DBSCAN is included here
 xgboost==2.1.1
 statsmodels==0.14.3   
 
@@ -48,5 +49,8 @@ xlrd==2.0.1
 # =============================
 numpy-stl==3.2.0
 trimesh==4.3.2
-streamlit-modal==0.1.2  
 
+# =============================
+# Streamlit Extensions
+# =============================
+streamlit-modal==0.1.2
