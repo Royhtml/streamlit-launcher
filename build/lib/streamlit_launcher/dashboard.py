@@ -12910,13 +12910,432 @@ def create_dna_visualizations(dna_df):
         st.plotly_chart(fig_scatter)
 REMOVE_BG_API_KEY = "xQH5KznYiupRrywK5yPcjeyi"
 PIXELS_API_KEY = "LH59shPdj1xO0lolnHPsClH23qsnHE4NjkCFBhKEXvR0CbqwkrXbqBnw"
+
 if df is not None:
-    tab1, tab2, tab3, tab4, tab5, tab6, tab7, tab8, tab9, tab10, tab11, tab12, tab13, tab14, tab15= st.tabs([
+    tab1, tab2, tab3, tab4, tab5, tab6, tab7, tab8, tab9, tab10, tab11, tab12, tab13, tab14, tab15, tab16 = st.tabs([
         "📊 Statistik", "📈 Visualisasi", "💾 Data", "ℹ️ Informasi", "🧮 Kalkulator",
         "🖼️ Vitures", "📍 Flowchart", "📊 Grafik Saham", "🗃️ SQL Style", 
         "🔄 3D Model & Analisis", "⚡ Konversi Cepat", "📝 Editor File", "🧬 Analisis DNA",
-        "🔐 Enkripsi Data", "📊 Source Elements Lanjutan"
+        "🔐 Enkripsi Data", "📊 Source Elements Lanjutan", "📁 Upload & Visualisasi"
     ])
+
+    with tab16:
+        st.header("📁 Upload & Visualisasi File CSV/XLS")
+        st.write("Unggah file CSV atau Excel untuk dianalisis dan divisualisasikan dengan semua chart element Streamlit")
+        
+        # File uploader
+        uploaded_file = st.file_uploader(
+            "Pilih file CSV atau Excel", 
+            type=['csv', 'xlsx', 'xls'],
+            help="Unggah file dengan format CSV, XLSX, atau XLS. Maksimal 200MB"
+        )
+        
+        if uploaded_file is not None:
+            try:
+                # Determine file type and read accordingly
+                if uploaded_file.name.endswith('.csv'):
+                    # Handle encoding issues for CSV
+                    try:
+                        df_upload = pd.read_csv(uploaded_file)
+                    except UnicodeDecodeError:
+                        df_upload = pd.read_csv(uploaded_file, encoding='latin-1')
+                    file_type = "CSV"
+                else:
+                    df_upload = pd.read_excel(uploaded_file)
+                    file_type = "Excel"
+                
+                st.success(f"✅ File {file_type} berhasil diunggah!")
+                
+                # Display file info
+                col1, col2, col3, col4 = st.columns(4)
+                with col1:
+                    st.metric("Jumlah Baris", df_upload.shape[0])
+                with col2:
+                    st.metric("Jumlah Kolom", df_upload.shape[1])
+                with col3:
+                    st.metric("Tipe File", file_type)
+                with col4:
+                    st.metric("Ukuran Memori", f"{df_upload.memory_usage(deep=True).sum() / 1024 / 1024:.2f} MB")
+                
+                # Show data preview
+                with st.expander("🔍 Preview Data", expanded=True):
+                    st.dataframe(df_upload.head(10), use_container_width=True)
+                    st.write(f"**Shape:** {df_upload.shape}")
+                
+                # Data preprocessing
+                with st.expander("⚙️ Preprocessing Data"):
+                    st.subheader("Handling Tipe Data")
+                    
+                    # Convert object columns to datetime
+                    date_columns = st.multiselect(
+                        "Pilih kolom yang ingin dikonversi ke datetime:",
+                        df_upload.select_dtypes(include=['object']).columns.tolist(),
+                        help="Pilih kolom yang berisi tanggal/waktu"
+                    )
+                    
+                    if date_columns:
+                        for col in date_columns:
+                            try:
+                                df_upload[col] = pd.to_datetime(df_upload[col], errors='coerce')
+                                st.success(f"Kolom {col} berhasil dikonversi ke datetime")
+                            except Exception as e:
+                                st.warning(f"Gagal mengkonversi kolom {col}: {str(e)}")
+                    
+                    # Handle missing values
+                    st.subheader("Handling Missing Values")
+                    if df_upload.isnull().sum().sum() > 0:
+                        missing_cols = df_upload.columns[df_upload.isnull().any()].tolist()
+                        st.write("Kolom dengan missing values:", missing_cols)
+                        
+                        for col in missing_cols:
+                            col1, col2 = st.columns([1, 3])
+                            with col1:
+                                method = st.selectbox(
+                                    f"Metode untuk {col}",
+                                    ["Pilih metode", "Hapus baris", "Isi dengan mean", "Isi dengan median", "Isi dengan modus", "Isi dengan nilai tertentu"],
+                                    key=f"missing_{col}"
+                                )
+                            with col2:
+                                if method == "Isi dengan nilai tertentu":
+                                    fill_value = st.text_input(f"Nilai untuk {col}", key=f"fill_{col}")
+                                    if fill_value:
+                                        try:
+                                            if df_upload[col].dtype in ['int64', 'float64']:
+                                                fill_value = float(fill_value)
+                                            df_upload[col].fillna(fill_value, inplace=True)
+                                        except:
+                                            df_upload[col].fillna(fill_value, inplace=True)
+                                elif method == "Hapus baris":
+                                    df_upload = df_upload.dropna(subset=[col])
+                                elif method == "Isi dengan mean":
+                                    if df_upload[col].dtype in ['int64', 'float64']:
+                                        df_upload[col].fillna(df_upload[col].mean(), inplace=True)
+                                elif method == "Isi dengan median":
+                                    if df_upload[col].dtype in ['int64', 'float64']:
+                                        df_upload[col].fillna(df_upload[col].median(), inplace=True)
+                                elif method == "Isi dengan modus":
+                                    df_upload[col].fillna(df_upload[col].mode()[0] if not df_upload[col].mode().empty else 0, inplace=True)
+                
+                # Data information
+                with st.expander("📋 Informasi Data Lengkap"):
+                    col1, col2 = st.columns(2)
+                    
+                    with col1:
+                        st.subheader("Tipe Data Kolom")
+                        dtype_info = pd.DataFrame(df_upload.dtypes, columns=['Tipe Data'])
+                        st.dataframe(dtype_info)
+                        
+                        st.subheader("Statistik Deskriptif")
+                        st.dataframe(df_upload.describe(include='all'))
+                    
+                    with col2:
+                        st.subheader("Missing Values")
+                        missing_data = pd.DataFrame({
+                            'Kolom': df_upload.columns,
+                            'Missing Values': df_upload.isnull().sum(),
+                            'Persentase': (df_upload.isnull().sum() / len(df_upload)) * 100
+                        })
+                        st.dataframe(missing_data)
+                        
+                        st.subheader("Unique Values")
+                        unique_data = pd.DataFrame({
+                            'Kolom': df_upload.columns,
+                            'Unique Values': df_upload.nunique()
+                        })
+                        st.dataframe(unique_data)
+                
+                # Column selection for visualization
+                st.subheader("🎨 Visualisasi Data Lengkap")
+                
+                # Separate columns by type
+                numeric_cols = df_upload.select_dtypes(include=[np.number]).columns.tolist()
+                categorical_cols = df_upload.select_dtypes(include=['object', 'category']).columns.tolist()
+                datetime_cols = df_upload.select_dtypes(include=['datetime64']).columns.tolist()
+                
+                # Visualization type selection with all Streamlit charts
+                viz_type = st.selectbox(
+                    "Pilih Jenis Visualisasi",
+                    [
+                        "📈 Line Chart", "📊 Bar Chart", "🟩 Area Chart", "📋 Histogram",
+                        "🎯 Scatter Plot", "🥧 Pie Chart", "🔥 Heatmap", "📦 Box Plot",
+                        "🎻 Violin Plot", "📊 Density Plot", "🗺️ Map", "📊 Altair Chart",
+                        "📊 Plotly Chart", "📈 Matplotlib Chart", "🎯 Bokeh Chart",
+                        "📊 Seaborn Chart", "📈 Cumulative Chart", "📊 Stacked Area Chart"
+                    ]
+                )
+                
+                # Dynamic column selection based on visualization type
+                col1, col2, col3 = st.columns(3)
+                
+                with col1:
+                    if viz_type in ["📈 Line Chart", "🟩 Area Chart", "📊 Stacked Area Chart"]:
+                        x_axis = st.selectbox("Pilih kolom X", datetime_cols + categorical_cols + numeric_cols)
+                    else:
+                        x_axis = st.selectbox("Pilih kolom X", df_upload.columns)
+                
+                with col2:
+                    if viz_type in ["📈 Line Chart", "🟩 Area Chart", "🎯 Scatter Plot", "📊 Bar Chart", "📊 Stacked Area Chart"]:
+                        available_y_cols = numeric_cols if viz_type != "📊 Bar Chart" else df_upload.columns
+                        y_axis = st.selectbox("Pilih kolom Y", available_y_cols)
+                    else:
+                        y_axis = None
+                
+                with col3:
+                    if viz_type in ["🎯 Scatter Plot", "📊 Bar Chart", "📦 Box Plot", "🎻 Violin Plot"]:
+                        color_col = st.selectbox("Pilih kolom untuk warna", [None] + categorical_cols)
+                    else:
+                        color_col = None
+                
+                # Additional options
+                if viz_type in ["📋 Histogram", "📦 Box Plot", "🎻 Violin Plot", "📊 Density Plot"]:
+                    selected_col = st.selectbox("Pilih kolom untuk analisis", numeric_cols)
+                
+                # Generate visualizations
+                st.subheader(f"📊 {viz_type}")
+                
+                try:
+                    if viz_type == "📈 Line Chart":
+                        if y_axis in numeric_cols:
+                            st.line_chart(df_upload.set_index(x_axis)[y_axis], use_container_width=True)
+                        else:
+                            st.warning("Pilih kolom Y yang numerik")
+                            
+                    elif viz_type == "📊 Bar Chart":
+                        if color_col:
+                            chart_data = df_upload.groupby([x_axis, color_col])[y_axis].mean().unstack()
+                            st.bar_chart(chart_data, use_container_width=True)
+                        else:
+                            st.bar_chart(df_upload.set_index(x_axis)[y_axis], use_container_width=True)
+                            
+                    elif viz_type == "🟩 Area Chart":
+                        if y_axis in numeric_cols:
+                            st.area_chart(df_upload.set_index(x_axis)[y_axis], use_container_width=True)
+                        else:
+                            st.warning("Pilih kolom Y yang numerik")
+                            
+                    elif viz_type == "📋 Histogram":
+                        fig, ax = plt.subplots(figsize=(10, 6))
+                        ax.hist(df_upload[selected_col].dropna(), bins=20, alpha=0.7, color='skyblue', edgecolor='black')
+                        ax.set_xlabel(selected_col)
+                        ax.set_ylabel('Frequency')
+                        ax.set_title(f'Histogram of {selected_col}')
+                        ax.grid(True, alpha=0.3)
+                        st.pyplot(fig)
+                        
+                    elif viz_type == "🎯 Scatter Plot":
+                        if y_axis in numeric_cols:
+                            if color_col:
+                                fig = px.scatter(df_upload, x=x_axis, y=y_axis, color=color_col, 
+                                               title=f"Scatter Plot: {x_axis} vs {y_axis}")
+                            else:
+                                fig = px.scatter(df_upload, x=x_axis, y=y_axis,
+                                               title=f"Scatter Plot: {x_axis} vs {y_axis}")
+                            st.plotly_chart(fig, use_container_width=True)
+                        else:
+                            st.warning("Pilih kolom Y yang numerik")
+                            
+                    elif viz_type == "🥧 Pie Chart":
+                        if x_axis in categorical_cols and y_axis in numeric_cols:
+                            pie_data = df_upload.groupby(x_axis)[y_axis].sum()
+                            fig, ax = plt.subplots(figsize=(8, 8))
+                            ax.pie(pie_data.values, labels=pie_data.index, autopct='%1.1f%%', startangle=90)
+                            ax.set_title(f'Pie Chart: {y_axis} by {x_axis}')
+                            st.pyplot(fig)
+                        else:
+                            st.warning("Pilih kolom X kategorikal dan kolom Y numerik")
+                            
+                    elif viz_type == "🔥 Heatmap":
+                        # Correlation heatmap
+                        corr_matrix = df_upload[numeric_cols].corr()
+                        fig, ax = plt.subplots(figsize=(12, 8))
+                        sns.heatmap(corr_matrix, annot=True, cmap='coolwarm', center=0, ax=ax, fmt='.2f')
+                        ax.set_title('Correlation Heatmap')
+                        st.pyplot(fig)
+                        
+                    elif viz_type == "📦 Box Plot":
+                        if color_col:
+                            fig = px.box(df_upload, x=color_col, y=selected_col, 
+                                        title=f"Box Plot: {selected_col} by {color_col}")
+                        else:
+                            fig = px.box(df_upload, y=selected_col, title=f"Box Plot: {selected_col}")
+                        st.plotly_chart(fig, use_container_width=True)
+                        
+                    elif viz_type == "🎻 Violin Plot":
+                        if color_col:
+                            fig = px.violin(df_upload, x=color_col, y=selected_col,
+                                          title=f"Violin Plot: {selected_col} by {color_col}")
+                        else:
+                            fig = px.violin(df_upload, y=selected_col, title=f"Violin Plot: {selected_col}")
+                        st.plotly_chart(fig, use_container_width=True)
+                        
+                    elif viz_type == "📊 Density Plot":
+                        fig, ax = plt.subplots(figsize=(10, 6))
+                        df_upload[selected_col].plot.kde(ax=ax)
+                        ax.set_xlabel(selected_col)
+                        ax.set_ylabel('Density')
+                        ax.set_title(f'Density Plot of {selected_col}')
+                        ax.grid(True, alpha=0.3)
+                        st.pyplot(fig)
+                        
+                    elif viz_type == "🗺️ Map":
+                        # Check for coordinate columns
+                        lat_cols = [col for col in df_upload.columns if any(word in col.lower() for word in ['lat', 'latitude'])]
+                        lon_cols = [col for col in df_upload.columns if any(word in col.lower() for word in ['lon', 'long', 'longitude'])]
+                        
+                        if lat_cols and lon_cols:
+                            lat_col = st.selectbox("Pilih kolom latitude", lat_cols)
+                            lon_col = st.selectbox("Pilih kolom longitude", lon_cols)
+                            
+                            # Create map
+                            st.map(df_upload[[lat_col, lon_col]].dropna().rename(columns={lat_col: 'lat', lon_col: 'lon'}))
+                        else:
+                            st.info("🔍 Kolom latitude/longitude tidak ditemukan. Pastikan nama kolom mengandung 'lat', 'lon', 'latitude', atau 'longitude'")
+                            
+                    elif viz_type == "📊 Altair Chart":
+                        try:
+                            import altair as alt
+                            if y_axis in numeric_cols:
+                                chart = alt.Chart(df_upload).mark_circle().encode(
+                                    x=x_axis,
+                                    y=y_axis,
+                                    color=color_col if color_col else alt.value('blue'),
+                                    tooltip=list(df_upload.columns)
+                                ).interactive()
+                                st.altair_chart(chart, use_container_width=True)
+                            else:
+                                st.warning("Pilih kolom Y yang numerik untuk Altair chart")
+                        except ImportError:
+                            st.error("Altair tidak terinstall. Install dengan: pip install altair")
+                            
+                    elif viz_type == "📊 Plotly Chart":
+                        # Advanced Plotly chart
+                        plotly_type = st.selectbox("Pilih tipe Plotly chart", 
+                                                 ["scatter", "line", "bar", "histogram", "box"])
+                        
+                        if plotly_type == "scatter":
+                            fig = px.scatter(df_upload, x=x_axis, y=y_axis, color=color_col)
+                        elif plotly_type == "line":
+                            fig = px.line(df_upload, x=x_axis, y=y_axis, color=color_col)
+                        elif plotly_type == "bar":
+                            fig = px.bar(df_upload, x=x_axis, y=y_axis, color=color_col)
+                        elif plotly_type == "histogram":
+                            fig = px.histogram(df_upload, x=selected_col, color=color_col)
+                        elif plotly_type == "box":
+                            fig = px.box(df_upload, x=color_col if color_col else x_axis, y=selected_col)
+                            
+                        st.plotly_chart(fig, use_container_width=True)
+                        
+                    elif viz_type == "📈 Cumulative Chart":
+                        if y_axis in numeric_cols:
+                            cumulative_data = df_upload.set_index(x_axis)[y_axis].cumsum()
+                            st.line_chart(cumulative_data, use_container_width=True)
+                        else:
+                            st.warning("Pilih kolom Y yang numerik")
+                            
+                    elif viz_type == "📊 Stacked Area Chart":
+                        if y_axis in numeric_cols and color_col:
+                            pivot_data = df_upload.pivot_table(index=x_axis, columns=color_col, values=y_axis, aggfunc='sum').fillna(0)
+                            st.area_chart(pivot_data, use_container_width=True)
+                        else:
+                            st.warning("Pilih kolom Y numerik dan kolom warna untuk stacked area chart")
+                            
+                except Exception as e:
+                    st.error(f"Error dalam membuat visualisasi: {str(e)}")
+                    st.info("Pastikan pemilihan kolom sesuai dengan jenis visualisasi")
+                
+                # Data filtering and analysis
+                with st.expander("🔍 Filter & Analisis Lanjutan"):
+                    st.subheader("Filter Data Interaktif")
+                    
+                    # Multiple column filtering
+                    filter_cols = st.multiselect("Pilih kolom untuk filter:", df_upload.columns)
+                    
+                    filtered_df = df_upload.copy()
+                    for col in filter_cols:
+                        if df_upload[col].dtype in ['object', 'category']:
+                            unique_vals = df_upload[col].unique()
+                            selected_vals = st.multiselect(f"Pilih nilai {col}", unique_vals, default=unique_vals[:min(5, len(unique_vals))])
+                            if selected_vals:
+                                filtered_df = filtered_df[filtered_df[col].isin(selected_vals)]
+                        else:
+                            min_val = float(df_upload[col].min())
+                            max_val = float(df_upload[col].max())
+                            selected_range = st.slider(f"Pilih range {col}", min_val, max_val, (min_val, max_val))
+                            filtered_df = filtered_df[
+                                (filtered_df[col] >= selected_range[0]) & 
+                                (filtered_df[col] <= selected_range[1])
+                            ]
+                    
+                    st.write(f"**Data setelah filter:** {len(filtered_df)} baris dari {len(df_upload)} baris")
+                    st.dataframe(filtered_df, use_container_width=True)
+                    
+                    # Quick statistics on filtered data
+                    if len(numeric_cols) > 0:
+                        st.subheader("Statistik Data Terfilter")
+                        st.dataframe(filtered_df[numeric_cols].describe())
+                
+                # Data download section
+                with st.expander("💾 Download & Ekspor Data"):
+                    st.subheader("Download Data yang Diproses")
+                    
+                    # Format selection
+                    export_format = st.radio("Pilih format ekspor:", ["CSV", "Excel", "JSON"])
+                    
+                    if export_format == "CSV":
+                        csv = filtered_df.to_csv(index=False)
+                        st.download_button(
+                            label="📥 Download sebagai CSV",
+                            data=csv,
+                            file_name="processed_data.csv",
+                            mime="text/csv"
+                        )
+                    elif export_format == "Excel":
+                        output = io.BytesIO()
+                        with pd.ExcelWriter(output, engine='xlsxwriter') as writer:
+                            filtered_df.to_excel(writer, index=False, sheet_name='Data')
+                        st.download_button(
+                            label="📥 Download sebagai Excel",
+                            data=output.getvalue(),
+                            file_name="processed_data.xlsx",
+                            mime="application/vnd.ms-excel"
+                        )
+                    elif export_format == "JSON":
+                        json_str = filtered_df.to_json(orient='records', indent=2)
+                        st.download_button(
+                            label="📥 Download sebagai JSON",
+                            data=json_str,
+                            file_name="processed_data.json",
+                            mime="application/json"
+                        )
+                        
+            except Exception as e:
+                st.error(f"Error membaca file: {str(e)}")
+                st.info("Pastikan format file sesuai dan tidak rusak. Untuk file Excel, pastikan tidak ada sheet yang protected.")
+        else:
+            st.info("👆 Silakan unggah file CSV atau Excel untuk memulai analisis")
+            
+            # Example data and instructions
+            with st.expander("📋 Panduan & Contoh Format Data"):
+                st.write("""
+                ### 📁 Format File yang Didukung:
+                - **CSV** (.csv) - Comma Separated Values
+                - **Excel** (.xlsx, .xls) - Microsoft Excel
+                
+                ### 🎯 Tips untuk Hasil Terbaik:
+                1. **Kolom Tanggal**: Gunakan format yang konsisten (YYYY-MM-DD, DD/MM/YYYY, dll.)
+                2. **Header**: Pastikan file memiliki header/kolom nama
+                3. **Data Konsisten**: Pastikan tipe data dalam kolom sama
+                4. **Ukuran File**: Maksimal 200MB untuk performa optimal
+                
+                ### 📊 Contoh Data CSV:
+                ```csv
+                date,temperature,humidity,city,latitude,longitude
+                2024-01-01,25.5,60,Jakarta,-6.2088,106.8456
+                2024-01-02,26.1,65,Jakarta,-6.2088,106.8456
+                2024-01-01,22.3,70,Bandung,-6.9175,107.6191
+                2024-01-02,23.0,75,Bandung,-6.9175,107.6191
+                ```
+                """)
         
         
     with tab15:
