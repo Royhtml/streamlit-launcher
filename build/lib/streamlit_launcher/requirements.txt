@@ -54,11 +54,8 @@ trimesh==4.3.2
 # Streamlit Extensions
 # =============================
 streamlit-modal==0.1.2
-python-math=0.0.1
-os-sys=2.1.4
-temp=2020.7.2
 
 # =============================
 # Computer Vision
 # =============================
-opencv-python==4.10.0.84  
+opencv-python==4.10.0.84
