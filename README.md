@@ -61,6 +61,20 @@
 - 📈 Remove Background
 - 📈 dll
 
+## Welcome Vitur Analisis Face 
+
+<img src="https://github.com/DwiDevelopes/gambar/raw/main/Screenshot%202025-10-30%20200557.png" width="100%" height="100%">
+
+1. Analisis Face
+2. Statistik
+3. Visualisasi
+4. Mark Face
+5. Face Detection
+6. Face Recognition
+7. Face Verification
+8. Face Quality
+9. Face Clustering
+10. Face Similarity
 
 ## 📊 Analisis DNA
 
@@ -136,6 +150,7 @@ Fitur analisis DNA yang tersedia:
 16. Peta Satelit
 17. Peta Typograpy
 18. Peta Dark
+
 
 ## 🚀 Installation
 
