@@ -21,7 +21,7 @@ pydeck==0.9.1
 # Statistics & Scientific
 # =============================
 scipy==1.14.1
-scikit-learn==1.5.2   # DBSCAN is included here
+scikit-learn==1.5.2   
 xgboost==2.1.1
 statsmodels==0.14.3   
 
@@ -54,3 +54,8 @@ trimesh==4.3.2
 # Streamlit Extensions
 # =============================
 streamlit-modal==0.1.2
+
+# =============================
+# Computer Vision
+# =============================
+opencv-python==4.10.0.84  
