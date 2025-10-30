@@ -12912,16 +12912,690 @@ REMOVE_BG_API_KEY = "xQH5KznYiupRrywK5yPcjeyi"
 PIXELS_API_KEY = "LH59shPdj1xO0lolnHPsClH23qsnHE4NjkCFBhKEXvR0CbqwkrXbqBnw"
 
 if df is not None:
-    tab1, tab2, tab3, tab4, tab5, tab6, tab7, tab8, tab9, tab10, tab11, tab12, tab13, tab14, tab15, tab16 = st.tabs([
+    tab1, tab2, tab3, tab4, tab5, tab6, tab7, tab8, tab9, tab10, tab11, tab12, tab13, tab14, tab15, tab16, tab17 = st.tabs([
         "📊 Statistik", "📈 Visualisasi", "💾 Data", "ℹ️ Informasi", "🧮 Kalkulator",
         "🖼️ Vitures", "📍 Flowchart", "📊 Grafik Saham", "🗃️ SQL Style", 
         "🔄 3D Model & Analisis", "⚡ Konversi Cepat", "📝 Editor File", "🧬 Analisis DNA",
-        "🔐 Enkripsi Data", "📊 Source Elements Lanjutan", "📁 Upload & Visualisasi"
+        "🔐 Enkripsi Data", "📊 Source Elements Lanjutan", "📁 Visualisasi Lanjutan", "👤 Analisis Wajah"
     ])
 
+    with tab17:
+        st.header("👤 Analisis Wajah Lengkap dengan OpenCV")
+        st.write("Analisis wajah komprehensif menggunakan computer vision untuk mendeteksi berbagai atribut wajah")
+        
+        # Import necessary libraries
+        try:
+            import cv2
+            import numpy as np
+            from PIL import Image
+            import matplotlib.pyplot as plt
+            import tempfile
+            import os
+            import math
+            
+        except ImportError as e:
+            st.error(f"Beberapa library tidak terinstall: {e}")
+            st.stop()
+
+        # Initialize cascade classifiers dengan error handling
+        @st.cache_resource
+        def load_cascades():
+            cascades = {}
+            try:
+                # Wajah - multiple classifiers untuk akurasi lebih tinggi
+                cascades['face'] = cv2.CascadeClassifier(cv2.data.haarcascades + 'haarcascade_frontalface_default.xml')
+                cascades['face_alt'] = cv2.CascadeClassifier(cv2.data.haarcascades + 'haarcascade_frontalface_alt2.xml')
+                
+                # Mata
+                cascades['eye'] = cv2.CascadeClassifier(cv2.data.haarcascades + 'haarcascade_eye.xml')
+                cascades['eye_tree'] = cv2.CascadeClassifier(cv2.data.haarcascades + 'haarcascade_eye_tree_eyeglasses.xml')
+                
+                # Hidung dan mulut
+                nose_path = cv2.data.haarcascades + 'haarcascade_mcs_nose.xml'
+                if os.path.exists(nose_path.replace('\\', '/')):
+                    cascades['nose'] = cv2.CascadeClassifier(nose_path)
+                else:
+                    cascades['nose'] = None
+                    
+                mouth_path = cv2.data.haarcascades + 'haarcascade_smile.xml'
+                if os.path.exists(mouth_path.replace('\\', '/')):
+                    cascades['mouth'] = cv2.CascadeClassifier(mouth_path)
+                else:
+                    cascades['mouth'] = None
+                    
+            except Exception as e:
+                st.error(f"Error loading classifiers: {e}")
+                
+            return cascades
+
+        cascades = load_cascades()
+
+        # Fungsi untuk meningkatkan kualitas gambar
+        def enhance_image(image):
+            # Contrast Limited Adaptive Histogram Equalization
+            lab = cv2.cvtColor(image, cv2.COLOR_BGR2LAB)
+            lab[:,:,0] = cv2.createCLAHE(clipLimit=2.0, tileGridSize=(8,8)).apply(lab[:,:,0])
+            enhanced = cv2.cvtColor(lab, cv2.COLOR_LAB2BGR)
+            
+            # Sharpening
+            kernel = np.array([[-1,-1,-1], [-1,9,-1], [-1,-1,-1]])
+            sharpened = cv2.filter2D(enhanced, -1, kernel)
+            
+            return sharpened
+
+        # Fungsi untuk mendeteksi warna kulit
+        def detect_skin_color(face_roi_color):
+            try:
+                # Convert to HSV for better skin color detection
+                hsv = cv2.cvtColor(face_roi_color, cv2.COLOR_BGR2HSV)
+                
+                # Define skin color range in HSV
+                lower_skin = np.array([0, 20, 70], dtype=np.uint8)
+                upper_skin = np.array([20, 255, 255], dtype=np.uint8)
+                
+                # Create mask and calculate average skin color
+                mask = cv2.inRange(hsv, lower_skin, upper_skin)
+                skin_pixels = face_roi_color[mask > 0]
+                
+                if len(skin_pixels) > 0:
+                    avg_skin_color = np.mean(skin_pixels, axis=0)
+                    return avg_skin_color, len(skin_pixels) / (face_roi_color.shape[0] * face_roi_color.shape[1])
+                
+                return None, 0
+            except:
+                return None, 0
+
+        # Fungsi untuk analisis tekstur kulit (simplified)
+        def analyze_skin_texture(face_roi_gray):
+            try:
+                if face_roi_gray.size > 0:
+                    # Calculate texture using variance of Laplacian
+                    texture_score = cv2.Laplacian(face_roi_gray, cv2.CV_64F).var()
+                    return texture_score
+                return 0
+            except:
+                return 0
+
+        # Fungsi untuk menentukan bentuk wajah lebih akurat
+        def determine_face_shape(face_roi_gray, landmarks):
+            try:
+                if len(landmarks) == 0:
+                    return "Tidak Dapat Ditentukan"
+                    
+                h, w = face_roi_gray.shape
+                
+                # Calculate face ratios and features
+                width_height_ratio = w / h
+                
+                # Improved shape detection logic
+                if width_height_ratio > 1.3:
+                    return "Sangat Lonjong"
+                elif width_height_ratio > 1.15:
+                    return "Lonjong"
+                elif width_height_ratio < 0.85:
+                    return "Sangat Bulat"
+                elif width_height_ratio < 0.95:
+                    return "Bulat"
+                else:
+                    return "Oval"
+            except:
+                return "Tidak Dapat Ditentukan"
+
+        # Upload image
+        uploaded_file = st.file_uploader("Upload gambar wajah", type=['jpg', 'jpeg', 'png', 'bmp'])
+        
+        # Pengaturan deteksi
+        st.sidebar.subheader("⚙️ Pengaturan Deteksi")
+        detection_scale = st.sidebar.slider("Skala Deteksi", 1.05, 1.5, 1.1, 0.05)
+        min_neighbors = st.sidebar.slider("Minimum Neighbors", 1, 10, 4)
+        show_landmarks = st.sidebar.checkbox("Tampilkan Landmark Wajah", True)
+        analyze_skin = st.sidebar.checkbox("Analisis Kulit", True)
+        
+        if uploaded_file is not None:
+            # Read and process image
+            image = Image.open(uploaded_file)
+            image_np = np.array(image)
+            
+            # Convert to BGR for OpenCV
+            if len(image_np.shape) == 2:  # Grayscale
+                image_bgr = cv2.cvtColor(image_np, cv2.COLOR_GRAY2BGR)
+            else:  # Color
+                image_bgr = cv2.cvtColor(image_np, cv2.COLOR_RGB2BGR)
+            
+            # Enhance image
+            enhanced_image = enhance_image(image_bgr)
+            
+            # Display images dengan layout yang lebih informatif
+            col1, col2 = st.columns([1, 1])
+            
+            with col1:
+                st.subheader("🖼️ Gambar Asli")
+                
+                # Informasi gambar di sebelah kiri
+                st.info("**📊 Informasi Gambar:**")
+                st.write(f"**Ukuran:** {image_np.shape[1]} × {image_np.shape[0]} pixels")
+                st.write(f"**Tipe:** {'Grayscale' if len(image_np.shape) == 2 else 'Color'}")
+                st.write(f"**Format:** {uploaded_file.type}")
+                st.write(f"**Size:** {uploaded_file.size / 1024:.1f} KB")
+                
+                # Tips untuk analisis yang lebih baik
+                st.info("**💡 Tips Analisis Optimal:**")
+                st.write("• Pencahayaan merata dan cukup")
+                st.write("• Wajah menghadap kamera")
+                st.write("• Background tidak ramai")
+                st.write("• Resolusi minimal 640×480px")
+                
+                # Statistik cepat gambar
+                st.info("**📈 Statistik Gambar:**")
+                if len(image_np.shape) == 3:
+                    brightness = np.mean(image_np)
+                    contrast = np.std(image_np)
+                    st.write(f"**Kecerahan:** {brightness:.1f}")
+                    st.write(f"**Kontras:** {contrast:.1f}")
+                
+                st.image(image, use_column_width=True, caption="Gambar asli yang diupload")
+            
+            with col2:
+                st.subheader("🔍 Hasil Analisis Wajah")
+                
+                # Convert to grayscale for face detection
+                gray = cv2.cvtColor(enhanced_image, cv2.COLOR_BGR2GRAY)
+                
+                # Enhanced preprocessing
+                clahe = cv2.createCLAHE(clipLimit=3.0, tileGridSize=(8,8))
+                gray_enhanced = clahe.apply(gray)
+                
+                # Detect faces using multiple classifiers
+                faces1 = cascades['face'].detectMultiScale(gray_enhanced, detection_scale, min_neighbors, minSize=(50, 50))
+                faces2 = cascades['face_alt'].detectMultiScale(gray_enhanced, detection_scale, min_neighbors, minSize=(50, 50))
+                
+                # Combine detections
+                all_faces = []
+                if faces1 is not None:
+                    all_faces.extend(list(faces1))
+                if faces2 is not None:
+                    all_faces.extend(list(faces2))
+                
+                # Remove duplicates
+                faces = []
+                for (x, y, w, h) in all_faces:
+                    overlap = False
+                    for (fx, fy, fw, fh) in faces:
+                        if abs(x - fx) < w//2 and abs(y - fy) < h//2:
+                            overlap = True
+                            break
+                    if not overlap:
+                        faces.append((x, y, w, h))
+                
+                # Create a copy for drawing
+                result_image = enhanced_image.copy()
+                
+                face_data = []
+                
+                for i, (x, y, w, h) in enumerate(faces):
+                    # Draw rectangle around face
+                    cv2.rectangle(result_image, (x, y), (x+w, y+h), (0, 255, 0), 3)
+                    
+                    # Face analysis
+                    face_roi_gray = gray_enhanced[y:y+h, x:x+w]
+                    face_roi_color = enhanced_image[y:y+h, x:x+w]
+                    
+                    # Skip if face ROI is empty
+                    if face_roi_gray.size == 0 or face_roi_color.size == 0:
+                        continue
+                    
+                    # Calculate face metrics
+                    face_ratio = w / h
+                    face_area = w * h
+                    face_diagonal = math.sqrt(w**2 + h**2)
+                    
+                    # Enhanced facial feature detection dengan error handling
+                    eyes = []
+                    try:
+                        if cascades['eye'] is not None:
+                            eyes_detected = cascades['eye'].detectMultiScale(face_roi_gray, 1.1, 3)
+                            if eyes_detected is not None:
+                                eyes = list(eyes_detected)
+                        
+                        # Try alternative eye detector
+                        if len(eyes) == 0 and cascades['eye_tree'] is not None:
+                            eyes_detected = cascades['eye_tree'].detectMultiScale(face_roi_gray, 1.1, 3)
+                            if eyes_detected is not None:
+                                eyes = list(eyes_detected)
+                    except:
+                        eyes = []
+                    
+                    # Nose detection with fallback
+                    noses = []
+                    try:
+                        if cascades['nose'] is not None:
+                            noses_detected = cascades['nose'].detectMultiScale(face_roi_gray, 1.1, 5)
+                            if noses_detected is not None:
+                                noses = list(noses_detected)
+                    except:
+                        noses = []
+                    
+                    # Mouth detection
+                    mouths = []
+                    try:
+                        if cascades['mouth'] is not None:
+                            mouths_detected = cascades['mouth'].detectMultiScale(face_roi_gray, 1.7, 20)
+                            if mouths_detected is not None:
+                                mouths = list(mouths_detected)
+                    except:
+                        mouths = []
+                    
+                    # Pastikan semua variabel adalah list
+                    eyes = eyes if eyes is not None else []
+                    noses = noses if noses is not None else []
+                    mouths = mouths if mouths is not None else []
+                    
+                    # Skin analysis
+                    skin_color, skin_coverage = detect_skin_color(face_roi_color)
+                    
+                    # Determine face shape dengan landmarks yang aman
+                    landmarks = []
+                    try:
+                        landmarks = eyes + noses + mouths
+                    except:
+                        landmarks = []
+                    
+                    face_shape = determine_face_shape(face_roi_gray, landmarks)
+                    skin_texture = analyze_skin_texture(face_roi_gray)
+                    
+                    # Calculate face symmetry
+                    left_features = len([ex for ex, ey, ew, eh in eyes if ex + ew/2 < w/2])
+                    right_features = len(eyes) - left_features
+                    symmetry_score = min(left_features, right_features) / max(left_features, right_features) if max(left_features, right_features) > 0 else 0.5
+                    
+                    # Image quality metrics
+                    face_brightness = np.mean(face_roi_gray)
+                    face_contrast = np.std(face_roi_gray)
+                    face_sharpness = cv2.Laplacian(face_roi_gray, cv2.CV_64F).var()
+                    
+                    # Prepare skin color data
+                    skin_r = int(skin_color[2]) if skin_color is not None else 0
+                    skin_g = int(skin_color[1]) if skin_color is not None else 0
+                    skin_b = int(skin_color[0]) if skin_color is not None else 0
+                    
+                    face_data.append({
+                        'id': i+1,
+                        'posisi_x': x,
+                        'posisi_y': y,
+                        'lebar': w,
+                        'tinggi': h,
+                        'rasio_wajah': round(face_ratio, 3),
+                        'area_wajah': face_area,
+                        'diagonal_wajah': round(face_diagonal, 1),
+                        'bentuk_wajah': face_shape,
+                        'jumlah_mata': len(eyes),
+                        'jumlah_hidung': len(noses),
+                        'jumlah_mulut': len(mouths),
+                        'skor_simetri': round(symmetry_score, 3),
+                        'kecerahan': round(face_brightness, 1),
+                        'kontras': round(face_contrast, 1),
+                        'ketajaman': round(face_sharpness, 1),
+                        'tekstur_kulit': round(skin_texture, 1),
+                        'cakupan_kulit': round(skin_coverage, 3),
+                        'warna_kulit_r': skin_r,
+                        'warna_kulit_g': skin_g,
+                        'warna_kulit_b': skin_b,
+                    })
+                    
+                    # Draw detailed annotations
+                    if show_landmarks:
+                        # Draw facial features
+                        for (ex, ey, ew, eh) in eyes:
+                            cv2.rectangle(result_image, (x+ex, y+ey), (x+ex+ew, y+ey+eh), (255, 0, 0), 2)
+                            cv2.circle(result_image, (x+ex+ew//2, y+ey+eh//2), 2, (255, 255, 0), -1)
+                        
+                        for (nx, ny, nw, nh) in noses:
+                            cv2.rectangle(result_image, (x+nx, y+ny), (x+nx+nw, y+ny+nh), (0, 255, 255), 2)
+                        
+                        for (mx, my, mw, mh) in mouths:
+                            cv2.rectangle(result_image, (x+mx, y+my), (x+mx+mw, y+my+mh), (0, 0, 255), 2)
+                    
+                    # Add detailed text annotations
+                    cv2.putText(result_image, f'Wajah {i+1}', (x, y-30), 
+                            cv2.FONT_HERSHEY_SIMPLEX, 0.6, (0, 255, 0), 2)
+                    cv2.putText(result_image, f'{face_shape}', (x, y-10), 
+                            cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 1)
+                    
+                    # Draw face center and symmetry lines
+                    center_x = x + w//2
+                    center_y = y + h//2
+                    cv2.circle(result_image, (center_x, center_y), 4, (255, 255, 0), -1)
+                    cv2.line(result_image, (center_x, y), (center_x, y+h), (255, 255, 255), 1)
+                    cv2.line(result_image, (x, center_y), (x+w, center_y), (255, 255, 255), 1)
+                    
+                    # Draw face boundary points
+                    cv2.circle(result_image, (x, y), 3, (0, 255, 255), -1)  # Top-left
+                    cv2.circle(result_image, (x+w, y), 3, (0, 255, 255), -1)  # Top-right
+                    cv2.circle(result_image, (x, y+h), 3, (0, 255, 255), -1)  # Bottom-left
+                    cv2.circle(result_image, (x+w, y+h), 3, (0, 255, 255), -1)  # Bottom-right
+                
+                # Convert back to RGB for display
+                result_image_rgb = cv2.cvtColor(result_image, cv2.COLOR_BGR2RGB)
+                st.image(result_image_rgb, use_column_width=True, 
+                        caption=f"Terdeteksi {len(face_data)} wajah - Skala: {detection_scale}, Neighbors: {min_neighbors}")
+                
+                # Quick stats di sebelah hasil
+                if face_data:
+                    st.success(f"**✅ Analisis Berhasil!** {len(face_data)} wajah terdeteksi")
+                    
+                    # Quick metrics
+                    col_quick1, col_quick2, col_quick3 = st.columns(3)
+                    with col_quick1:
+                        avg_ratio = np.mean([f['rasio_wajah'] for f in face_data])
+                        st.metric("Rasio Wajah", f"{avg_ratio:.3f}")
+                    with col_quick2:
+                        dominant_shape = max(set([f['bentuk_wajah'] for f in face_data]), 
+                                        key=[f['bentuk_wajah'] for f in face_data].count)
+                        st.metric("Bentuk Dominan", dominant_shape)
+                    with col_quick3:
+                        total_features = sum([f['jumlah_mata'] + f['jumlah_hidung'] + f['jumlah_mulut'] for f in face_data])
+                        st.metric("Total Fitur", total_features)
+
+            # Display comprehensive analysis results (di bawah kedua gambar)
+            if face_data:
+                st.subheader("📊 Laporan Analisis Wajah Lengkap")
+                
+                # Overall metrics
+                col1, col2, col3, col4 = st.columns(4)
+                with col1:
+                    st.metric("👥 Jumlah Wajah", len(face_data))
+                    avg_ratio = np.mean([f['rasio_wajah'] for f in face_data])
+                    st.metric("📐 Rasio Rata-rata", f"{avg_ratio:.3f}")
+                with col2:
+                    total_area = sum([f['area_wajah'] for f in face_data])
+                    st.metric("📏 Area Total", f"{total_area:,} px²")
+                    avg_symmetry = np.mean([f['skor_simetri'] for f in face_data])
+                    st.metric("🎯 Simetri Rata-rata", f"{avg_symmetry:.3f}")
+                with col3:
+                    dominant_shape = max(set([f['bentuk_wajah'] for f in face_data]), 
+                                    key=[f['bentuk_wajah'] for f in face_data].count)
+                    st.metric("🔷 Bentuk Dominan", dominant_shape)
+                    avg_brightness = np.mean([f['kecerahan'] for f in face_data])
+                    st.metric("🌟 Kecerahan Rata-rata", f"{avg_brightness:.1f}")
+                with col4:
+                    total_features = sum([f['jumlah_mata'] + f['jumlah_hidung'] + f['jumlah_mulut'] for f in face_data])
+                    st.metric("👀 Total Fitur", total_features)
+                    avg_sharpness = np.mean([f['ketajaman'] for f in face_data])
+                    st.metric("⚡ Ketajaman Rata-rata", f"{avg_sharpness:.1f}")
+                
+                # Detailed face information
+                st.subheader("📋 Informasi Detail Setiap Wajah")
+                import pandas as pd
+                df_faces = pd.DataFrame(face_data)
+                
+                # Format dataframe for better display
+                display_columns = {
+                    'id': 'ID',
+                    'bentuk_wajah': 'Bentuk Wajah', 
+                    'rasio_wajah': 'Rasio W/H',
+                    'area_wajah': 'Area (px²)',
+                    'skor_simetri': 'Skor Simetri',
+                    'jumlah_mata': 'Mata',
+                    'jumlah_hidung': 'Hidung',
+                    'jumlah_mulut': 'Mulut',
+                    'kecerahan': 'Kecerahan',
+                    'kontras': 'Kontras',
+                    'ketajaman': 'Ketajaman'
+                }
+                
+                st.dataframe(df_faces.rename(columns=display_columns)[display_columns.values()].style.format({
+                    'Rasio W/H': '{:.3f}',
+                    'Area (px²)': '{:,}',
+                    'Skor Simetri': '{:.3f}',
+                    'Kecerahan': '{:.1f}',
+                    'Kontras': '{:.1f}',
+                    'Ketajaman': '{:.1f}'
+                }), use_container_width=True)
+                
+                # Advanced visualizations
+                st.subheader("📈 Visualisasi Data Wajah")
+                
+                tab100, tab200, tab300 = st.tabs(["Bentuk Wajah", "Distribusi", "Fitur"])
+                
+                with tab100:
+                    col1, col2 = st.columns(2)
+                    with col1:
+                        # Face shape distribution
+                        shape_counts = df_faces['bentuk_wajah'].value_counts()
+                        fig1, ax1 = plt.subplots(figsize=(10, 8))
+                        colors = plt.cm.Set3(np.linspace(0, 1, len(shape_counts)))
+                        wedges, texts, autotexts = ax1.pie(shape_counts.values, 
+                                                        labels=shape_counts.index, 
+                                                        autopct='%1.1f%%', 
+                                                        colors=colors,
+                                                        startangle=90)
+                        for autotext in autotexts:
+                            autotext.set_color('black')
+                            autotext.set_fontweight('bold')
+                        ax1.set_title('Distribusi Bentuk Wajah', fontsize=14, fontweight='bold')
+                        st.pyplot(fig1)
+                    
+                    with col2:
+                        # Face ratio analysis
+                        fig2, ax2 = plt.subplots(figsize=(10, 8))
+                        ratios = df_faces['rasio_wajah']
+                        n, bins, patches = ax2.hist(ratios, bins=12, alpha=0.7, color='lightblue', 
+                                                edgecolor='navy', linewidth=1.2)
+                        ax2.axvline(ratios.mean(), color='red', linestyle='--', 
+                                linewidth=2, label=f'Rata-rata: {ratios.mean():.3f}')
+                        ax2.set_xlabel('Rasio Wajah (Lebar/Tinggi)', fontweight='bold')
+                        ax2.set_ylabel('Frekuensi', fontweight='bold')
+                        ax2.set_title('Distribusi Rasio Wajah', fontsize=14, fontweight='bold')
+                        ax2.legend()
+                        ax2.grid(True, alpha=0.3)
+                        st.pyplot(fig2)
+                
+                with tab200:
+                    col1, col2 = st.columns(2)
+                    with col1:
+                        # Facial features comparison
+                        fig3, ax3 = plt.subplots(figsize=(10, 8))
+                        features_data = {
+                            'Mata': df_faces['jumlah_mata'].sum(),
+                            'Hidung': df_faces['jumlah_hidung'].sum(),
+                            'Mulut': df_faces['jumlah_mulut'].sum()
+                        }
+                        colors = ['gold', 'lightcoral', 'lightgreen']
+                        bars = ax3.bar(features_data.keys(), features_data.values(), color=colors, alpha=0.8)
+                        ax3.set_title('Total Fitur Wajah Terdeteksi', fontsize=14, fontweight='bold')
+                        ax3.set_ylabel('Jumlah', fontweight='bold')
+                        
+                        # Add value labels on bars
+                        for bar in bars:
+                            height = bar.get_height()
+                            ax3.text(bar.get_x() + bar.get_width()/2., height + 0.1,
+                                    f'{int(height)}', ha='center', va='bottom', fontweight='bold')
+                        st.pyplot(fig3)
+                    
+                    with col2:
+                        # Face size distribution
+                        fig4, ax4 = plt.subplots(figsize=(10, 8))
+                        areas = df_faces['area_wajah']
+                        ax4.scatter(df_faces['lebar'], df_faces['tinggi'], 
+                                c=df_faces['skor_simetri'], cmap='viridis', 
+                                s=100, alpha=0.7, edgecolors='black')
+                        ax4.set_xlabel('Lebar Wajah (px)', fontweight='bold')
+                        ax4.set_ylabel('Tinggi Wajah (px)', fontweight='bold')
+                        ax4.set_title('Ukuran Wajah vs Simetri', fontsize=14, fontweight='bold')
+                        cbar = plt.colorbar(ax4.collections[0], ax=ax4)
+                        cbar.set_label('Skor Simetri', fontweight='bold')
+                        ax4.grid(True, alpha=0.3)
+                        st.pyplot(fig4)
+                
+                with tab300:
+                    # Image quality metrics
+                    fig5, ax5 = plt.subplots(figsize=(10, 8))
+                    quality_metrics = ['kecerahan', 'kontras', 'ketajaman']
+                    metrics_data = [df_faces[metric] for metric in quality_metrics]
+                    box_plot = ax5.boxplot(metrics_data, labels=['Kecerahan', 'Kontras', 'Ketajaman'], 
+                                        patch_artist=True)
+                    
+                    # Color the boxes
+                    colors = ['lightyellow', 'lightblue', 'lightgreen']
+                    for patch, color in zip(box_plot['boxes'], colors):
+                        patch.set_facecolor(color)
+                    
+                    ax5.set_ylabel('Nilai', fontweight='bold')
+                    ax5.set_title('Metrik Kualitas Gambar Wajah', fontsize=14, fontweight='bold')
+                    ax5.grid(True, alpha=0.3)
+                    st.pyplot(fig5)
+                
+                # Individual face analysis
+                st.subheader("🔍 Analisis Individu Setiap Wajah")
+                
+                for i, face in enumerate(face_data):
+                    with st.expander(f"Wajah {i+1} - {face['bentuk_wajah']} (ID: {face['id']})", expanded=False):
+                        col1, col2, col3, col4 = st.columns(4)
+                        
+                        with col1:
+                            st.metric("📐 Bentuk Wajah", face['bentuk_wajah'])
+                            st.metric("⚖️ Rasio", f"{face['rasio_wajah']:.3f}")
+                            st.metric("📏 Ukuran", f"{face['lebar']}×{face['tinggi']}px")
+                            
+                        with col2:
+                            st.metric("👀 Mata", face['jumlah_mata'])
+                            st.metric("👃 Hidung", face['jumlah_hidung'])
+                            st.metric("👄 Mulut", face['jumlah_mulut'])
+                            
+                        with col3:
+                            st.metric("🎯 Simetri", f"{face['skor_simetri']:.3f}")
+                            st.metric("💡 Kecerahan", face['kecerahan'])
+                            st.metric("🌈 Kontras", face['kontras'])
+                            
+                        with col4:
+                            st.metric("⚡ Ketajaman", face['ketajaman'])
+                            st.metric("🔍 Tekstur Kulit", face['tekstur_kulit'])
+                            st.metric("🎨 Cakupan Kulit", f"{face['cakupan_kulit']:.1%}")
+                        
+                        # Quality assessment dengan FIX untuk st.progress()
+                        quality_score = (
+                            face['skor_simetri'] * 0.3 +
+                            min(face['jumlah_mata'] / 2, 1) * 0.2 +
+                            min(face['jumlah_hidung'] / 1, 1) * 0.2 +
+                            min(face['jumlah_mulut'] / 1, 1) * 0.1 +
+                            min(face['ketajaman'] / 100, 1) * 0.2
+                        )
+                        
+                        # Pastikan quality_score antara 0 dan 1
+                        quality_score = max(0, min(1, quality_score))
+                        
+                        st.write("**Skor Kualitas Deteksi:**")
+                        quality_col1, quality_col2 = st.columns([1, 4])
+                        with quality_col1:
+                            st.write(f"**{quality_score:.1%}**")
+                        with quality_col2:
+                            st.progress(float(quality_score))
+                        
+                        # Recommendations based on quality
+                        if quality_score >= 0.8:
+                            st.success("✅ **Kualitas Tinggi**: Deteksi sangat akurat dengan fitur lengkap")
+                        elif quality_score >= 0.6:
+                            st.info("ℹ️ **Kualitas Baik**: Deteksi cukup akurat untuk analisis umum")
+                        elif quality_score >= 0.4:
+                            st.warning("⚠️ **Kualitas Sedang**: Beberapa fitur mungkin kurang akurat")
+                        else:
+                            st.error("❌ **Kualitas Rendah**: Disarankan menggunakan gambar dengan kualitas lebih baik")
+                
+                # Export functionality
+                st.subheader("💾 Ekspor Hasil Analisis")
+                col1, col2 = st.columns(2)
+                
+                with col1:
+                    if st.button("📥 Export Data ke CSV", use_container_width=True):
+                        df_export = pd.DataFrame(face_data)
+                        csv = df_export.to_csv(index=False, encoding='utf-8')
+                        st.download_button(
+                            label="Download CSV",
+                            data=csv,
+                            file_name="analisis_wajah_lengkap.csv",
+                            mime="text/csv",
+                            use_container_width=True
+                        )
+                
+                with col2:
+                    if st.button("🖼️ Simpan Gambar Hasil", use_container_width=True):
+                        # Save result image
+                        result_rgb = cv2.cvtColor(result_image, cv2.COLOR_BGR2RGB)
+                        result_pil = Image.fromarray(result_rgb)
+                        
+                        # Save to bytes
+                        from io import BytesIO
+                        buf = BytesIO()
+                        result_pil.save(buf, format="PNG")
+                        buf.seek(0)
+                        
+                        st.download_button(
+                            label="Download Gambar Hasil",
+                            data=buf,
+                            file_name="hasil_analisis_wajah.png",
+                            mime="image/png",
+                            use_container_width=True
+                        )
+            
+            else:
+                st.warning("❌ Tidak ada wajah yang terdeteksi dalam gambar.")
+                st.info("""
+                **💡 Tips untuk meningkatkan deteksi:**
+                - Gunakan gambar dengan pencahayaan yang merata
+                - Pastikan wajah menghadap kamera secara frontal
+                - Hindari bayangan yang menutupi wajah
+                - Gunakan resolusi gambar minimal 640x480 pixel
+                - Background yang tidak terlalu ramai atau mirip warna kulit
+                - Coba adjust pengaturan deteksi di sidebar
+                """)
+        
+        else:
+            st.info("👆 Silakan upload gambar wajah untuk memulai analisis")
+            
+        # Informasi dan panduan
+        with st.expander("📚 Panduan Penggunaan & Informasi"):
+            st.markdown("""
+            ### 🎯 Cara Menggunakan Analisis Wajah
+            
+            1. **Upload Gambar**: Pilih gambar berisi wajah (format: JPG, PNG, JPEG, BMP)
+            2. **Atur Pengaturan**: Gunakan sidebar untuk menyesuaikan sensitivitas deteksi
+            3. **Analisis Otomatis**: Sistem akan mendeteksi dan menganalisis wajah
+            4. **Review Hasil**: Lihat statistik, visualisasi, dan analisis detail
+            5. **Ekspor Data**: Download hasil analisis dalam format CSV atau gambar
+            
+            ### 🔍 Fitur Analisis
+            
+            - **Deteksi Wajah**: Menggunakan multiple classifiers untuk akurasi tinggi
+            - **Bentuk Wajah**: Klasifikasi bentuk (Oval, Bulat, Persegi, Lonjong, dll)
+            - **Fitur Wajah**: Deteksi mata, hidung, mulut dengan landmark
+            - **Analisis Kulit**: Deteksi warna, tekstur, dan cakupan kulit
+            - **Metrik Kualitas**: Kecerahan, kontras, ketajaman, simetri
+            - **Visualisasi**: Grafik distribusi dan analisis statistik
+            
+            ### 🎨 Keterangan Warna
+            
+            - 🟢 **Hijau**: Batas wajah dan informasi identitas
+            - 🔵 **Biru**: Area mata dengan titik pusat
+            - 🟡 **Kuning**: Area hidung
+            - 🔴 **Merah**: Area mulut
+            - ⚪ **Putih**: Garis simetri dan sumbu wajah
+            - 🟠 **Oranye**: Titik sudut wajah
+            - 🔷 **Biru Muda**: Titik pusat wajah
+            
+            ### 📊 Interpretasi Hasil
+            
+            - **Skor Simetri**: Mendekati 1.0 berarti lebih simetris
+            - **Rasio Wajah**: >1.15 (Lonjong), 0.85-1.15 (Oval/Persegi), <0.85 (Bulat)
+            - **Kualitas Gambar**: Ketajaman >50 baik, Kontras >30 baik
+            - **Cakupan Kulit**: Persentase area wajah yang terdeteksi sebagai kulit
+            """)
     with tab16:
         st.header("📁 Upload & Visualisasi File CSV/XLS")
-        st.write("Unggah file CSV atau Excel untuk dianalisis dan divisualisasikan dengan semua chart element Streamlit")
+        st.write("Unggah file CSV atau Excel untuk dianalisis dan divisualisasikan dengan chart element Streamlit")
+        
+        # Fast mode toggle
+        fast_mode = st.checkbox("🚀 Fast Mode (Rekomendasi untuk file besar)", 
+                            help="Mengurangi preview data dan mematikan beberapa fitur untuk performa lebih baik")
         
         # File uploader
         uploaded_file = st.file_uploader(
@@ -12957,110 +13631,75 @@ if df is not None:
                 with col4:
                     st.metric("Ukuran Memori", f"{df_upload.memory_usage(deep=True).sum() / 1024 / 1024:.2f} MB")
                 
-                # Show data preview
-                with st.expander("🔍 Preview Data", expanded=True):
-                    st.dataframe(df_upload.head(10), use_container_width=True)
+                # Show data preview (limited in fast mode)
+                with st.expander("🔍 Preview Data", expanded=not fast_mode):
+                    preview_rows = 5 if fast_mode else 10
+                    st.dataframe(df_upload.head(preview_rows), use_container_width=True)
                     st.write(f"**Shape:** {df_upload.shape}")
                 
-                # Data preprocessing
-                with st.expander("⚙️ Preprocessing Data"):
-                    st.subheader("Handling Tipe Data")
-                    
-                    # Convert object columns to datetime
-                    date_columns = st.multiselect(
-                        "Pilih kolom yang ingin dikonversi ke datetime:",
-                        df_upload.select_dtypes(include=['object']).columns.tolist(),
-                        help="Pilih kolom yang berisi tanggal/waktu"
-                    )
-                    
-                    if date_columns:
-                        for col in date_columns:
-                            try:
-                                df_upload[col] = pd.to_datetime(df_upload[col], errors='coerce')
-                                st.success(f"Kolom {col} berhasil dikonversi ke datetime")
-                            except Exception as e:
-                                st.warning(f"Gagal mengkonversi kolom {col}: {str(e)}")
-                    
-                    # Handle missing values
-                    st.subheader("Handling Missing Values")
-                    if df_upload.isnull().sum().sum() > 0:
-                        missing_cols = df_upload.columns[df_upload.isnull().any()].tolist()
-                        st.write("Kolom dengan missing values:", missing_cols)
+                # Data preprocessing (simplified in fast mode)
+                if not fast_mode:
+                    with st.expander("⚙️ Preprocessing Data"):
+                        st.subheader("Handling Tipe Data")
                         
-                        for col in missing_cols:
-                            col1, col2 = st.columns([1, 3])
-                            with col1:
-                                method = st.selectbox(
-                                    f"Metode untuk {col}",
-                                    ["Pilih metode", "Hapus baris", "Isi dengan mean", "Isi dengan median", "Isi dengan modus", "Isi dengan nilai tertentu"],
-                                    key=f"missing_{col}"
-                                )
-                            with col2:
-                                if method == "Isi dengan nilai tertentu":
-                                    fill_value = st.text_input(f"Nilai untuk {col}", key=f"fill_{col}")
-                                    if fill_value:
-                                        try:
-                                            if df_upload[col].dtype in ['int64', 'float64']:
-                                                fill_value = float(fill_value)
-                                            df_upload[col].fillna(fill_value, inplace=True)
-                                        except:
-                                            df_upload[col].fillna(fill_value, inplace=True)
-                                elif method == "Hapus baris":
-                                    df_upload = df_upload.dropna(subset=[col])
-                                elif method == "Isi dengan mean":
-                                    if df_upload[col].dtype in ['int64', 'float64']:
-                                        df_upload[col].fillna(df_upload[col].mean(), inplace=True)
-                                elif method == "Isi dengan median":
-                                    if df_upload[col].dtype in ['int64', 'float64']:
-                                        df_upload[col].fillna(df_upload[col].median(), inplace=True)
-                                elif method == "Isi dengan modus":
-                                    df_upload[col].fillna(df_upload[col].mode()[0] if not df_upload[col].mode().empty else 0, inplace=True)
+                        # Convert object columns to datetime
+                        date_columns = st.multiselect(
+                            "Pilih kolom yang ingin dikonversi ke datetime:",
+                            df_upload.select_dtypes(include=['object']).columns.tolist(),
+                            help="Pilih kolom yang berisi tanggal/waktu"
+                        )
+                        
+                        if date_columns:
+                            for col in date_columns:
+                                try:
+                                    df_upload[col] = pd.to_datetime(df_upload[col], errors='coerce')
+                                    success_count = df_upload[col].notna().sum()
+                                    if success_count > 0:
+                                        st.success(f"Kolom {col} berhasil dikonversi ({success_count}/{len(df_upload)} baris)")
+                                    else:
+                                        st.warning(f"Kolom {col} tidak berhasil dikonversi ke datetime")
+                                except Exception as e:
+                                    st.warning(f"Gagal mengkonversi kolom {col}: {str(e)}")
                 
-                # Data information
-                with st.expander("📋 Informasi Data Lengkap"):
-                    col1, col2 = st.columns(2)
-                    
-                    with col1:
-                        st.subheader("Tipe Data Kolom")
-                        dtype_info = pd.DataFrame(df_upload.dtypes, columns=['Tipe Data'])
-                        st.dataframe(dtype_info)
+                # Data information (limited in fast mode)
+                if not fast_mode:
+                    with st.expander("📋 Informasi Data Lengkap"):
+                        col1, col2 = st.columns(2)
                         
-                        st.subheader("Statistik Deskriptif")
-                        st.dataframe(df_upload.describe(include='all'))
-                    
-                    with col2:
-                        st.subheader("Missing Values")
-                        missing_data = pd.DataFrame({
-                            'Kolom': df_upload.columns,
-                            'Missing Values': df_upload.isnull().sum(),
-                            'Persentase': (df_upload.isnull().sum() / len(df_upload)) * 100
-                        })
-                        st.dataframe(missing_data)
+                        with col1:
+                            st.subheader("Tipe Data Kolom")
+                            dtype_info = pd.DataFrame(df_upload.dtypes, columns=['Tipe Data'])
+                            st.dataframe(dtype_info)
                         
-                        st.subheader("Unique Values")
-                        unique_data = pd.DataFrame({
-                            'Kolom': df_upload.columns,
-                            'Unique Values': df_upload.nunique()
-                        })
-                        st.dataframe(unique_data)
+                        with col2:
+                            st.subheader("Missing Values")
+                            missing_data = pd.DataFrame({
+                                'Kolom': df_upload.columns,
+                                'Missing Values': df_upload.isnull().sum(),
+                                'Persentase': (df_upload.isnull().sum() / len(df_upload)) * 100
+                            })
+                            st.dataframe(missing_data)
                 
                 # Column selection for visualization
-                st.subheader("🎨 Visualisasi Data Lengkap")
+                st.subheader("🎨 Visualisasi Data")
                 
                 # Separate columns by type
                 numeric_cols = df_upload.select_dtypes(include=[np.number]).columns.tolist()
                 categorical_cols = df_upload.select_dtypes(include=['object', 'category']).columns.tolist()
                 datetime_cols = df_upload.select_dtypes(include=['datetime64']).columns.tolist()
                 
-                # Visualization type selection with all Streamlit charts
+                # Streamlit native visualization types only
                 viz_type = st.selectbox(
                     "Pilih Jenis Visualisasi",
                     [
-                        "📈 Line Chart", "📊 Bar Chart", "🟩 Area Chart", "📋 Histogram",
-                        "🎯 Scatter Plot", "🥧 Pie Chart", "🔥 Heatmap", "📦 Box Plot",
-                        "🎻 Violin Plot", "📊 Density Plot", "🗺️ Map", "📊 Altair Chart",
-                        "📊 Plotly Chart", "📈 Matplotlib Chart", "🎯 Bokeh Chart",
-                        "📊 Seaborn Chart", "📈 Cumulative Chart", "📊 Stacked Area Chart"
+                        "📈 Line Chart", 
+                        "📊 Bar Chart", 
+                        "🟩 Area Chart", 
+                        "📋 Histogram",
+                        "🎯 Scatter Plot",
+                        "🗺️ Map",
+                        "📊 Altair Chart",
+                        "📊 Plotly Chart"
                     ]
                 )
                 
@@ -13068,29 +13707,29 @@ if df is not None:
                 col1, col2, col3 = st.columns(3)
                 
                 with col1:
-                    if viz_type in ["📈 Line Chart", "🟩 Area Chart", "📊 Stacked Area Chart"]:
+                    if viz_type in ["📈 Line Chart", "🟩 Area Chart"]:
                         x_axis = st.selectbox("Pilih kolom X", datetime_cols + categorical_cols + numeric_cols)
                     else:
                         x_axis = st.selectbox("Pilih kolom X", df_upload.columns)
                 
                 with col2:
-                    if viz_type in ["📈 Line Chart", "🟩 Area Chart", "🎯 Scatter Plot", "📊 Bar Chart", "📊 Stacked Area Chart"]:
+                    if viz_type in ["📈 Line Chart", "🟩 Area Chart", "🎯 Scatter Plot", "📊 Bar Chart"]:
                         available_y_cols = numeric_cols if viz_type != "📊 Bar Chart" else df_upload.columns
                         y_axis = st.selectbox("Pilih kolom Y", available_y_cols)
                     else:
                         y_axis = None
                 
                 with col3:
-                    if viz_type in ["🎯 Scatter Plot", "📊 Bar Chart", "📦 Box Plot", "🎻 Violin Plot"]:
+                    if viz_type in ["🎯 Scatter Plot", "📊 Bar Chart"]:
                         color_col = st.selectbox("Pilih kolom untuk warna", [None] + categorical_cols)
                     else:
                         color_col = None
                 
-                # Additional options
-                if viz_type in ["📋 Histogram", "📦 Box Plot", "🎻 Violin Plot", "📊 Density Plot"]:
-                    selected_col = st.selectbox("Pilih kolom untuk analisis", numeric_cols)
+                # Additional options for specific charts
+                if viz_type in ["📋 Histogram"]:
+                    selected_col = st.selectbox("Pilih kolom untuk histogram", numeric_cols)
                 
-                # Generate visualizations
+                # Generate visualizations using Streamlit elements only
                 st.subheader(f"📊 {viz_type}")
                 
                 try:
@@ -13114,69 +13753,25 @@ if df is not None:
                             st.warning("Pilih kolom Y yang numerik")
                             
                     elif viz_type == "📋 Histogram":
-                        fig, ax = plt.subplots(figsize=(10, 6))
-                        ax.hist(df_upload[selected_col].dropna(), bins=20, alpha=0.7, color='skyblue', edgecolor='black')
-                        ax.set_xlabel(selected_col)
-                        ax.set_ylabel('Frequency')
-                        ax.set_title(f'Histogram of {selected_col}')
-                        ax.grid(True, alpha=0.3)
-                        st.pyplot(fig)
+                        # Use Plotly for histogram (more efficient than matplotlib)
+                        import plotly.express as px
+                        fig = px.histogram(df_upload, x=selected_col, title=f'Histogram of {selected_col}')
+                        st.plotly_chart(fig, use_container_width=True)
                         
                     elif viz_type == "🎯 Scatter Plot":
                         if y_axis in numeric_cols:
                             if color_col:
-                                fig = px.scatter(df_upload, x=x_axis, y=y_axis, color=color_col, 
-                                               title=f"Scatter Plot: {x_axis} vs {y_axis}")
+                                # Use Plotly for colored scatter plots
+                                import plotly.express as px
+                                fig = px.scatter(df_upload, x=x_axis, y=y_axis, color=color_col,
+                                            title=f"Scatter Plot: {x_axis} vs {y_axis}")
+                                st.plotly_chart(fig, use_container_width=True)
                             else:
-                                fig = px.scatter(df_upload, x=x_axis, y=y_axis,
-                                               title=f"Scatter Plot: {x_axis} vs {y_axis}")
-                            st.plotly_chart(fig, use_container_width=True)
+                                # Use native Streamlit for simple scatter
+                                st.scatter_chart(df_upload, x=x_axis, y=y_axis, use_container_width=True)
                         else:
                             st.warning("Pilih kolom Y yang numerik")
                             
-                    elif viz_type == "🥧 Pie Chart":
-                        if x_axis in categorical_cols and y_axis in numeric_cols:
-                            pie_data = df_upload.groupby(x_axis)[y_axis].sum()
-                            fig, ax = plt.subplots(figsize=(8, 8))
-                            ax.pie(pie_data.values, labels=pie_data.index, autopct='%1.1f%%', startangle=90)
-                            ax.set_title(f'Pie Chart: {y_axis} by {x_axis}')
-                            st.pyplot(fig)
-                        else:
-                            st.warning("Pilih kolom X kategorikal dan kolom Y numerik")
-                            
-                    elif viz_type == "🔥 Heatmap":
-                        # Correlation heatmap
-                        corr_matrix = df_upload[numeric_cols].corr()
-                        fig, ax = plt.subplots(figsize=(12, 8))
-                        sns.heatmap(corr_matrix, annot=True, cmap='coolwarm', center=0, ax=ax, fmt='.2f')
-                        ax.set_title('Correlation Heatmap')
-                        st.pyplot(fig)
-                        
-                    elif viz_type == "📦 Box Plot":
-                        if color_col:
-                            fig = px.box(df_upload, x=color_col, y=selected_col, 
-                                        title=f"Box Plot: {selected_col} by {color_col}")
-                        else:
-                            fig = px.box(df_upload, y=selected_col, title=f"Box Plot: {selected_col}")
-                        st.plotly_chart(fig, use_container_width=True)
-                        
-                    elif viz_type == "🎻 Violin Plot":
-                        if color_col:
-                            fig = px.violin(df_upload, x=color_col, y=selected_col,
-                                          title=f"Violin Plot: {selected_col} by {color_col}")
-                        else:
-                            fig = px.violin(df_upload, y=selected_col, title=f"Violin Plot: {selected_col}")
-                        st.plotly_chart(fig, use_container_width=True)
-                        
-                    elif viz_type == "📊 Density Plot":
-                        fig, ax = plt.subplots(figsize=(10, 6))
-                        df_upload[selected_col].plot.kde(ax=ax)
-                        ax.set_xlabel(selected_col)
-                        ax.set_ylabel('Density')
-                        ax.set_title(f'Density Plot of {selected_col}')
-                        ax.grid(True, alpha=0.3)
-                        st.pyplot(fig)
-                        
                     elif viz_type == "🗺️ Map":
                         # Check for coordinate columns
                         lat_cols = [col for col in df_upload.columns if any(word in col.lower() for word in ['lat', 'latitude'])]
@@ -13195,11 +13790,11 @@ if df is not None:
                         try:
                             import altair as alt
                             if y_axis in numeric_cols:
-                                chart = alt.Chart(df_upload).mark_circle().encode(
+                                chart = alt.Chart(df_upload.head(1000) if fast_mode else df_upload).mark_circle().encode(
                                     x=x_axis,
                                     y=y_axis,
                                     color=color_col if color_col else alt.value('blue'),
-                                    tooltip=list(df_upload.columns)
+                                    tooltip=list(df_upload.columns[:3])  # Limit tooltip for performance
                                 ).interactive()
                                 st.altair_chart(chart, use_container_width=True)
                             else:
@@ -13208,81 +13803,86 @@ if df is not None:
                             st.error("Altair tidak terinstall. Install dengan: pip install altair")
                             
                     elif viz_type == "📊 Plotly Chart":
-                        # Advanced Plotly chart
-                        plotly_type = st.selectbox("Pilih tipe Plotly chart", 
-                                                 ["scatter", "line", "bar", "histogram", "box"])
-                        
-                        if plotly_type == "scatter":
-                            fig = px.scatter(df_upload, x=x_axis, y=y_axis, color=color_col)
-                        elif plotly_type == "line":
-                            fig = px.line(df_upload, x=x_axis, y=y_axis, color=color_col)
-                        elif plotly_type == "bar":
-                            fig = px.bar(df_upload, x=x_axis, y=y_axis, color=color_col)
-                        elif plotly_type == "histogram":
-                            fig = px.histogram(df_upload, x=selected_col, color=color_col)
-                        elif plotly_type == "box":
-                            fig = px.box(df_upload, x=color_col if color_col else x_axis, y=selected_col)
+                        try:
+                            import plotly.express as px
+                            # Advanced Plotly chart
+                            plotly_type = st.selectbox("Pilih tipe Plotly chart", 
+                                                    ["scatter", "line", "bar", "histogram", "box"])
                             
-                        st.plotly_chart(fig, use_container_width=True)
-                        
-                    elif viz_type == "📈 Cumulative Chart":
-                        if y_axis in numeric_cols:
-                            cumulative_data = df_upload.set_index(x_axis)[y_axis].cumsum()
-                            st.line_chart(cumulative_data, use_container_width=True)
-                        else:
-                            st.warning("Pilih kolom Y yang numerik")
-                            
-                    elif viz_type == "📊 Stacked Area Chart":
-                        if y_axis in numeric_cols and color_col:
-                            pivot_data = df_upload.pivot_table(index=x_axis, columns=color_col, values=y_axis, aggfunc='sum').fillna(0)
-                            st.area_chart(pivot_data, use_container_width=True)
-                        else:
-                            st.warning("Pilih kolom Y numerik dan kolom warna untuk stacked area chart")
+                            if plotly_type == "scatter":
+                                fig = px.scatter(df_upload.head(1000) if fast_mode else df_upload, 
+                                            x=x_axis, y=y_axis, color=color_col)
+                            elif plotly_type == "line":
+                                fig = px.line(df_upload.head(1000) if fast_mode else df_upload, 
+                                            x=x_axis, y=y_axis, color=color_col)
+                            elif plotly_type == "bar":
+                                fig = px.bar(df_upload.head(1000) if fast_mode else df_upload, 
+                                        x=x_axis, y=y_axis, color=color_col)
+                            elif plotly_type == "histogram":
+                                fig = px.histogram(df_upload.head(1000) if fast_mode else df_upload, 
+                                                x=x_axis, color=color_col)
+                            elif plotly_type == "box":
+                                fig = px.box(df_upload.head(1000) if fast_mode else df_upload, 
+                                        x=color_col if color_col else x_axis, y=y_axis)
+                                
+                            st.plotly_chart(fig, use_container_width=True)
+                        except ImportError:
+                            st.error("Plotly tidak terinstall. Install dengan: pip install plotly")
                             
                 except Exception as e:
                     st.error(f"Error dalam membuat visualisasi: {str(e)}")
                     st.info("Pastikan pemilihan kolom sesuai dengan jenis visualisasi")
                 
-                # Data filtering and analysis
-                with st.expander("🔍 Filter & Analisis Lanjutan"):
-                    st.subheader("Filter Data Interaktif")
-                    
-                    # Multiple column filtering
-                    filter_cols = st.multiselect("Pilih kolom untuk filter:", df_upload.columns)
-                    
-                    filtered_df = df_upload.copy()
-                    for col in filter_cols:
-                        if df_upload[col].dtype in ['object', 'category']:
-                            unique_vals = df_upload[col].unique()
-                            selected_vals = st.multiselect(f"Pilih nilai {col}", unique_vals, default=unique_vals[:min(5, len(unique_vals))])
+                # Data filtering and analysis (simplified in fast mode)
+                if not fast_mode:
+                    with st.expander("🔍 Filter & Analisis Lanjutan"):
+                        st.subheader("Filter Data Interaktif")
+                        
+                        # Simple column filtering
+                        filter_col = st.selectbox("Pilih kolom untuk filter:", df_upload.columns)
+                        
+                        filtered_df = df_upload.copy()
+                        
+                        if df_upload[filter_col].dtype in ['object', 'category']:
+                            unique_vals = df_upload[filter_col].unique()
+                            selected_vals = st.multiselect(f"Pilih nilai {filter_col}", unique_vals, default=unique_vals[:min(5, len(unique_vals))])
                             if selected_vals:
-                                filtered_df = filtered_df[filtered_df[col].isin(selected_vals)]
+                                filtered_df = filtered_df[filtered_df[filter_col].isin(selected_vals)]
+                        elif df_upload[filter_col].dtype == 'datetime64[ns]':
+                            min_date = df_upload[filter_col].min()
+                            max_date = df_upload[filter_col].max()
+                            selected_dates = st.date_input(
+                                f"Pilih range tanggal {filter_col}",
+                                value=(min_date, max_date),
+                                min_value=min_date,
+                                max_value=max_date
+                            )
+                            if len(selected_dates) == 2:
+                                filtered_df = filtered_df[
+                                    (filtered_df[filter_col] >= pd.to_datetime(selected_dates[0])) & 
+                                    (filtered_df[filter_col] <= pd.to_datetime(selected_dates[1]))
+                                ]
                         else:
-                            min_val = float(df_upload[col].min())
-                            max_val = float(df_upload[col].max())
-                            selected_range = st.slider(f"Pilih range {col}", min_val, max_val, (min_val, max_val))
+                            min_val = float(df_upload[filter_col].min())
+                            max_val = float(df_upload[filter_col].max())
+                            selected_range = st.slider(f"Pilih range {filter_col}", min_val, max_val, (min_val, max_val))
                             filtered_df = filtered_df[
-                                (filtered_df[col] >= selected_range[0]) & 
-                                (filtered_df[col] <= selected_range[1])
+                                (filtered_df[filter_col] >= selected_range[0]) & 
+                                (filtered_df[filter_col] <= selected_range[1])
                             ]
-                    
-                    st.write(f"**Data setelah filter:** {len(filtered_df)} baris dari {len(df_upload)} baris")
-                    st.dataframe(filtered_df, use_container_width=True)
-                    
-                    # Quick statistics on filtered data
-                    if len(numeric_cols) > 0:
-                        st.subheader("Statistik Data Terfilter")
-                        st.dataframe(filtered_df[numeric_cols].describe())
+                        
+                        st.write(f"**Data setelah filter:** {len(filtered_df)} baris dari {len(df_upload)} baris")
+                        st.dataframe(filtered_df.head(10), use_container_width=True)
                 
                 # Data download section
                 with st.expander("💾 Download & Ekspor Data"):
                     st.subheader("Download Data yang Diproses")
                     
                     # Format selection
-                    export_format = st.radio("Pilih format ekspor:", ["CSV", "Excel", "JSON"])
+                    export_format = st.radio("Pilih format ekspor:", ["CSV", "Excel"])
                     
                     if export_format == "CSV":
-                        csv = filtered_df.to_csv(index=False)
+                        csv = filtered_df.to_csv(index=False) if 'filtered_df' in locals() else df_upload.to_csv(index=False)
                         st.download_button(
                             label="📥 Download sebagai CSV",
                             data=csv,
@@ -13291,26 +13891,19 @@ if df is not None:
                         )
                     elif export_format == "Excel":
                         output = io.BytesIO()
-                        with pd.ExcelWriter(output, engine='xlsxwriter') as writer:
-                            filtered_df.to_excel(writer, index=False, sheet_name='Data')
+                        data_to_export = filtered_df if 'filtered_df' in locals() else df_upload
+                        with pd.ExcelWriter(output, engine='openpyxl') as writer:
+                            data_to_export.to_excel(writer, index=False, sheet_name='Data')
                         st.download_button(
                             label="📥 Download sebagai Excel",
                             data=output.getvalue(),
                             file_name="processed_data.xlsx",
                             mime="application/vnd.ms-excel"
                         )
-                    elif export_format == "JSON":
-                        json_str = filtered_df.to_json(orient='records', indent=2)
-                        st.download_button(
-                            label="📥 Download sebagai JSON",
-                            data=json_str,
-                            file_name="processed_data.json",
-                            mime="application/json"
-                        )
                         
             except Exception as e:
                 st.error(f"Error membaca file: {str(e)}")
-                st.info("Pastikan format file sesuai dan tidak rusak. Untuk file Excel, pastikan tidak ada sheet yang protected.")
+                st.info("Pastikan format file sesuai dan tidak rusak.")
         else:
             st.info("👆 Silakan unggah file CSV atau Excel untuk memulai analisis")
             
@@ -13321,22 +13914,24 @@ if df is not None:
                 - **CSV** (.csv) - Comma Separated Values
                 - **Excel** (.xlsx, .xls) - Microsoft Excel
                 
+                ### 🚀 Fast Mode:
+                - **Aktifkan** untuk file besar (>50MB)
+                - **Non-aktifkan** untuk analisis lengkap dengan file kecil
+                
                 ### 🎯 Tips untuk Hasil Terbaik:
-                1. **Kolom Tanggal**: Gunakan format yang konsisten (YYYY-MM-DD, DD/MM/YYYY, dll.)
+                1. **Kolom Tanggal**: Gunakan format yang konsisten
                 2. **Header**: Pastikan file memiliki header/kolom nama
                 3. **Data Konsisten**: Pastikan tipe data dalam kolom sama
                 4. **Ukuran File**: Maksimal 200MB untuk performa optimal
                 
                 ### 📊 Contoh Data CSV:
                 ```csv
-                date,temperature,humidity,city,latitude,longitude
-                2024-01-01,25.5,60,Jakarta,-6.2088,106.8456
-                2024-01-02,26.1,65,Jakarta,-6.2088,106.8456
-                2024-01-01,22.3,70,Bandung,-6.9175,107.6191
-                2024-01-02,23.0,75,Bandung,-6.9175,107.6191
+                date,sales,city,region
+                2024-01-01,1500,Jakarta,West
+                2024-01-02,2000,Bandung,East
+                2024-01-03,1800,Surabaya,Central
                 ```
                 """)
-        
         
     with tab15:
         st.header("📊 Source Elements Lanjutan")
@@ -19863,7 +20458,7 @@ st.markdown("""
     <p style="margin: 15px 0 5px 0; font-style: italic;">Dikembangkan dengan ❤️ oleh:</p>
     <p style="margin: 0; font-weight: bold; color: #636EFA; font-size: 16px;">Dwi Bakti N Dev</p>
     <p style="margin: 5px 0; font-size: 12px;">Data Scientist & Business Intelligence Developer</p>
-    <p style="margin: 5px 0; font-size: 12px;">V3.4.8 Streamlit Launcher</p>
+    <p style="margin: 5px 0; font-size: 12px;">V3.5.7 Streamlit Launcher</p>
     <p style="margin: 5px 0; font-size: 12px;">🍰 <a href="https://pypi.org/project/streamlit-launcher/" target="_blank">Python Install Offline Streamlit Launcher</a></p>
 </div>
 """, unsafe_allow_html=True)
