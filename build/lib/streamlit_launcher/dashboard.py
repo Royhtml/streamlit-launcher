@@ -2261,132 +2261,357 @@ def main():
             except Exception as e:
                 st.error(f"Error membaca file: {str(e)}")
 
+import streamlit as st
+import plotly.express as px
+import plotly.graph_objects as go
+import pandas as pd
+import numpy as np
+from scipy import stats
+
 def create_bar_chart(df, numeric_cols, non_numeric_cols):
+    st.markdown("### 📊 Konfigurasi Grafik Batang")
+    
+    # Sidebar untuk pengaturan lanjutan
+    with st.sidebar:
+        st.markdown("**⚙️ Pengaturan Lanjutan**")
+        show_statistics = st.checkbox("Tampilkan Statistik", value=True)
+        show_raw_data = st.checkbox("Tampilkan Data Mentah", value=False)
+        enable_animations = st.checkbox("Aktifkan Animasi", value=False)
+        
+        st.markdown("**🎨 Pengaturan Tampilan**")
+        color_theme = st.selectbox("Tema Warna", 
+                                 ['blues', 'viridis', 'plasma', 'inferno', 'magma', 'cividis'])
+        chart_height = st.slider("Tinggi Grafik", 400, 800, 500)
+    
     col1, col2 = st.columns(2)
     
     with col1:
-        x_col = st.selectbox("Pilih kolom untuk sumbu X", non_numeric_cols if non_numeric_cols else numeric_cols, 
+        x_col = st.selectbox("Pilih kolom untuk sumbu X", 
+                           non_numeric_cols if non_numeric_cols else numeric_cols, 
                            key="bar_x_col")
     with col2:
         y_col = st.selectbox("Pilih kolom untuk sumbu Y", numeric_cols, key="bar_y_col")
     
+    # Pengelompokan untuk data numerik
+    if x_col in numeric_cols:
+        col3, col4 = st.columns(2)
+        with col3:
+            bin_method = st.selectbox("Metode Pengelompokan", 
+                                    ['auto', 'fixed', 'quantile'], 
+                                    key="bin_method")
+        with col4:
+            if bin_method == 'fixed':
+                num_bins = st.slider("Jumlah Kelompok", 5, 50, 10, key="num_bins")
+    
     # Optimasi: Pengaturan performa
-    col3, col4 = st.columns(2)
-    with col3:
+    col5, col6 = st.columns(2)
+    with col5:
         max_categories = st.slider("Maksimum kategori ditampilkan", 
-                                 min_value=5, max_value=50, value=20, key="bar_max_categories")
-    with col4:
+                                 min_value=5, max_value=100, value=20, key="bar_max_categories")
+    with col6:
         sort_data = st.checkbox("Urutkan data", value=True, key="bar_sort")
+        sort_ascending = st.checkbox("Urutkan menaik", value=False, key="bar_sort_asc")
         use_sampling = st.checkbox("Gunakan sampling untuk data besar", value=True, key="bar_sampling")
+    
+    # Filter data opsional
+    with st.expander("🔍 Filter Data (Opsional)"):
+        filter_col1, filter_col2 = st.columns(2)
+        with filter_col1:
+            if non_numeric_cols:
+                filter_col = st.selectbox("Filter berdasarkan kolom", 
+                                        [""] + non_numeric_cols, 
+                                        key="bar_filter_col")
+                if filter_col:
+                    unique_vals = df[filter_col].unique()
+                    selected_vals = st.multiselect(f"Pilih nilai {filter_col}", 
+                                                 unique_vals, 
+                                                 default=unique_vals[:min(5, len(unique_vals))],
+                                                 key="bar_filter_vals")
+        with filter_col2:
+            if numeric_cols:
+                range_col = st.selectbox("Filter rentang nilai", 
+                                       [""] + numeric_cols, 
+                                       key="bar_range_col")
+                if range_col:
+                    min_val, max_val = float(df[range_col].min()), float(df[range_col].max())
+                    selected_range = st.slider(f"Rentang {range_col}", 
+                                             min_val, max_val, (min_val, max_val),
+                                             key="bar_range_slider")
     
     if x_col and y_col:
         with st.spinner("Memproses data..."):
-            # Optimasi 1: Sampling untuk data besar
+            # Filter data berdasarkan pilihan pengguna
             processed_df = df.copy()
-            if use_sampling and len(df) > 10000:
-                sample_size = min(10000, len(df))
-                processed_df = df.sample(n=sample_size, random_state=42)
-                st.info(f"📊 Data disampling: {sample_size:,} dari {len(df):,} records")
+            
+            # Terapkan filter jika ada
+            if 'filter_col' in locals() and filter_col and 'selected_vals' in locals():
+                processed_df = processed_df[processed_df[filter_col].isin(selected_vals)]
+            
+            if 'range_col' in locals() and range_col and 'selected_range' in locals():
+                processed_df = processed_df[
+                    (processed_df[range_col] >= selected_range[0]) & 
+                    (processed_df[range_col] <= selected_range[1])
+                ]
+            
+            # Optimasi 1: Sampling untuk data besar
+            original_size = len(processed_df)
+            if use_sampling and len(processed_df) > 10000:
+                sample_size = min(10000, len(processed_df))
+                processed_df = processed_df.sample(n=sample_size, random_state=42)
+                st.info(f"📊 Data disampling: {sample_size:,} dari {original_size:,} records")
             
             # Optimasi 2: Aggregasi yang efisien
             if x_col in non_numeric_cols:
                 # Untuk data kategorikal, gunakan observed=True dan batasi kategori
-                bar_data = (processed_df.groupby(x_col, observed=True)[y_col]
-                          .agg(['mean', 'count'])
-                          .round(2)
-                          .nlargest(max_categories, 'count')
-                          .reset_index())
-                bar_data.columns = [x_col, y_col, 'count']
+                aggregation_df = processed_df.groupby(x_col, observed=True)[y_col].agg(['mean', 'count', 'std']).round(2)
+                
+                # Batasi berdasarkan jumlah kategori
+                if len(aggregation_df) > max_categories:
+                    aggregation_df = aggregation_df.nlargest(max_categories, 'count')
+                    st.warning(f"📈 Menampilkan {max_categories} kategori teratas berdasarkan frekuensi")
+                
+                bar_data = aggregation_df.reset_index()
+                bar_data.columns = [x_col, y_col, 'count', 'std']
+                
             else:
                 # Untuk data numerik, buat bins
-                bar_data = (processed_df.groupby(pd.cut(processed_df[x_col], bins=min(20, len(processed_df[x_col].unique())), 
-                                                      include_lowest=True))[y_col]
-                          .mean()
-                          .reset_index())
-                bar_data.columns = [x_col, y_col]
+                if bin_method == 'fixed' and 'num_bins' in locals():
+                    bins = num_bins
+                else:
+                    bins = min(20, len(processed_df[x_col].unique()))
+                
+                if bin_method == 'quantile':
+                    # Bins berdasarkan quantile
+                    bar_data = (processed_df.groupby(pd.qcut(processed_df[x_col], 
+                                                           q=bins, 
+                                                           duplicates='drop'))[y_col]
+                              .agg(['mean', 'count', 'std'])
+                              .reset_index())
+                else:
+                    # Bins biasa
+                    bar_data = (processed_df.groupby(pd.cut(processed_df[x_col], 
+                                                          bins=bins, 
+                                                          include_lowest=True))[y_col]
+                              .agg(['mean', 'count', 'std'])
+                              .reset_index())
+                
+                bar_data.columns = [x_col, y_col, 'count', 'std']
+                # Format label bins agar lebih rapi
+                bar_data[x_col] = bar_data[x_col].astype(str)
             
             # Optimasi 3: Sorting jika diperlukan
             if sort_data:
-                bar_data = bar_data.sort_values(y_col, ascending=False)
+                bar_data = bar_data.sort_values(y_col, ascending=sort_ascending)
+            
+            # Hitung statistik tambahan
+            total_categories = len(bar_data)
+            avg_value = bar_data[y_col].mean()
+            std_value = bar_data[y_col].std()
+            cv_value = std_value / avg_value if avg_value != 0 else 0  # Coefficient of variation
             
             # Optimasi 4: Cache figure creation
             @st.cache_data(ttl=300)
-            def create_bar_figure(data, x_col, y_col, title):
+            def create_bar_figure(data, x_col, y_col, title, color_theme, chart_height, enable_animations):
                 fig = px.bar(
                     data, 
                     x=x_col, 
                     y=y_col, 
                     title=title,
                     color=y_col,
-                    color_continuous_scale='blues'
+                    color_continuous_scale=color_theme,
+                    hover_data={'count': True, 'std': ':.2f'} if 'count' in data.columns else None
                 )
+                
+                # Tambahkan error bars jika ada data std
+                if 'std' in data.columns and not data['std'].isna().all():
+                    fig.update_traces(
+                        error_y=dict(type='data', array=data['std'], visible=True)
+                    )
                 
                 # Optimasi layout untuk performa
                 fig.update_layout(
-                    height=500,
+                    height=chart_height,
                     showlegend=False,
-                    margin=dict(l=50, r=50, t=60, b=100),
+                    margin=dict(l=50, r=50, t=80, b=150),
                     xaxis_tickangle=-45,
-                    plot_bgcolor='rgba(0,0,0,0)'
+                    plot_bgcolor='rgba(0,0,0,0)',
+                    title_x=0.5,
+                    title_font_size=16
                 )
                 
                 # Optimasi hover data
-                fig.update_traces(
-                    hovertemplate=f"<b>%{{x}}</b><br>{y_col}: %{{y:.2f}}<extra></extra>"
-                )
+                hover_template = f"<b>%{{x}}</b><br>{y_col}: %{{y:.2f}}"
+                if 'count' in data.columns:
+                    hover_template += "<br>Count: %{customdata[0]}"
+                if 'std' in data.columns:
+                    hover_template += "<br>Std: %{customdata[1]:.2f}"
+                hover_template += "<extra></extra>"
+                
+                fig.update_traces(hovertemplate=hover_template)
+                
+                # Animasi jika diaktifkan
+                if enable_animations:
+                    fig.update_layout(
+                        transition={'duration': 500},
+                        updatemenus=[dict(type="buttons", buttons=[dict(label="Play",
+                                                                      method="animate",
+                                                                      args=[None])])]
+                    )
                 
                 return fig
             
             title = f"Grafik Batang: Rata-rata {y_col} per {x_col}"
-            fig = create_bar_figure(bar_data, x_col, y_col, title)
+            fig = create_bar_figure(bar_data, x_col, y_col, title, color_theme, chart_height, enable_animations)
             
             # Optimasi 5: Plotly config yang ringan
             config = {
                 'displayModeBar': True,
                 'displaylogo': False,
                 'modeBarButtonsToRemove': ['lasso2d', 'select2d', 'autoScale2d'],
-                'responsive': True
+                'responsive': True,
+                'toImageButtonOptions': {
+                    'format': 'png',
+                    'filename': f'bar_chart_{x_col}_{y_col}',
+                    'height': chart_height,
+                    'width': 800,
+                    'scale': 2
+                }
             }
             
             st.plotly_chart(fig, use_container_width=True, config=config)
         
+        # Tampilkan statistik jika diminta
+        if show_statistics:
+            with st.expander("📈 Statistik Detail"):
+                col1, col2, col3, col4 = st.columns(4)
+                with col1:
+                    st.metric("Total Kategori", total_categories)
+                with col2:
+                    st.metric(f"Rata-rata {y_col}", f"{avg_value:.2f}")
+                with col3:
+                    st.metric("Standar Deviasi", f"{std_value:.2f}")
+                with col4:
+                    st.metric("Koefisien Variasi", f"{cv_value:.2f}")
+                
+                # Distribusi statistics
+                col5, col6, col7 = st.columns(3)
+                with col5:
+                    st.metric("Nilai Minimum", f"{bar_data[y_col].min():.2f}")
+                with col6:
+                    st.metric("Nilai Maksimum", f"{bar_data[y_col].max():.2f}")
+                with col7:
+                    st.metric("Median", f"{bar_data[y_col].median():.2f}")
+                
+                # Top categories
+                st.subheader("Kategori Teratas")
+                top_data = bar_data.nlargest(5, y_col)
+                for i, row in top_data.iterrows():
+                    col1, col2 = st.columns([3, 1])
+                    with col1:
+                        st.progress(float((row[y_col] - bar_data[y_col].min()) / 
+                                        (bar_data[y_col].max() - bar_data[y_col].min()) if bar_data[y_col].max() != bar_data[y_col].min() else 0.5),
+                                  text=f"{row[x_col]}")
+                    with col2:
+                        st.write(f"**{row[y_col]:.2f}**")
+        
         # Tampilkan data summary
-        with st.expander("📊 Lihat Data Summary"):
-            col1, col2, col3 = st.columns(3)
-            with col1:
-                st.metric("Total Kategori", len(bar_data))
-            with col2:
-                st.metric(f"Rata-rata {y_col}", f"{bar_data[y_col].mean():.2f}")
-            with col3:
-                st.metric("Kategori Tertinggi", bar_data.iloc[0][x_col][:20] + "...")
+        with st.expander("📋 Lihat Data Summary"):
+            st.dataframe(bar_data.style.format({
+                y_col: "{:.2f}",
+                'count': "{:.0f}",
+                'std': "{:.2f}"
+            }), use_container_width=True)
             
-            st.dataframe(bar_data.head(10).style.format({y_col: "{:.2f}"}), use_container_width=True)
-            
-        with st.expander("ℹ️ Keterangan Grafik Batang"):
+            # Ekspor data
+            csv = bar_data.to_csv(index=False)
+            st.download_button(
+                label="📥 Download Data sebagai CSV",
+                data=csv,
+                file_name=f"bar_chart_data_{x_col}_{y_col}.csv",
+                mime="text/csv"
+            )
+        
+        # Tampilkan data mentah jika diminta
+        if show_raw_data and len(processed_df) <= 1000:  # Batasi untuk data besar
+            with st.expander("🔍 Data Mentah (Sample)"):
+                st.dataframe(processed_df.head(100), use_container_width=True)
+        
+        with st.expander("ℹ️ Panduan Grafik Batang"):
             st.markdown(f"""
             **Grafik Batang (Bar Chart)** digunakan untuk membandingkan nilai antar kategori.
             
             **Statistik Dataset:**
-            - Total kategori yang ditampilkan: **{len(bar_data)}**
+            - Total kategori yang ditampilkan: **{total_categories}**
             - Rentang nilai: **{bar_data[y_col].min():.2f}** hingga **{bar_data[y_col].max():.2f}**
-            - Standar deviasi: **{bar_data[y_col].std():.2f}**
+            - Standar deviasi: **{std_value:.2f}**
+            - Koefisien variasi: **{cv_value:.2f}** {'(Stabil)' if cv_value < 0.5 else '(Variatif)'}
             
-            **Kelebihan**: 
-            - Mudah membandingkan nilai antar kategori
-            - Visualisasi yang intuitif
+            **Fitur Tambahan:**
+            ✅ Filter data interaktif  
+            ✅ Pengelompokan data numerik  
+            ✅ Statistik detail  
+            ✅ Error bars untuk variabilitas  
+            ✅ Multiple color themes  
+            ✅ Ekspor data  
+            ✅ Animasi opsional  
             
-            **Kekurangan**: 
-            - Tidak efektif untuk data dengan banyak kategori
-            - Dapat menjadi lambat dengan data sangat besar
+            **Penggunaan Optimal:**
+            - **Perbandingan kategori**: Mudah membandingkan nilai antar kelompok
+            - **Ranking**: Identifikasi kategori terbaik/terburuk
+            - **Distribusi kategorikal**: Memahami sebaran data
             
-            **Penggunaan**: Perbandingan kategori, ranking, distribusi kategorikal
-            
-            **Optimasi yang diterapkan:**
-            ✅ Sampling otomatis untuk data besar  
-            ✅ Batasan jumlah kategori  
-            ✅ Caching untuk performa  
-            ✅ Aggregasi yang efisien  
+            **Tips:**
+            - Gunakan filter untuk fokus pada data yang relevan
+            - Sampling otomatis menjaga performa dengan data besar
+            - Error bars menunjukkan variabilitas dalam setiap kategori
             """)
+
+# Fungsi tambahan untuk analisis komparatif
+def create_comparative_bar_chart(df, numeric_cols, non_numeric_cols):
+    st.markdown("### 🔄 Grafik Batang Komparatif")
+    
+    col1, col2, col3 = st.columns(3)
+    
+    with col1:
+        x_col = st.selectbox("Pilih kolom untuk sumbu X", 
+                           non_numeric_cols if non_numeric_cols else numeric_cols, 
+                           key="comp_bar_x")
+    with col2:
+        y_col1 = st.selectbox("Variabel Y 1", numeric_cols, key="comp_y1")
+    with col3:
+        y_col2 = st.selectbox("Variabel Y 2", 
+                            [col for col in numeric_cols if col != y_col1], 
+                            key="comp_y2")
+    
+    if x_col and y_col1 and y_col2:
+        # Aggregasi data
+        agg_data = df.groupby(x_col).agg({y_col1: 'mean', y_col2: 'mean'}).reset_index()
+        
+        # Buat grafik batang grouped
+        fig = go.Figure()
+        
+        fig.add_trace(go.Bar(
+            name=y_col1,
+            x=agg_data[x_col],
+            y=agg_data[y_col1],
+            marker_color='lightblue'
+        ))
+        
+        fig.add_trace(go.Bar(
+            name=y_col2,
+            x=agg_data[x_col],
+            y=agg_data[y_col2],
+            marker_color='lightcoral'
+        ))
+        
+        fig.update_layout(
+            title=f"Perbandingan {y_col1} vs {y_col2} per {x_col}",
+            barmode='group',
+            height=500,
+            xaxis_tickangle=-45
+        )
+        
+        st.plotly_chart(fig, use_container_width=True)
 
 import streamlit as st
 import pandas as pd
@@ -9507,28 +9732,28 @@ def deep_learning_analysis(df, numeric_cols, non_numeric_cols):
     
     try:
         
-        # Check GPU availability
+       
         gpu_available = len(tf.config.experimental.list_physical_devices('GPU')) > 0
         if gpu_available:
             st.success("🎯 GPU tersedia - Training akan dipercepat!")
         else:
             st.info("💡 GPU tidak tersedia - Training menggunakan CPU")
         
-        # Optimasi memory untuk dataset besar
+      
         @st.cache_data(show_spinner=False)
         def prepare_data_optimized(_df, features, target, sample_frac=1.0, problem_type="Regression"):
             """Prepare data dengan optimasi memory"""
-            # Sampling untuk dataset besar
+      
             if sample_frac < 1.0:
                 _df = _df.sample(frac=sample_frac, random_state=42)
             
             X = _df[features].fillna(_df[features].mean())
             y = _df[target]
             
-            # Preprocessing target untuk classification
+      
             if problem_type != "Regression":
                 if problem_type == "Binary Classification":
-                    # Pastikan binary classification
+                
                     unique_vals = y.unique()
                     if len(unique_vals) > 2:
                         st.warning(f"⚠️ Target memiliki {len(unique_vals)} kelas. Menggunakan 2 kelas terbanyak.")
@@ -9540,37 +9765,36 @@ def deep_learning_analysis(df, numeric_cols, non_numeric_cols):
                     else:
                         y = LabelEncoder().fit_transform(y)
                 else:
-                    # Multi-class classification
+                  
                     y = LabelEncoder().fit_transform(y)
             
             return X, y
         
-        # Prepare data dengan optimasi
+ 
         with st.spinner("🔄 Memproses data dengan optimasi kecepatan..."):
             X, y = prepare_data_optimized(df, dl_features, dl_target, sample_size, dl_problem_type)
-            
-            # Split data
+         
             X_train, X_test, y_train, y_test = train_test_split(
                 X, y, test_size=0.2, random_state=42, 
                 stratify=y if dl_problem_type != "Regression" else None
             )
             
-            # Scale features
+        
             scaler = StandardScaler()
             X_train_scaled = scaler.fit_transform(X_train)
             X_test_scaled = scaler.transform(X_test)
             
-            # Convert to TensorFlow datasets untuk performa tinggi
+          
             train_dataset = tf.data.Dataset.from_tensor_slices((X_train_scaled, y_train))
             train_dataset = train_dataset.batch(batch_size).prefetch(tf.data.AUTOTUNE)
             
             val_dataset = tf.data.Dataset.from_tensor_slices((X_test_scaled, y_test))
             val_dataset = val_dataset.batch(batch_size).prefetch(tf.data.AUTOTUNE)
         
-        # Tampilkan info dataset
+    
         st.success(f"✅ Data siap: {len(X_train):,} training samples, {len(X_test):,} test samples")
         
-        # Model architecture dengan optimasi
+   
         st.subheader("🏗️ Neural Network Architecture - Optimized")
         
         col1, col2 = st.columns(2)
@@ -9588,7 +9812,7 @@ def deep_learning_analysis(df, numeric_cols, non_numeric_cols):
             use_batch_norm = st.checkbox("Gunakan Batch Normalization", value=True, key="dl_batchnorm")
             use_early_stopping = st.checkbox("Gunakan Early Stopping", value=True, key="dl_earlystop")
         
-        # Advanced configuration
+    
         with st.expander("⚙️ Konfigurasi Lanjutan"):
             col1, col2 = st.columns(2)
             with col1:
@@ -9607,11 +9831,11 @@ def deep_learning_analysis(df, numeric_cols, non_numeric_cols):
                     index=0
                 )
         
-        # Build optimized model
+
         with st.spinner("🔄 Membangun model neural network..."):
             model = tf.keras.Sequential()
             
-            # Input layer
+        
             if use_l2_reg:
                 model.add(tf.keras.layers.Dense(
                     units_per_layer, 
@@ -9632,9 +9856,9 @@ def deep_learning_analysis(df, numeric_cols, non_numeric_cols):
                 model.add(tf.keras.layers.BatchNormalization())
             model.add(tf.keras.layers.Dropout(dropout_rate))
             
-            # Hidden layers dengan optimasi
+         
             for i in range(hidden_layers - 1):
-                # Reduce units in deeper layers untuk efisiensi
+           
                 units = max(32, units_per_layer // (2 ** (i + 1)))
                 
                 if use_l2_reg:
@@ -9650,7 +9874,7 @@ def deep_learning_analysis(df, numeric_cols, non_numeric_cols):
                     model.add(tf.keras.layers.BatchNormalization())
                 model.add(tf.keras.layers.Dropout(dropout_rate))
             
-            # Output layer
+         
             if dl_problem_type == "Regression":
                 model.add(tf.keras.layers.Dense(1, activation='linear'))
                 loss = 'mse'
@@ -9665,7 +9889,7 @@ def deep_learning_analysis(df, numeric_cols, non_numeric_cols):
                 metrics = ['accuracy']
                 monitor_metric = 'val_accuracy'
         
-        # Learning rate schedule
+      
         if learning_rate_schedule == "ExponentialDecay":
             lr_schedule = tf.keras.optimizers.schedules.ExponentialDecay(
                 initial_learning_rate=learning_rate,
@@ -9680,7 +9904,7 @@ def deep_learning_analysis(df, numeric_cols, non_numeric_cols):
         else:
             lr_schedule = learning_rate
         
-        # Compile model dengan learning rate
+       
         if optimizer == "adam":
             optimizer_obj = tf.keras.optimizers.Adam(learning_rate=lr_schedule)
         elif optimizer == "rmsprop":
@@ -9692,15 +9916,14 @@ def deep_learning_analysis(df, numeric_cols, non_numeric_cols):
         
         model.compile(optimizer=optimizer_obj, loss=loss, metrics=metrics)
         
-        # Display model summary
+       
         st.subheader("📊 Model Summary")
 
-        # Tangkap output summary dari model
+   
         model_summary = []
         model.summary(print_fn=lambda x: model_summary.append(x))
         summary_text = "\n".join(model_summary)
 
-        # Tambahkan CSS styling
         st.markdown("""
             <style>
             .model-summary-box {
@@ -9719,22 +9942,22 @@ def deep_learning_analysis(df, numeric_cols, non_numeric_cols):
             </style>
         """, unsafe_allow_html=True)
 
-        # Gunakan expander untuk dropdown
+    
         with st.expander("🧠 Lihat / Sembunyikan Model Summary"):
             st.markdown(f"<div class='model-summary-box'>{summary_text}</div>", unsafe_allow_html=True)
         
-        # Calculate total parameters
+
         total_params = model.count_params()
         st.info(f"📈 Total Parameters: {total_params:,}")
         
-        # Training section
+  
         st.subheader("🚀 Pelatihan Model")
         
         if st.button("🎯 Mulai Pelatihan Deep Learning", type="primary", key="dl_train_button"):
             start_time = time.time()
             
             with st.spinner("🧠 Training neural network... Mohon tunggu..."):
-                # Callbacks untuk training lebih cepat
+           
                 callbacks = []
                 
                 if use_early_stopping:
@@ -9756,10 +9979,7 @@ def deep_learning_analysis(df, numeric_cols, non_numeric_cols):
                 )
                 callbacks.append(reduce_lr)
                 
-                # TensorBoard callback (optional)
-                # callbacks.append(tf.keras.callbacks.TensorBoard(log_dir='./logs'))
-                
-                # Train model dengan progress bar
+
                 progress_bar = st.progress(0)
                 status_text = st.empty()
                 time_estimator = st.empty()
@@ -9773,7 +9993,7 @@ def deep_learning_analysis(df, numeric_cols, non_numeric_cols):
                         progress = (epoch + 1) / epochs
                         progress_bar.progress(min(progress, 1.0))
                         
-                        # Metrics display
+                       
                         if dl_problem_type == "Regression":
                             metrics_str = f"Loss: {logs['loss']:.4f}, Val Loss: {logs['val_loss']:.4f}, MAE: {logs['mae']:.4f}"
                         else:
@@ -9782,7 +10002,7 @@ def deep_learning_analysis(df, numeric_cols, non_numeric_cols):
                         status_text.text(f"Epoch {epoch+1}/{epochs}")
                         metrics_display.text(f"📊 {metrics_str}")
                         
-                        # Time estimation
+                       
                         elapsed = time.time() - start_time
                         epoch_time = time.time() - self.epoch_start_time
                         remaining = epoch_time * (epochs - epoch - 1)
@@ -9791,7 +10011,7 @@ def deep_learning_analysis(df, numeric_cols, non_numeric_cols):
                 
                 callbacks.append(TrainingCallback())
                 
-                # Train model
+               
                 history = model.fit(
                     train_dataset,
                     epochs=epochs,
@@ -9806,28 +10026,28 @@ def deep_learning_analysis(df, numeric_cols, non_numeric_cols):
                 time_estimator.text("")
                 metrics_display.text("")
                 
-                # ==================== EVALUASI DETAIL ====================
+            
                 st.subheader("📈 Hasil Evaluasi Detail")
                 
-                # Predictions
+            
                 y_pred = model.predict(X_test_scaled, verbose=0)
                 
-                # 1. PERFORMANCE METRICS COMPREHENSIVE
+              
                 st.subheader("🎯 Dashboard Performa Model")
                 
                 if dl_problem_type == "Regression":
-                    # Regression metrics
+                 
                     y_pred_flat = y_pred.flatten()
                     mse = mean_squared_error(y_test, y_pred_flat)
                     mae = mean_absolute_error(y_test, y_pred_flat)
                     r2 = r2_score(y_test, y_pred_flat)
                     rmse = np.sqrt(mse)
                     
-                    # Additional metrics
+              
                     mape = np.mean(np.abs((y_test - y_pred_flat) / np.where(y_test != 0, y_test, 1))) * 100
                     accuracy_percentage = max(0, min(100, (1 - mae / (y_test.max() - y_test.min())) * 100))
                     
-                    # Display metrics
+               
                     col1, col2, col3, col4 = st.columns(4)
                     
                     with col1:
@@ -9841,7 +10061,7 @@ def deep_learning_analysis(df, numeric_cols, non_numeric_cols):
                         st.metric("MAPE", f"{mape:.2f}%")
                     
                 else:
-                    # Classification metrics
+               
                     if dl_problem_type == "Binary Classification":
                         y_pred_class = (y_pred > 0.5).astype(int).flatten()
                     else:
@@ -9852,7 +10072,7 @@ def deep_learning_analysis(df, numeric_cols, non_numeric_cols):
                     recall = recall_score(y_test, y_pred_class, average='weighted', zero_division=0)
                     f1 = f1_score(y_test, y_pred_class, average='weighted', zero_division=0)
                     
-                    # Display metrics
+                  
                     col1, col2, col3, col4 = st.columns(4)
                     
                     with col1:
@@ -9865,17 +10085,17 @@ def deep_learning_analysis(df, numeric_cols, non_numeric_cols):
                     with col4:
                         st.metric("F1-Score", f"{f1:.4f}")
                 
-                # 2. VISUALISASI LENGKAP
+           
                 st.subheader("📊 Visualisasi Komprehensif")
                 
-                # Training history visualization
+             
                 fig_history = make_subplots(
                     rows=1, cols=2,
                     subplot_titles=('Loss Progression', 'Metrics Progression'),
                     specs=[[{"secondary_y": False}, {"secondary_y": False}]]
                 )
                 
-                # Loss plot
+            
                 fig_history.add_trace(
                     go.Scatter(x=list(range(1, len(history.history['loss'])+1)), 
                               y=history.history['loss'],
@@ -9889,7 +10109,7 @@ def deep_learning_analysis(df, numeric_cols, non_numeric_cols):
                     row=1, col=1
                 )
                 
-                # Metrics plot
+             
                 if dl_problem_type == "Regression":
                     fig_history.add_trace(
                         go.Scatter(x=list(range(1, len(history.history['mae'])+1)), 
@@ -9921,13 +10141,13 @@ def deep_learning_analysis(df, numeric_cols, non_numeric_cols):
                 fig_history.update_layout(height=400, title_text="Training History")
                 st.plotly_chart(fig_history, use_container_width=True)
                 
-                # 3. PREDICTION VISUALIZATION
+                
                 if dl_problem_type == "Regression":
-                    # Regression plots
+                 
                     col1, col2 = st.columns(2)
                     
                     with col1:
-                        # Actual vs Predicted
+                     
                         fig_actual_pred = px.scatter(
                             x=y_test, y=y_pred_flat,
                             title="Actual vs Predicted",
@@ -9943,7 +10163,7 @@ def deep_learning_analysis(df, numeric_cols, non_numeric_cols):
                         st.plotly_chart(fig_actual_pred, use_container_width=True)
                     
                     with col2:
-                        # Residual plot
+                      
                         residuals = y_test - y_pred_flat
                         fig_residual = px.scatter(
                             x=y_pred_flat, y=residuals,
@@ -9955,11 +10175,11 @@ def deep_learning_analysis(df, numeric_cols, non_numeric_cols):
                         st.plotly_chart(fig_residual, use_container_width=True)
                 
                 else:
-                    # Classification plots
+                 
                     col1, col2 = st.columns(2)
                     
                     with col1:
-                        # Confusion Matrix
+                     
                         cm = confusion_matrix(y_test, y_pred_class)
                         fig_cm = px.imshow(
                             cm,
@@ -9971,7 +10191,7 @@ def deep_learning_analysis(df, numeric_cols, non_numeric_cols):
                         st.plotly_chart(fig_cm, use_container_width=True)
                     
                     with col2:
-                        # Classification report heatmap
+                    
                         report = classification_report(y_test, y_pred_class, output_dict=True)
                         report_df = pd.DataFrame(report).transpose().iloc[:-1, :3]
                         fig_report = px.imshow(
@@ -9985,11 +10205,11 @@ def deep_learning_analysis(df, numeric_cols, non_numeric_cols):
                         )
                         st.plotly_chart(fig_report, use_container_width=True)
                 
-                # 4. FEATURE IMPORTANCE ANALYSIS
+         
                 st.subheader("🔍 Analisis Feature Importance")
                 
                 try:
-                    # Simplified feature importance using permutation
+                  
                     @st.cache_data
                     def calculate_feature_importance(model, X_test_scaled, y_test, feature_names, problem_type):
                         baseline_score = model.evaluate(X_test_scaled, y_test, verbose=0)
@@ -10039,7 +10259,7 @@ def deep_learning_analysis(df, numeric_cols, non_numeric_cols):
                 except Exception as e:
                     st.warning(f"⚠️ Feature importance calculation skipped: {str(e)}")
                 
-                # 5. MODEL PERFORMANCE GAUGE
+          
                 st.subheader("📈 Performance Summary")
                 
                 if dl_problem_type == "Regression":
@@ -10053,7 +10273,7 @@ def deep_learning_analysis(df, numeric_cols, non_numeric_cols):
                                       "Baik" if performance_score > 80 else \
                                       "Cukup" if performance_score > 70 else "Perlu Improvement"
                 
-                # Gauge chart
+             
                 fig_gauge = go.Figure(go.Indicator(
                     mode = "gauge+number+delta",
                     value = performance_score,
@@ -10074,13 +10294,13 @@ def deep_learning_analysis(df, numeric_cols, non_numeric_cols):
                 ))
                 st.plotly_chart(fig_gauge, use_container_width=True)
                 
-                # 6. DOWNLOAD DAN EXPORT MODEL
+              
                 st.subheader("💾 Export Model")
                 
                 col1, col2 = st.columns(2)
                 
                 with col1:
-                    # Save model
+             
                     if st.button("💾 Save TensorFlow Model"):
                         model.save('saved_model.h5')
                         with open('saved_model.h5', 'rb') as f:
@@ -10092,7 +10312,7 @@ def deep_learning_analysis(df, numeric_cols, non_numeric_cols):
                             )
                 
                 with col2:
-                    # Export predictions
+                  
                     predictions_df = pd.DataFrame({
                         'Actual': y_test,
                         'Predicted': y_pred.flatten() if dl_problem_type == "Regression" else y_pred_class
@@ -10105,10 +10325,10 @@ def deep_learning_analysis(df, numeric_cols, non_numeric_cols):
                         mime="text/csv"
                     )
                 
-                # 7. RECOMMENDATIONS AND INSIGHTS
+           
                 st.subheader("💡 Insights & Rekomendasi")
                 
-                # Training insights
+            
                 final_epoch = len(history.history['loss'])
                 final_loss = history.history['loss'][-1]
                 final_val_loss = history.history['val_loss'][-1]
@@ -10121,7 +10341,7 @@ def deep_learning_analysis(df, numeric_cols, non_numeric_cols):
                 with col3:
                     st.metric("Training Time", f"{training_time:.1f}s")
                 
-                # Recommendations based on performance
+              
                 st.info("""
                 **🎯 Rekomendasi Improvement:**
                 - **Data Quality**: Periksa missing values dan outliers
@@ -10131,7 +10351,7 @@ def deep_learning_analysis(df, numeric_cols, non_numeric_cols):
                 - **Learning Rate**: Coba learning rate scheduling
                 """)
                 
-                # Performance tips
+               
                 if performance_score < 70:
                     st.warning("""
                     **⚠️ Area Improvement:**
@@ -10159,7 +10379,6 @@ def deep_learning_analysis(df, numeric_cols, non_numeric_cols):
         - Coba learning rate yang lebih kecil
         """)
 
-# Tambahkan fungsi utility jika diperlukan
 def validate_tensorflow_installation():
     """Validate TensorFlow installation"""
     try:
@@ -10175,7 +10394,7 @@ def model_comparison_analysis(df, numeric_cols, non_numeric_cols):
     
     st.header("📊 Advanced Data Analysis Dashboard")
     
-    # Informasi dataset
+  
     st.subheader("📋 Dataset Overview")
     col1, col2, col3, col4 = st.columns(4)
     with col1:
@@ -10187,20 +10406,20 @@ def model_comparison_analysis(df, numeric_cols, non_numeric_cols):
     with col4:
         st.metric("Categorical", f"{len(non_numeric_cols):,}")
     
-    # Configuration section
+
     st.subheader("⚙️ Analysis Configuration")
     
     col1, col2 = st.columns(2)
     
     with col1:
-        # Target selection untuk analisis
+      
         target_variable = st.selectbox(
             "dwibaktindev AI",
             numeric_cols + non_numeric_cols,
             key="analysis_target"
         )
         
-        # Analysis type
+      
         analysis_type = st.selectbox(
             "Alisa AI",
             ["Descriptive Statistics", "Correlation Analysis", "Distribution Analysis", 
@@ -10209,7 +10428,7 @@ def model_comparison_analysis(df, numeric_cols, non_numeric_cols):
         )
     
     with col2:
-        # Feature selection
+ 
         available_features = [f for f in numeric_cols + non_numeric_cols if f != target_variable]
         selected_features = st.multiselect(
             "Sasha AI",
@@ -10218,7 +10437,7 @@ def model_comparison_analysis(df, numeric_cols, non_numeric_cols):
             key="analysis_features"
         )
         
-        # Sample size untuk visualisasi
+    
         sample_size = st.slider("Sample Size for Visualization", 100, len(df), 
                                min(1000, len(df)), 100, key="sample_size")
 
@@ -10228,7 +10447,7 @@ def model_comparison_analysis(df, numeric_cols, non_numeric_cols):
             return
         
         try:
-            # Lakukan analisis berdasarkan jenis
+        
             with st.spinner("🔄 Performing analysis..."):
                 if analysis_type == "Descriptive Statistics":
                     perform_descriptive_analysis(df, target_variable, selected_features)
@@ -10257,7 +10476,7 @@ def perform_descriptive_analysis(df, target, features):
     
     st.subheader("📊 Descriptive Statistics")
     
-    # Statistik untuk target variable
+
     st.write(f"### Target Variable: `{target}`")
     
     if pd.api.types.is_numeric_dtype(df[target]):
@@ -10272,7 +10491,6 @@ def perform_descriptive_analysis(df, target, features):
         with col4:
             st.metric("Missing", f"{df[target].isnull().sum()}")
         
-        # Detailed statistics
         st.dataframe(df[target].describe(), use_container_width=True)
         
     else:
@@ -10285,18 +10503,18 @@ def perform_descriptive_analysis(df, target, features):
         with col3:
             st.metric("Missing", f"{df[target].isnull().sum()}")
         
-        # Value counts
+      
         value_counts = df[target].value_counts()
         st.write("**Value Distribution:**")
         st.dataframe(value_counts, use_container_width=True)
     
-    # Statistik untuk features numerik
+   
     numeric_features = [f for f in features if pd.api.types.is_numeric_dtype(df[f])]
     if numeric_features:
         st.write("### Numeric Features Summary")
         st.dataframe(df[numeric_features].describe(), use_container_width=True)
     
-    # Statistik untuk features kategorik
+   
     categorical_features = [f for f in features if not pd.api.types.is_numeric_dtype(df[f])]
     if categorical_features:
         st.write("### Categorical Features Summary")
@@ -10313,8 +10531,7 @@ def perform_correlation_analysis(df, target, features):
     import plotly.graph_objects as go
     
     st.subheader("🔗 Correlation Analysis")
-    
-    # Pilih hanya features numerik untuk korelasi
+
     numeric_features = [f for f in features if pd.api.types.is_numeric_dtype(df[f])]
     
     if pd.api.types.is_numeric_dtype(df[target]):
@@ -10326,7 +10543,7 @@ def perform_correlation_analysis(df, target, features):
     
     correlation_df = df[numeric_features].corr()
     
-    # Heatmap korelasi
+   
     st.write("### Correlation Heatmap")
     fig = px.imshow(correlation_df,
                    title="Feature Correlation Heatmap",
@@ -10334,7 +10551,7 @@ def perform_correlation_analysis(df, target, features):
                    aspect="auto")
     st.plotly_chart(fig, use_container_width=True)
     
-    # Korelasi dengan target
+   
     if pd.api.types.is_numeric_dtype(df[target]):
         st.write("### Correlation with Target")
         target_corr = correlation_df[target].drop(target).sort_values(ascending=False)
@@ -10349,7 +10566,7 @@ def perform_correlation_analysis(df, target, features):
             st.plotly_chart(fig, use_container_width=True)
         
         with col2:
-            # Tabel korelasi
+        
             st.dataframe(target_corr.round(4), use_container_width=True)
 
 def perform_distribution_analysis(df, target, features, sample_size):
@@ -10361,41 +10578,41 @@ def perform_distribution_analysis(df, target, features, sample_size):
     
     st.subheader("📈 Distribution Analysis")
     
-    # Sample data untuk performa visualisasi
+ 
     sample_df = df.sample(min(sample_size, len(df)), random_state=42)
     
-    # Distribusi target variable
+
     st.write(f"### Target Variable Distribution: `{target}`")
     
     if pd.api.types.is_numeric_dtype(df[target]):
         col1, col2 = st.columns(2)
         
         with col1:
-            # Histogram
+       
             fig = px.histogram(df, x=target, 
                               title=f"Distribution of {target}",
                               nbins=50)
             st.plotly_chart(fig, use_container_width=True)
         
         with col2:
-            # Box plot
+      
             fig = px.box(df, y=target, 
                         title=f"Box Plot of {target}")
             st.plotly_chart(fig, use_container_width=True)
     else:
-        # Untuk variabel kategorik
+      
         value_counts = df[target].value_counts()
         fig = px.pie(values=value_counts.values, 
                     names=value_counts.index,
                     title=f"Distribution of {target}")
         st.plotly_chart(fig, use_container_width=True)
     
-    # Distribusi features numerik
+ 
     numeric_features = [f for f in features if pd.api.types.is_numeric_dtype(df[f])]
     if numeric_features:
         st.write("### Numeric Features Distribution")
         
-        # Pilih features untuk ditampilkan
+      
         selected_numeric = st.multiselect(
             "Select numeric features to visualize:",
             numeric_features,
@@ -10403,7 +10620,7 @@ def perform_distribution_analysis(df, target, features, sample_size):
         )
         
         if selected_numeric:
-            # Histogram multiple
+         
             fig = make_subplots(rows=len(selected_numeric), cols=1,
                               subplot_titles=selected_numeric)
             
@@ -10417,7 +10634,7 @@ def perform_distribution_analysis(df, target, features, sample_size):
                             title_text="Distribution of Numeric Features")
             st.plotly_chart(fig, use_container_width=True)
     
-    # Distribusi features kategorik
+   
     categorical_features = [f for f in features if not pd.api.types.is_numeric_dtype(df[f])]
     if categorical_features:
         st.write("### Categorical Features Distribution")
@@ -10430,7 +10647,7 @@ def perform_distribution_analysis(df, target, features, sample_size):
         
         if selected_categorical:
             for feature in selected_categorical:
-                value_counts = df[feature].value_counts().head(10)  # Top 10 saja
+                value_counts = df[feature].value_counts().head(10)  
                 fig = px.bar(x=value_counts.values, y=value_counts.index,
                             orientation='h',
                             title=f"Top 10 Values in {feature}")
@@ -10446,7 +10663,7 @@ def perform_relationship_analysis(df, target, features, sample_size):
     
     sample_df = df.sample(min(sample_size, len(df)), random_state=42)
     
-    # Pilih features numerik untuk scatter plot
+   
     numeric_features = [f for f in features if pd.api.types.is_numeric_dtype(df[f])]
     
     if pd.api.types.is_numeric_dtype(df[target]) and len(numeric_features) >= 1:
@@ -10469,7 +10686,7 @@ def perform_relationship_analysis(df, target, features, sample_size):
                            opacity=0.6)
             st.plotly_chart(fig, use_container_width=True)
     
-    # Pair plot untuk multiple numeric features
+  
     if len(numeric_features) >= 2:
         st.write("### Pairwise Relationships")
         
@@ -10485,7 +10702,7 @@ def perform_relationship_analysis(df, target, features, sample_size):
                                   height=800)
             st.plotly_chart(fig, use_container_width=True)
     
-    # Analisis hubungan kategorik-numerik
+    
     categorical_features = [f for f in features if not pd.api.types.is_numeric_dtype(df[f])]
     if categorical_features and pd.api.types.is_numeric_dtype(df[target]):
         st.write("### Categorical vs Numerical Analysis")
@@ -10498,13 +10715,13 @@ def perform_relationship_analysis(df, target, features, sample_size):
             col1, col2 = st.columns(2)
             
             with col1:
-                # Box plot
+           
                 fig = px.box(df, x=cat_feature, y=num_feature,
                            title=f"{num_feature} by {cat_feature}")
                 st.plotly_chart(fig, use_container_width=True)
             
             with col2:
-                # Violin plot
+            
                 fig = px.violin(df, x=cat_feature, y=num_feature,
                               title=f"Distribution of {num_feature} by {cat_feature}")
                 st.plotly_chart(fig, use_container_width=True)
@@ -10517,7 +10734,7 @@ def perform_comparative_analysis(df, target, features):
     
     st.subheader("⚖️ Comparative Analysis")
     
-    # Group by analysis
+
     st.write("### Group-wise Analysis")
     
     group_feature = st.selectbox(
@@ -10527,11 +10744,11 @@ def perform_comparative_analysis(df, target, features):
     
     if group_feature:
         if pd.api.types.is_numeric_dtype(df[target]):
-            # Untuk target numerik
+        
             summary = df.groupby(group_feature)[target].agg(['mean', 'median', 'std', 'count']).round(2)
             st.dataframe(summary, use_container_width=True)
             
-            # Visualisasi
+    
             col1, col2 = st.columns(2)
             
             with col1:
@@ -10545,12 +10762,12 @@ def perform_comparative_analysis(df, target, features):
                 st.plotly_chart(fig, use_container_width=True)
         
         else:
-            # Untuk target kategorik
+       
             cross_tab = pd.crosstab(df[group_feature], df[target], normalize='index') * 100
             st.write("**Percentage Distribution:**")
             st.dataframe(cross_tab.round(2), use_container_width=True)
             
-            # Stacked bar chart
+          
             fig = px.bar(cross_tab.reset_index(), 
                         x=group_feature,
                         y=cross_tab.columns.tolist(),
@@ -10558,7 +10775,7 @@ def perform_comparative_analysis(df, target, features):
                         barmode='stack')
             st.plotly_chart(fig, use_container_width=True)
     
-    # Time series analysis (jika ada kolom datetime)
+ 
     datetime_columns = df.select_dtypes(include=['datetime64']).columns.tolist()
     if datetime_columns and pd.api.types.is_numeric_dtype(df[target]):
         st.write("### Time Series Analysis")
@@ -10566,10 +10783,10 @@ def perform_comparative_analysis(df, target, features):
         date_col = st.selectbox("Select date column:", datetime_columns)
         
         if date_col:
-            # Aggregasi berdasarkan waktu
+       
             df_sorted = df.sort_values(date_col)
             
-            # Pilih frekuensi aggregasi
+        
             freq = st.selectbox("Aggregation frequency:", 
                               ['D', 'W', 'M', 'Q'], 
                               format_func=lambda x: {'D': 'Daily', 'W': 'Weekly', 
@@ -10587,7 +10804,7 @@ def feature_analysis_dashboard(df, numeric_cols, non_numeric_cols):
     
     st.header("🔍 Advanced Feature Analysis")
     
-    # Informasi dataset
+
     st.subheader("📊 Dataset Overview")
     col1, col2, col3 = st.columns(3)
     with col1:
@@ -10597,18 +10814,18 @@ def feature_analysis_dashboard(df, numeric_cols, non_numeric_cols):
     with col3:
         st.metric("Categorical Features", f"{len(non_numeric_cols):,}")
     
-    # Optimasi memory
+   
     if st.checkbox("Optimize Memory Usage", value=True, key="feature_optimize_mem"):
         df = optimize_memory_usage_feature(df)
         st.success("✅ Memory usage optimized!")
 
-    # Performance configuration
+   
     st.subheader("⚡ Performance Configuration")
     
     col1, col2 = st.columns(2)
     
     with col1:
-        # Sampling options untuk dataset besar
+      
         use_sampling = st.checkbox("Use Sampling for Large Dataset", value=len(df) > 10000, 
                                  key="feature_use_sampling")
         
@@ -10623,7 +10840,7 @@ def feature_analysis_dashboard(df, numeric_cols, non_numeric_cols):
             )
             st.info(f"🎯 Using {sample_size} samples from {len(df):,} total records")
         
-        # Processing speed control
+      
         processing_speed = st.select_slider(
             "Processing Speed",
             options=["Fast", "Balanced", "Comprehensive"],
@@ -10631,7 +10848,7 @@ def feature_analysis_dashboard(df, numeric_cols, non_numeric_cols):
             key="feature_processing_speed"
         )
         
-        # Configure parameters based on speed selection
+        
         speed_config = {
             "Fast": {"n_estimators": 50, "n_repeats": 3, "max_features": 20},
             "Balanced": {"n_estimators": 100, "n_repeats": 5, "max_features": 30},
@@ -10640,7 +10857,7 @@ def feature_analysis_dashboard(df, numeric_cols, non_numeric_cols):
         config = speed_config[processing_speed]
     
     with col2:
-        # Advanced options
+    
         st.write("**Advanced Options:**")
         
         max_features_display = st.slider(
@@ -10667,20 +10884,20 @@ def feature_analysis_dashboard(df, numeric_cols, non_numeric_cols):
             key="feature_random_state"
         )
 
-    # Feature importance analysis
+ 
     st.subheader("🎯 Feature Importance Analysis")
     
     col1, col2 = st.columns(2)
     
     with col1:
-        # Multiple methods untuk feature importance
+       
         importance_method = st.selectbox(
             "Pilih Feature Importance Method",
             ["Random Forest", "Permutation Importance", "Mutual Information", "All Methods"],
             key="feature_importance_method"
         )
         
-        # Problem type selection
+    
         problem_type = st.radio(
             "Problem Type",
             ["Regression", "Classification", "Auto Detect"],
@@ -10694,7 +10911,7 @@ def feature_analysis_dashboard(df, numeric_cols, non_numeric_cols):
             key="feature_importance_target"
         )
         
-        # Feature selection
+   
         available_features = [f for f in numeric_cols + non_numeric_cols if f != target_feature]
         
         if len(available_features) > config["max_features"]:
@@ -10712,13 +10929,13 @@ def feature_analysis_dashboard(df, numeric_cols, non_numeric_cols):
         st.warning("📝 Pilih target feature dan features untuk analysis")
         return
 
-    # Progress tracking
+
     progress_bar = st.progress(0)
     status_text = st.empty()
 
     if st.button("🚀 Hitung Feature Importance", key="feature_importance_button"):
         try:
-            # Apply sampling jika diperlukan
+           
             if use_sampling and len(df) > sample_size:
                 df_analysis = df.sample(n=sample_size, random_state=random_state)
                 st.info(f"🔬 Analyzing {sample_size:,} sampled records")
@@ -10728,11 +10945,11 @@ def feature_analysis_dashboard(df, numeric_cols, non_numeric_cols):
             status_text.text("🔄 Preparing data...")
             progress_bar.progress(10)
 
-            # Prepare features and target
+          
             X = df_analysis[selected_features].copy()
             y = df_analysis[target_feature]
             
-            # Auto-detect problem type
+        
             if problem_type == "Auto Detect":
                 if target_feature in numeric_cols:
                     problem_type_detected = "Regression"
@@ -10744,7 +10961,7 @@ def feature_analysis_dashboard(df, numeric_cols, non_numeric_cols):
             
             progress_bar.progress(20)
 
-            # Preprocessing dengan optimasi
+        
             status_text.text("🔧 Preprocessing features...")
             X_processed, feature_names = preprocess_features_optimized(
                 X, numeric_cols, non_numeric_cols, remove_high_corr, correlation_threshold
@@ -10752,7 +10969,7 @@ def feature_analysis_dashboard(df, numeric_cols, non_numeric_cols):
             
             progress_bar.progress(40)
 
-            # Encode target variable jika classification
+        
             le_target = None
             if problem_type_detected == "Classification" and y.dtype == 'object':
                 le_target = LabelEncoder()
@@ -10761,12 +10978,12 @@ def feature_analysis_dashboard(df, numeric_cols, non_numeric_cols):
             
             progress_bar.progress(50)
 
-            # Handle missing values
+        
             X_processed = handle_missing_values_optimized(X_processed)
             
             progress_bar.progress(60)
 
-            # Calculate feature importance berdasarkan method yang dipilih
+         
             status_text.text("📊 Calculating feature importance...")
             
             results = {}
@@ -10791,7 +11008,7 @@ def feature_analysis_dashboard(df, numeric_cols, non_numeric_cols):
 
             progress_bar.progress(95)
 
-            # Display results
+           
             status_text.text("📈 Displaying results...")
             display_feature_importance_results(
                 results, feature_names, max_features_display, problem_type_detected
@@ -10800,7 +11017,7 @@ def feature_analysis_dashboard(df, numeric_cols, non_numeric_cols):
             progress_bar.progress(100)
             status_text.text("✅ Analysis completed!")
             
-            # Additional insights
+        
             show_feature_analysis_insights(results, X_processed, y, problem_type_detected)
 
         except Exception as e:
@@ -10815,7 +11032,7 @@ def optimize_memory_usage_feature(df):
         col_type = df[col].dtype
         
         if col_type == 'object':
-            if df[col].nunique() / len(df) < 0.5:  # Jika cardinality tidak terlalu tinggi
+            if df[col].nunique() / len(df) < 0.5:  
                 df[col] = df[col].astype('category')
         elif col_type in ['int64', 'int32']:
             c_min = df[col].min()
@@ -10845,28 +11062,28 @@ def preprocess_features_optimized(X, numeric_cols, non_numeric_cols, remove_high
     X_processed = X.copy()
     feature_names = list(X.columns)
     
-    # Encode categorical features dengan metode yang efisien
+
     categorical_columns = [col for col in X.columns if col in non_numeric_cols]
     
     for col in categorical_columns:
-        if X_processed[col].nunique() > 50:  # Untuk categorical dengan banyak unique values
-            # Gunakan frequency encoding
+        if X_processed[col].nunique() > 50:  
+        
             freq_map = X_processed[col].value_counts().to_dict()
             X_processed[col] = X_processed[col].map(freq_map)
             X_processed[col].fillna(0, inplace=True)
         else:
-            # Gunakan label encoding
+       
             le = LabelEncoder()
             X_processed[col] = le.fit_transform(X_processed[col].astype(str))
     
-    # Remove highly correlated features
+ 
     if remove_high_corr and len(X_processed.columns) > 1:
         numeric_features = [col for col in X_processed.columns if col in numeric_cols or col in categorical_columns]
         if len(numeric_features) > 1:
             X_numeric = X_processed[numeric_features]
             corr_matrix = X_numeric.corr().abs()
             
-            # Hapus feature yang highly correlated
+      
             upper_triangle = corr_matrix.where(np.triu(np.ones(corr_matrix.shape), k=1).astype(bool))
             to_drop = [column for column in upper_triangle.columns if any(upper_triangle[column] > threshold)]
             
@@ -10884,10 +11101,10 @@ def handle_missing_values_optimized(X):
     for col in X_processed.columns:
         if X_processed[col].isnull().sum() > 0:
             if X_processed[col].dtype in ['int8', 'int16', 'int32', 'int64', 'float16', 'float32', 'float64']:
-                # Untuk numeric, gunakan median (lebih robust terhadap outliers)
+              
                 X_processed[col].fillna(X_processed[col].median(), inplace=True)
             else:
-                # Untuk categorical, gunakan mode
+               
                 if len(X_processed[col].mode()) > 0:
                     X_processed[col].fillna(X_processed[col].mode()[0], inplace=True)
                 else:
@@ -10901,7 +11118,7 @@ def calculate_rf_importance(X, y, problem_type, config, random_state):
         model = RandomForestRegressor(
             n_estimators=config["n_estimators"],
             random_state=random_state,
-            n_jobs=-1  # Parallel processing
+            n_jobs=-1 
         )
     else:
         model = RandomForestClassifier(
@@ -10935,7 +11152,7 @@ def calculate_permutation_importance(X, y, problem_type, config, random_state):
     
     model.fit(X, y)
     
-    # Untuk dataset besar, gunakan subsample
+
     if len(X) > 10000:
         X_subsample = X.sample(n=10000, random_state=random_state)
         y_subsample = y.loc[X_subsample.index]
@@ -10947,7 +11164,7 @@ def calculate_permutation_importance(X, y, problem_type, config, random_state):
         model, X_subsample, y_subsample,
         n_repeats=config["n_repeats"],
         random_state=random_state,
-        n_jobs=-1  # Parallel processing
+        n_jobs=-1  
     )
     
     return {
@@ -10971,26 +11188,26 @@ def display_feature_importance_results(results, feature_names, max_display, prob
     
     st.subheader("📊 Feature Importance Results")
     
-    # Tampilkan semua methods dalam tabs
+  
     tabs = st.tabs(list(results.keys()))
     
     for tab, (method_name, result) in zip(tabs, results.items()):
         with tab:
             importances = result['importances']
             
-            # Create importance dataframe
+
             importance_df = pd.DataFrame({
                 'feature': feature_names,
                 'importance': importances
             }).sort_values('importance', ascending=False)
             
-            # Display top features
+          
             st.write(f"**Top {min(max_display, len(importance_df))} Features - {method_name}**")
             
             col1, col2 = st.columns([2, 1])
             
             with col1:
-                # Bar chart
+        
                 fig = px.bar(
                     importance_df.head(max_display),
                     x='importance',
@@ -11004,13 +11221,13 @@ def display_feature_importance_results(results, feature_names, max_display, prob
                 st.plotly_chart(fig, use_container_width=True)
             
             with col2:
-                # Table view
+             
                 st.dataframe(
                     importance_df.head(10)[['feature', 'importance']].round(4),
                     use_container_width=True
                 )
             
-            # Additional info untuk permutation importance
+
             if method_name == "Permutation" and 'std' in result:
                 st.write("**Permutation Importance with Std Dev:**")
                 perm_df = pd.DataFrame({
@@ -11050,7 +11267,7 @@ def show_feature_analysis_insights(results, X, y, problem_type):
     with col2:
         st.write("**Feature Importance Consensus:**")
         
-        # Hitung consensus dari semua methods
+   
         consensus_scores = {}
         for method_name, result in results.items():
             importances = result['importances']
@@ -11059,18 +11276,18 @@ def show_feature_analysis_insights(results, X, y, problem_type):
                     consensus_scores[feature] = []
                 consensus_scores[feature].append(importances[i])
         
-        # Rata-rata score across methods
+   
         avg_scores = {feature: np.mean(scores) for feature, scores in consensus_scores.items()}
         top_features = sorted(avg_scores.items(), key=lambda x: x[1], reverse=True)[:5]
         
         for feature, score in top_features:
             st.write(f"- {feature}: {score:.4f}")
     
-    # Correlation analysis untuk top features
+
     if len(results) > 0:
         st.write("**Top Features Correlation Matrix:**")
         
-        # Ambil top 8 features dari method pertama
+     
         first_method = list(results.values())[0]
         top_indices = np.argsort(first_method['importances'])[-8:][::-1]
         top_features_corr = [X.columns[i] for i in top_indices if i < len(X.columns)]
@@ -11087,7 +11304,7 @@ def show_feature_analysis_insights(results, X, y, problem_type):
             )
             st.plotly_chart(fig, use_container_width=True)
 
-# Fungsi untuk memuat data
+
 def load_data(uploaded_file):
     """Memuat data dari file yang diupload"""
     try:
@@ -11103,14 +11320,14 @@ def load_data(uploaded_file):
         st.error(f"Error memuat file: {str(e)}")
         return None
 
-# Fungsi utama untuk menjalankan dashboard
+
 def run_ml_dl_dashboard():
     """
     Fungsi utama untuk menjalankan dashboard ML/DL dengan upload file
     """
     st.title("🤖 Advanced ML/DL Analysis Dashboard")
     
-    # File upload
+
     st.sidebar.header("📁 Upload Dataset")
     uploaded_file = st.sidebar.file_uploader(
         "Pilih file CSV atau Excel", 
@@ -11119,14 +11336,14 @@ def run_ml_dl_dashboard():
     )
     
     if uploaded_file is not None:
-        # Load data
+     
         df = load_data(uploaded_file)
         
         if df is not None:
             st.sidebar.success(f"✅ File berhasil dimuat: {uploaded_file.name}")
             st.sidebar.info(f"Shape: {df.shape[0]} baris × {df.shape[1]} kolom")
             
-            # Tampilkan preview data
+      
             if st.sidebar.checkbox("Tampilkan Preview Data", key="preview_checkbox"):
                 st.subheader("📋 Data Preview")
                 st.dataframe(df.head(), use_container_width=True)
@@ -11143,16 +11360,16 @@ def run_ml_dl_dashboard():
                     missing_data = df.isnull().sum()
                     st.write(missing_data[missing_data > 0])
             
-            # Identifikasi kolom numerik dan kategorikal
+    
             numeric_cols = df.select_dtypes(include=[np.number]).columns.tolist()
             non_numeric_cols = df.select_dtypes(exclude=[np.number]).columns.tolist()
             
-            # Jalankan dashboard utama
+        
             create_ml_dl_analysis_dashboard(df, numeric_cols, non_numeric_cols)
     else:
         st.info("👆 Silakan upload file CSV atau Excel untuk memulai analisis")
         
-        # Contoh data untuk demonstrasi
+ 
         if st.checkbox("Gunakan Sample Data untuk Demo", key="sample_data_checkbox"):
             sample_data = pd.DataFrame({
                 'feature1': np.random.normal(0, 1, 1000),
@@ -11170,7 +11387,7 @@ def run_ml_dl_dashboard():
                                           ['category', 'timestamp'])
 
 
-# Fungsi statistik yang dioptimalkan
+
 @st.cache_data(show_spinner=False)
 def show_optimized_statistics(df):
     st.header("📊 Statistik Deskriptif")
@@ -11192,13 +11409,13 @@ def show_optimized_statistics(df):
     preview_df = df.head(100) if len(df) > 100 else df
     st.dataframe(preview_df, use_container_width=True)
 
-    # STATISTIK NUMERIK
+
     if numeric_cols:
         st.subheader("📈 Statistik Numerik Lengkap")
         clean_df = df[numeric_cols].replace([np.inf, -np.inf], np.nan)
         desc_stats = clean_df.describe()
         
-        # Tambahkan metrik tambahan
+   
         additional_stats = pd.DataFrame({
             'median': clean_df.median(),
             'variance': clean_df.var(),
@@ -11214,9 +11431,9 @@ def show_optimized_statistics(df):
         st.write("**Statistik Tambahan:**")
         st.dataframe(additional_stats, use_container_width=True)
         
-        # Visualisasi distribusi numerik
+   
         st.write("**📊 Distribusi Data Numerik**")
-        for col in numeric_cols[:4]:  # Batasi agar tidak terlalu banyak
+        for col in numeric_cols[:4]: 
             col1, col2 = st.columns(2)
             
             with col1:
@@ -11240,7 +11457,7 @@ def show_optimized_statistics(df):
                 except Exception as e:
                     st.error(f"Error box plot {col}: {e}")
 
-    # ANALISIS MISSING VALUES
+
     st.subheader("❓ Informasi Missing Values")
     missing_data = df.isnull().sum()
     missing_percent = (missing_data / len(df)) * 100
@@ -11252,7 +11469,7 @@ def show_optimized_statistics(df):
 
     st.dataframe(missing_df, use_container_width=True)
 
-    # Visualisasi missing values
+
     if missing_data.sum() > 0:
         col1, col2 = st.columns(2)
         
@@ -11265,7 +11482,7 @@ def show_optimized_statistics(df):
                     ax.set_title('Persentase Missing Values per Kolom')
                     ax.set_ylabel('Persentase Missing (%)')
                     ax.tick_params(axis='x', rotation=45)
-                    # Tambahkan nilai di atas bar
+                 
                     for bar in bars:
                         height = bar.get_height()
                         ax.text(bar.get_x() + bar.get_width()/2., height + 0.5,
@@ -11276,7 +11493,7 @@ def show_optimized_statistics(df):
         
         with col2:
             try:
-                # Heatmap missing values
+              
                 fig, ax = plt.subplots(figsize=(12, 6))
                 sns.heatmap(df.isnull(), yticklabels=False, cbar=True, cmap='viridis', ax=ax)
                 ax.set_title('Pattern Missing Values (Heatmap)')
@@ -11284,30 +11501,30 @@ def show_optimized_statistics(df):
             except Exception as e:
                 st.error(f"Error heatmap missing values: {e}")
 
-    # ANALISIS TANGGAL LENGKAP
+   
     st.subheader("📅 Analisis Data Tanggal Lengkap")
 
-    # Identifikasi kolom tanggal - lebih robust
+
     date_cols = []
     potential_date_cols = []
 
     for col in df.columns:
-        # Cek jika sudah datetime
+    
         if pd.api.types.is_datetime64_any_dtype(df[col]):
             date_cols.append(col)
         else:
-            # Coba identifikasi kolom potensial
+         
             sample_size = min(100, len(df[col].dropna()))
             if sample_size > 0:
                 sample = df[col].dropna().head(sample_size)
                 
-                # Cek berbagai format tanggal
+              
                 date_patterns = [
-                    r'\d{1,4}[-/]\d{1,2}[-/]\d{1,4}',  # YYYY-MM-DD, DD/MM/YYYY, dll
+                    r'\d{1,4}[-/]\d{1,2}[-/]\d{1,4}',  
                     r'\d{1,2}[-/]\d{1,2}[-/]\d{2,4}',
-                    r'\d{4}-\d{2}-\d{2}',  # ISO format
-                    r'\d{2}/\d{2}/\d{4}',  # DD/MM/YYYY
-                    r'\d{2}-\d{2}-\d{4}',  # DD-MM-YYYY
+                    r'\d{4}-\d{2}-\d{2}',  
+                    r'\d{2}/\d{2}/\d{4}',  
+                    r'\d{2}-\d{2}-\d{4}',  
                 ]
                 
                 date_like = False
@@ -11325,22 +11542,22 @@ def show_optimized_statistics(df):
         for col in date_cols:
             st.markdown(f"#### 📊 Analisis Mendalam untuk `{col}`")
             
-            # Pastikan kolom dalam format datetime
+    
             if not pd.api.types.is_datetime64_any_dtype(df[col]):
                 df[col] = pd.to_datetime(df[col], errors='coerce')
             
-            # Hapus nilai NaN yang mungkin muncul dari konversi
+     
             date_series = df[col].dropna()
             
             if len(date_series) == 0:
                 st.warning(f"Tidak ada data tanggal yang valid di kolom {col}")
                 continue
             
-            # Container untuk statistik dasar
+           
             col1, col2 = st.columns(2)
             
             with col1:
-                # Statistik dasar tanggal
+          
                 st.write("**📋 Statistik Dasar:**")
                 date_stats_data = {
                     'Metrik': ['Tanggal Terawal', 'Tanggal Terakhir', 'Rentang Waktu', 'Jumlah Hari', 'Data Valid', 'Data Invalid'],
@@ -11357,16 +11574,16 @@ def show_optimized_statistics(df):
                 st.dataframe(date_stats, use_container_width=True, hide_index=True)
             
             with col2:
-                # Analisis komponen tanggal
+           
                 st.write("**🔍 Distribusi Komponen Tanggal:**")
                 
-                # Ekstrak komponen tanggal
+          
                 year_counts = date_series.dt.year.value_counts().sort_index()
                 month_counts = date_series.dt.month.value_counts().sort_index()
                 day_counts = date_series.dt.day.value_counts().sort_index()
                 dow_counts = date_series.dt.dayofweek.value_counts().sort_index()
                 
-                # Mapping untuk nama
+           
                 month_names = {1: 'Januari', 2: 'Februari', 3: 'Maret', 4: 'April', 
                             5: 'Mei', 6: 'Juni', 7: 'Juli', 8: 'Agustus',
                             9: 'September', 10: 'Oktober', 11: 'November', 12: 'Desember'}
@@ -11391,13 +11608,13 @@ def show_optimized_statistics(df):
                 comp_df = pd.DataFrame(comp_data)
                 st.dataframe(comp_df, use_container_width=True, hide_index=True)
             
-            # Visualisasi trend waktu
+      
             st.write("**📈 Trend Data Berdasarkan Waktu:**")
             
             trend_col1, trend_col2 = st.columns(2)
             
             with trend_col1:
-                # Frekuensi per bulan
+            
                 try:
                     monthly_count = date_series.dt.to_period('M').value_counts().sort_index()
                     monthly_count.index = monthly_count.index.astype(str)
@@ -11413,7 +11630,7 @@ def show_optimized_statistics(df):
                     st.error(f"Error membuat chart bulanan: {e}")
             
             with trend_col2:
-                # Frekuensi per tahun
+          
                 try:
                     yearly_count = date_series.dt.year.value_counts().sort_index()
                     if not yearly_count.empty:
@@ -11426,13 +11643,13 @@ def show_optimized_statistics(df):
                 except Exception as e:
                     st.error(f"Error membuat chart tahunan: {e}")
             
-            # Analisis musiman/harian
+        
             st.write("**🌍 Analisis Musiman dan Harian:**")
             
             seasonal_col1, seasonal_col2 = st.columns(2)
             
             with seasonal_col1:
-                # Distribusi per bulan (Pie chart)
+       
                 try:
                     month_names_list = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 
                                     'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des']
@@ -11440,13 +11657,13 @@ def show_optimized_statistics(df):
                     if len(monthly_dist) > 0:
                         fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(12, 5))
                         
-                        # Pie chart
+                  
                         monthly_dist_pie = monthly_dist.copy()
                         monthly_dist_pie.index = [month_names_list[i-1] for i in monthly_dist_pie.index]
                         ax1.pie(monthly_dist_pie.values, labels=monthly_dist_pie.index, autopct='%1.1f%%', startangle=90)
                         ax1.set_title(f'Distribusi per Bulan - {col}')
                         
-                        # Bar chart
+                
                         monthly_dist_pie.plot(kind='bar', ax=ax2, color='coral', edgecolor='black')
                         ax2.set_title(f'Distribusi per Bulan - {col}')
                         ax2.set_ylabel('Jumlah Data')
@@ -11458,20 +11675,19 @@ def show_optimized_statistics(df):
                     st.error(f"Error analisis bulanan: {e}")
             
             with seasonal_col2:
-                # Distribusi hari dalam minggu
+         
                 try:
                     day_names_list = ['Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu', 'Minggu']
                     dow_dist = date_series.dt.dayofweek.value_counts().sort_index()
                     if len(dow_dist) > 0:
                         fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(12, 5))
                         
-                        # Pie chart
+                  
                         dow_dist_pie = dow_dist.copy()
                         dow_dist_pie.index = [day_names_list[i] for i in dow_dist_pie.index]
                         ax1.pie(dow_dist_pie.values, labels=dow_dist_pie.index, autopct='%1.1f%%', startangle=90)
                         ax1.set_title(f'Distribusi Hari dalam Minggu - {col}')
-                        
-                        # Bar chart
+                
                         dow_dist_pie.plot(kind='bar', ax=ax2, color='gold', edgecolor='black')
                         ax2.set_title(f'Distribusi Hari dalam Minggu - {col}')
                         ax2.set_ylabel('Jumlah Data')
@@ -11482,7 +11698,7 @@ def show_optimized_statistics(df):
                 except Exception as e:
                     st.error(f"Error analisis hari: {e}")
             
-            # Analisis quarter/triwulan
+   
             st.write("**📊 Analisis per Triwulan:**")
             try:
                 quarter_dist = date_series.dt.quarter.value_counts().sort_index()
@@ -11495,7 +11711,7 @@ def show_optimized_statistics(df):
                                     3: 'Q3 (Jul-Sep)', 4: 'Q4 (Okt-Des)'}
                         quarter_dist.index = [quarter_names[i] for i in quarter_dist.index]
                         quarter_dist.plot(kind='pie', autopct='%1.1f%%', ax=ax)
-                        ax.set_ylabel('')  # Remove ylabel for pie chart
+                        ax.set_ylabel('')  
                         ax.set_title(f'Distribusi per Triwulan - {col}')
                         st.pyplot(fig)
                     
@@ -11508,7 +11724,7 @@ def show_optimized_statistics(df):
             except Exception as e:
                 st.error(f"Error analisis triwulan: {e}")
             
-            # Deteksi missing dates
+         
             st.write("**🔎 Analisis Kelengkapan Tanggal:**")
             try:
                 if len(date_series) > 1:
@@ -11533,7 +11749,7 @@ def show_optimized_statistics(df):
                         else:
                             st.write(f"**Contoh 20 tanggal yang hilang:**", missing_dates[:20].strftime('%Y-%m-%d').tolist())
                     
-                    # Visualisasi kelengkapan
+                
                     if len(date_range) > 0:
                         completeness_ratio = (len(date_range) - len(missing_dates)) / len(date_range)
                         
@@ -11560,7 +11776,7 @@ def show_optimized_statistics(df):
     else:
         st.info("❌ Tidak ada kolom tanggal yang terdeteksi dalam dataset.")
         
-        # Analisis kolom potensial
+       
         if potential_date_cols:
             st.write("**🔍 Kolom yang mungkin berisi tanggal:**")
             potential_info = []
@@ -11592,23 +11808,23 @@ def show_optimized_statistics(df):
     df['nama_kolom'] = pd.to_datetime(df['nama_kolom'], format='%Y-%m-%d', errors='coerce')
                 """)
         
-        # Analisis data kategorikal jika tidak ada tanggal
+
         st.write("**📋 Analisis Data Kategorikal sebagai Alternatif:**")
         categorical_cols = df.select_dtypes(include=['object']).columns.tolist()
         
         if categorical_cols:
-            for col in categorical_cols[:3]:  # Batasi 3 kolom pertama
+            for col in categorical_cols[:3]:  
                 st.write(f"**Analisis untuk `{col}`**")
                 
                 col1, col2 = st.columns(2)
                 
                 with col1:
-                    # Value counts
+               
                     value_counts = df[col].value_counts()
                     st.dataframe(value_counts.head(10), use_container_width=True)
                 
                 with col2:
-                    # Pie chart untuk top categories
+                 
                     try:
                         top_categories = value_counts.head(5)
                         if len(top_categories) > 0:
@@ -11623,7 +11839,7 @@ def show_optimized_statistics(df):
         else:
             st.info("Tidak ada kolom kategorikal yang tersedia untuk analisis alternatif.")
 
-    # Tambahan: Summary statistics
+
     st.subheader("📊 Summary Dataset")
     summary_col1, summary_col2, summary_col3 = st.columns(3)
 
@@ -11644,7 +11860,7 @@ def show_optimized_statistics(df):
         st.metric("Total Missing Values", total_missing)
         st.metric("Kelengkapan Dataset", f"{completeness:.1f}%")
 
-# Cache untuk file contoh
+
 @st.cache_data(show_spinner=False)
 def create_sample_file():
     dates = pd.date_range(start='2023-01-01', periods=100, freq='D')
@@ -11676,7 +11892,7 @@ def create_sample_file():
     
     return example_data
 
-# UI utama
+
 st.markdown("Unggah file CSV atau Excel untuk melihat visualisasi dan statistik data.")
         
 with st.expander("📜 PENJELASAN TENTANG ANALISIS DATA", expanded=False):
@@ -11740,20 +11956,20 @@ with st.expander("📜 PENJELASAN LENGKAP MENGENAI ROY ACADEMY", expanded=False)
     - Tujuan Adanya Roy Akademi adalah untuk kalian yang bergabung dalam penelitian dan proses ini di buat oleh dwi bakti n dev dengan tujuan menjadi penjelasan yang mudah dimengerti dan mudah dibaca.
     """)
 
-# Sidebar
+
 
 import streamlit as st
 import random
 import string
 from streamlit_modal import Modal
 
-# Fungsi untuk generate random member ID
+
 def generate_member_id():
     prefix = "SL-PM-"
     random_chars = ''.join(random.choices(string.ascii_uppercase + string.digits, k=6))
     return prefix + random_chars
 
-# Informasi profile
+
 st.sidebar.image("https://github.com/DwiDevelopes/gambar/raw/main/Desain%20tanpa%20judul%20(8).jpg", 
                  caption="Roy Academy", width=100)
 
@@ -11777,7 +11993,7 @@ if st.sidebar.button("📁 Buat File Contoh"):
         mime="text/csv"
     )
 
-# Upload file
+
 st.sidebar.header("📤 Unggah & Gabungkan Beberapa File")
 uploaded_files = st.sidebar.file_uploader(
     "Pilih file CSV atau Excel (bisa multiple)",
@@ -11785,7 +12001,7 @@ uploaded_files = st.sidebar.file_uploader(
     accept_multiple_files=True
 )
 
-# Pilihan website
+
 website_option = st.sidebar.selectbox(
     "Pilih Website:",
     ["https://streamlit-launcher.vercel.app/", "Custom URL"]
@@ -11800,7 +12016,7 @@ if website_option == "Custom URL":
 else:
     website_url = website_option
 
-# Tampilkan iframe
+
 if st.sidebar.button("🌐 Tampilkan Website"):
     st.markdown(f"""
     <div style="border: 2px solid #e0e0e0; border-radius: 10px; padding: 10px; margin: 10px 0;">
@@ -11817,7 +12033,7 @@ if uploaded_files and len(uploaded_files) > 1:
     )
 
 
-# Proses file
+
 df = None
 if uploaded_files:
     datasets = []
@@ -12697,12 +12913,1365 @@ REMOVE_BG_API_KEY = "xQH5KznYiupRrywK5yPcjeyi"
 PIXELS_API_KEY = "LH59shPdj1xO0lolnHPsClH23qsnHE4NjkCFBhKEXvR0CbqwkrXbqBnw"
 
 if df is not None:
-    tab1, tab2, tab3, tab4, tab5, tab6, tab7, tab8, tab9, tab10, tab11, tab12, tab13, tab14, tab15, tab16, tab17 = st.tabs([
+    tab1, tab2, tab3, tab4, tab5, tab6, tab7, tab8, tab9, tab10, tab11, tab12, tab13, tab14, tab15, tab16, tab17, tab18 = st.tabs([
         "📊 Statistik", "📈 Visualisasi", "💾 Data", "ℹ️ Informasi", "🧮 Kalkulator",
         "🖼️ Vitures", "📍 Flowchart", "📊 Grafik Saham", "🗃️ SQL Style", 
         "🔄 3D Model & Analisis", "⚡ Konversi Cepat", "📝 Editor File", "🧬 Analisis DNA",
-        "🔐 Enkripsi Data", "📊 Source Elements Lanjutan", "📁 Visualisasi Lanjutan", "👤 Analisis Wajah"
+        "🔐 Enkripsi Data", "📊 Source Elements Lanjutan", "📁 Visualisasi Lanjutan", "👤 Analisis Wajah",
+        "🩺 Doctor Analytics"
     ])
+    
+    with tab18:
+        if df is not None:
+            tab0, tab00 = st.tabs([
+                "❤️ Helth Analytics Human",
+                "❤️ Analisis Kesehatan Komprehensif"
+            ])
+            
+            with tab00:
+                st.header("📊 Analisis Kesehatan Komprehensif")
+                
+                # Input data manual
+                st.subheader("👤 Input Data Kesehatan")
+                
+                with st.form("health_data_form"):
+                    col_input1, col_input2 = st.columns(2)
+                    
+                    with col_input1:
+                        nama = st.text_input("Nama Lengkap", placeholder="Masukkan nama lengkap")
+                        umur = st.number_input("Umur (tahun)", min_value=1, max_value=120, value=25)
+                        jenis_kelamin = st.selectbox("Jenis Kelamin", ["Laki-laki", "Perempuan"])
+                        tinggi_badan = st.number_input("Tinggi Badan (cm)", min_value=50, max_value=250, value=170)
+                        
+                    with col_input2:
+                        berat_badan = st.number_input("Berat Badan (kg)", min_value=10, max_value=300, value=65)
+                        aktivitas_fisik = st.selectbox("Level Aktivitas Fisik", [
+                            "Sangat Sedenter (jarang olahraga)", 
+                            "Sedenter (olahraga ringan 1-3x/minggu)", 
+                            "Aktif (olahraga 3-5x/minggu)", 
+                            "Sangat Aktif (olahraga intens 6-7x/minggu)"
+                        ])
+                        target = st.selectbox("Target Kesehatan", [
+                            "Menurunkan Berat Badan",
+                            "Menjaga Berat Badan", 
+                            "Menambah Berat Badan",
+                            "Membangun Otot"
+                        ])
+                        riwayat_penyakit = st.multiselect("Riwayat Penyakit (jika ada)", [
+                            "Diabetes", "Hipertensi", "Jantung", "Kolesterol Tinggi", 
+                            "Asma", "Ginjal", "Tiroid", "Tidak Ada"
+                        ])
+                    
+                    submitted = st.form_submit_button("🚀 Analisis Kesehatan")
+                
+                if submitted:
+                    if not nama:
+                        st.error("⚠️ Harap masukkan nama terlebih dahulu!")
+                    else:
+                        # Kolom layout utama
+                        col1, col2, col3 = st.columns(3)
+                        
+                        with col1:
+                            st.subheader("👤 Profil Individu")
+                            st.info(f"**Nama:** {nama}")
+                            st.info(f"**Umur:** {umur} tahun")
+                            st.info(f"**Jenis Kelamin:** {jenis_kelamin}")
+                            st.info(f"**Tinggi Badan:** {tinggi_badan} cm")
+                            st.info(f"**Berat Badan:** {berat_badan} kg")
+                            st.info(f"**Aktivitas Fisik:** {aktivitas_fisik}")
+                            st.info(f"**Target:** {target}")
+                            st.info(f"**Riwayat Penyakit:** {', '.join(riwayat_penyakit) if riwayat_penyakit else 'Tidak Ada'}")
+                        
+                        # Hitung BMI dan metrik kesehatan
+                        tinggi_meter = tinggi_badan / 100
+                        bmi = berat_badan / (tinggi_meter ** 2)
+                        
+                        with col2:
+                            st.subheader("⚖️ Status BMI")
+                            
+                            # Kategori BMI lebih detail
+                            if bmi < 16:
+                                status = "Sangat Kurus (Underweight Severe)"
+                                color = "🔵"
+                                risk = "Risiko Tinggi: Malnutrisi, osteoporosis"
+                                recommendation = "Konsultasi dokter dan ahli gizi segera"
+                            elif 16 <= bmi < 17:
+                                status = "Kurus Sedang (Underweight Moderate)"
+                                color = "🔵"
+                                risk = "Risiko Sedang: Sistem imun lemah"
+                                recommendation = "Perlu program penambahan berat badan terstruktur"
+                            elif 17 <= bmi < 18.5:
+                                status = "Kurus Ringan (Underweight Mild)"
+                                color = "🔵"
+                                risk = "Risiko Ringan: Kelelahan, kurang energi"
+                                recommendation = "Tingkatkan asupan kalori dan protein"
+                            elif 18.5 <= bmi < 23:
+                                status = "Normal (Sehat)"
+                                color = "🟢"
+                                risk = "Risiko Rendah: Kondisi optimal"
+                                recommendation = "Pertahankan pola hidup sehat"
+                            elif 23 <= bmi < 27.5:
+                                status = "Gemuk (Overweight)"
+                                color = "🟡"
+                                risk = "Risiko Sedang: Diabetes tipe 2, hipertensi"
+                                recommendation = "Diet seimbang dan olahraga rutin"
+                            elif 27.5 <= bmi < 35:
+                                status = "Obesitas Kelas I"
+                                color = "🟠"
+                                risk = "Risiko Tinggi: Penyakit jantung, stroke"
+                                recommendation = "Program penurunan berat badan terstruktur"
+                            elif 35 <= bmi < 40:
+                                status = "Obesitas Kelas II"
+                                color = "🔴"
+                                risk = "Risiko Sangat Tinggi: Sleep apnea, masalah sendi"
+                                recommendation = "Konsultasi medis segera"
+                            else:
+                                status = "Obesitas Kelas III (Morbid)"
+                                color = "💀"
+                                risk = "Risiko Kritis: Kematian dini, multiple penyakit"
+                                recommendation = "Perhatian medis intensif diperlukan"
+                            
+                            st.metric(label="**Indeks Massa Tubuh (BMI)**", 
+                                    value=f"{bmi:.1f}", 
+                                    delta=status)
+                            
+                            st.write(f"{color} **Kategori:** {status}")
+                            st.write(f"**Tingkat Risiko:** {risk}")
+                            st.write(f"**Rekomendasi Utama:** {recommendation}")
+                            
+                            # Indikator BMI visual
+                            st.progress(min(bmi / 40, 1.0))
+                            st.caption(f"BMI: {bmi:.1f} (Rentang Normal: 18.5 - 22.9)")
+                        
+                        with col3:
+                            st.subheader("🎯 Target & Analisis")
+                            
+                            # Hitung berat badan ideal (berdasarkan standar Asia)
+                            berat_ideal_min = 18.5 * (tinggi_meter ** 2)
+                            berat_ideal_max = 22.9 * (tinggi_meter ** 2)
+                            
+                            st.info(f"**Rentang BMI Normal:** 18.5 - 22.9")
+                            st.info(f"**Berat Ideal:** {berat_ideal_min:.1f} - {berat_ideal_max:.1f} kg")
+                            
+                            # Analisis target
+                            if target == "Menurunkan Berat Badan":
+                                if bmi > 22.9:
+                                    target_berat = berat_ideal_max
+                                    selisih = berat_badan - target_berat
+                                    st.success(f"**Target Penurunan:** {selisih:.1f} kg")
+                                    st.info(f"**Berat Target:** {target_berat:.1f} kg")
+                                else:
+                                    st.warning("BMI sudah dalam rentang normal, pertimbangkan target maintenance")
+                            
+                            elif target == "Menambah Berat Badan":
+                                if bmi < 18.5:
+                                    target_berat = berat_ideal_min
+                                    selisih = target_berat - berat_badan
+                                    st.success(f"**Target Penambahan:** {selisih:.1f} kg")
+                                    st.info(f"**Berat Target:** {target_berat:.1f} kg")
+                                else:
+                                    st.warning("BMI sudah dalam rentang normal, pertimbangkan target maintenance")
+                            
+                            else:
+                                st.info("**Strategi:** Maintenance pola hidup sehat")
+                            
+                            # Status berdasarkan umur
+                            if umur < 12:
+                                kategori_umur = "Anak-anak"
+                                catatan_umur = "Periode pertumbuhan cepat, butuh nutrisi optimal"
+                            elif umur < 18:
+                                kategori_umur = "Remaja"
+                                catatan_umur = "Pertumbuhan tulang dan otot, butuh protein tinggi"
+                            elif umur < 30:
+                                kategori_umur = "Dewasa Muda"
+                                catatan_umur = "Metabolisme optimal, waktu tepat membangun kebiasaan sehat"
+                            elif umur < 45:
+                                kategori_umur = "Dewasa"
+                                catatan_umur = "Perhatikan metabolisme yang mulai melambat"
+                            elif umur < 60:
+                                kategori_umur = "Paruh Baya"
+                                catatan_umur = "Fokus pada kesehatan jantung dan tulang"
+                            else:
+                                kategori_umur = "Lansia"
+                                catatan_umur = "Prioritas: menjaga massa otot dan kepadatan tulang"
+                            
+                            st.metric("Kategori Umur", kategori_umur)
+                            st.caption(catatan_umur)
+                        
+                        # Visualisasi BMI Detail
+                        st.subheader("📈 Analisis Visual BMI")
+                        
+                        fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(15, 6))
+                        
+                        # Grafik 1: Posisi BMI dalam kategori
+                        categories = ['Sangat Kurus', 'Kurus', 'Normal', 'Gemuk', 'Obesitas I', 'Obesitas II', 'Obesitas III']
+                        bmi_ranges = [16, 17, 18.5, 23, 27.5, 35, 40]
+                        colors = ['#1f77b4', '#aec7e8', '#2ca02c', '#ff7f0e', '#ffbb78', '#d62728', '#8b0000']
+                        
+                        for i in range(len(bmi_ranges)-1):
+                            ax1.axvspan(bmi_ranges[i], bmi_ranges[i+1], alpha=0.3, color=colors[i], label=categories[i])
+                        
+                        ax1.axvline(x=bmi, color='red', linestyle='--', linewidth=4, label=f'BMI Anda: {bmi:.1f}')
+                        ax1.scatter([bmi], [0.5], color='red', s=200, zorder=5, edgecolors='black')
+                        
+                        ax1.set_xlabel('Indeks Massa Tubuh (BMI)')
+                        ax1.set_ylabel('')
+                        ax1.set_yticks([])
+                        ax1.set_xlim(15, 41)
+                        ax1.set_title('Posisi BMI dalam Kategori Kesehatan', fontsize=14, fontweight='bold')
+                        ax1.legend(bbox_to_anchor=(0.5, -0.2), loc='upper center', ncol=4)
+                        ax1.grid(True, alpha=0.3)
+                        
+                        # Grafik 2: Perbandingan dengan berat ideal
+                        berat_ideal_avg = (berat_ideal_min + berat_ideal_max) / 2
+                        labels = ['Berat Saat Ini', 'Berat Ideal Rata-rata']
+                        values = [berat_badan, berat_ideal_avg]
+                        colors_bar = ['#ff6b6b' if berat_badan > berat_ideal_max else '#4ecdc4', '#45b7d1']
+                        
+                        bars = ax2.bar(labels, values, color=colors_bar, alpha=0.7)
+                        ax2.set_ylabel('Berat Badan (kg)')
+                        ax2.set_title('Perbandingan dengan Berat Ideal', fontsize=14, fontweight='bold')
+                        
+                        # Tambah nilai di atas bar
+                        for bar, value in zip(bars, values):
+                            ax2.text(bar.get_x() + bar.get_width()/2, bar.get_height() + 1, 
+                                    f'{value:.1f} kg', ha='center', va='bottom', fontweight='bold')
+                        
+                        plt.tight_layout()
+                        st.pyplot(fig)
+                        
+                        # Analisis Nutrisi dan Kalori
+                        st.subheader("🍎 Analisis Kebutuhan Nutrisi")
+                        
+                        col4, col5, col6, col7 = st.columns(4)
+                        
+                        with col4:
+                            # Hitung BMR (Basal Metabolic Rate)
+                            if jenis_kelamin == "Laki-laki":
+                                bmr = 88.362 + (13.397 * berat_badan) + (4.799 * tinggi_badan) - (5.677 * umur)
+                            else:
+                                bmr = 447.593 + (9.247 * berat_badan) + (3.098 * tinggi_badan) - (4.330 * umur)
+                            
+                            # Faktor aktivitas
+                            faktor_aktivitas = {
+                                "Sangat Sedenter (jarang olahraga)": 1.2,
+                                "Sedenter (olahraga ringan 1-3x/minggu)": 1.375,
+                                "Aktif (olahraga 3-5x/minggu)": 1.55,
+                                "Sangat Aktif (olahraga intens 6-7x/minggu)": 1.725
+                            }
+                            
+                            tdee = bmr * faktor_aktivitas[aktivitas_fisik]
+                            
+                            # Sesuaikan dengan target
+                            if target == "Menurunkan Berat Badan":
+                                kalori_harian = tdee - 500
+                                st.metric("🔥 Kebutuhan Kalori Harian", f"{kalori_harian:.0f} kkal")
+                                st.caption("Defisit 500 kkal untuk turun 0.5kg/minggu")
+                            elif target == "Menambah Berat Badan":
+                                kalori_harian = tdee + 500
+                                st.metric("🔥 Kebutuhan Kalori Harian", f"{kalori_harian:.0f} kkal")
+                                st.caption("Surplus 500 kkal untuk naik 0.5kg/minggu")
+                            else:
+                                kalori_harian = tdee
+                                st.metric("🔥 Kebutuhan Kalori Harian", f"{kalori_harian:.0f} kkal")
+                                st.caption("Maintenance berat badan")
+                        
+                        with col5:
+                            # Protein harian
+                            if target == "Membangun Otom":
+                                protein = berat_badan * 2.2
+                            elif target == "Menurunkan Berat Badan":
+                                protein = berat_badan * 2.0
+                            else:
+                                protein = berat_badan * 1.6
+                            
+                            st.metric("🥩 Kebutuhan Protein", f"{protein:.1f} g")
+                            st.caption(f"≈ {protein*4:.0f} kkal dari protein")
+                        
+                        with col6:
+                            # Lemak harian (25-30% dari total kalori)
+                            lemak_kalori = kalori_harian * 0.25
+                            lemak_gram = lemak_kalori / 9
+                            
+                            st.metric("🥑 Kebutuhan Lemak", f"{lemak_gram:.1f} g")
+                            st.caption(f"≈ {lemak_kalori:.0f} kkal dari lemak sehat")
+                        
+                        with col7:
+                            # Karbohidrat harian
+                            karbohidrat_kalori = kalori_harian - (protein*4 + lemak_kalori)
+                            karbohidrat_gram = karbohidrat_kalori / 4
+                            
+                            st.metric("🍚 Kebutuhan Karbohidrat", f"{karbohidrat_gram:.1f} g")
+                            st.caption(f"≈ {karbohidrat_kalori:.0f} kkal dari karbo")
+                        
+                        # Rekomendasi Detail Berdasarkan Kondisi
+                        st.subheader("💡 Rekomendasi Kesehatan Detail")
+                        
+                        tab_rec1, tab_rec2, tab_rec3, tab_rec4 = st.tabs(["🎯 Program", "🍽️ Nutrisi", "🏃 Olahraga", "📋 Monitoring"])
+                        
+                        with tab_rec1:
+                            st.subheader("Program Kesehatan Personal")
+                            
+                            if status.startswith("Kurus"):
+                                st.write("""
+                                **🔄 Program Penambahan Massa Tubuh:**
+                                
+                                **📈 Strategi Kalori:**
+                                - Target surplus 300-500 kkal/hari dari kebutuhan maintenance
+                                - Makan 5-6x sehari (3 makan utama + 2-3 snack)
+                                - Fokus pada calorie-dense foods: kacang, alpukat, minyak zaitun
+                                
+                                **💪 Strategi Latihan:**
+                                - Strength training 3-4x/minggu
+                                - Compound exercises: squat, deadlift, bench press
+                                - Batasi cardio (max 2x/minggu, low intensity)
+                                - Progressive overload untuk stimulasi otot
+                                
+                                **⏱️ Timeline:**
+                                - Minggu 1-4: Adaptasi (target +0.25kg/minggu)
+                                - Minggu 5-12: Growth (target +0.5kg/minggu)
+                                - Evaluasi bulanan progress
+                                """)
+                                
+                            elif status.startswith("Normal"):
+                                st.write("""
+                                **🛡️ Program Maintenance & Optimalisasi:**
+                                
+                                **⚖️ Strategi Kalori:**
+                                - Maintenance calories dengan cycling (±200 kkal)
+                                - Protein tinggi (1.6-2.2g/kg berat badan)
+                                - 80/20 rule: 80% whole foods, 20% flexible
+                                
+                                **🏋️ Strategi Latihan:**
+                                - Balanced routine: strength + cardio + mobility
+                                - 3-5x latihan/minggu variasi
+                                - Active recovery days dengan walking/yoga
+                                - Periodisasi untuk avoid plateau
+                                
+                                **🎯 Goals:**
+                                - Maintain berat badan ±2kg range
+                                - Improve body composition
+                                - Enhance fitness performance
+                                - Sustainable lifestyle habits
+                                """)
+                                
+                            else:  # Overweight/Obesitas
+                                st.write("""
+                                **⬇️ Program Penurunan Berat Badan:**
+                                
+                                **📉 Strategi Kalori:**
+                                - Defisit 500-750 kkal/hari dari maintenance
+                                - High protein (2.0g/kg berat badan) untuk kenyang
+                                - High fiber (30g+/hari) untuk digestive health
+                                - Minimize processed foods & added sugars
+                                
+                                **🚶 Strategi Latihan:**
+                                - Gradual progression: mulai dengan walking
+                                - Mix: Low-intensity steady state + resistance training
+                                - Frequency: 4-6x/minggu, variasi intensitas
+                                - Focus on consistency over intensity
+                                
+                                **🩺 Medical Consideration:**
+                                - Monitor tekanan darah secara rutin
+                                - Check blood glucose jika ada risiko diabetes
+                                - Konsultasi dokter untuk clearance medical
+                                """)
+                        
+                        with tab_rec2:
+                            st.subheader("Rekomendasi Nutrisi Detail")
+                            
+                            col_nut1, col_nut2 = st.columns(2)
+                            
+                            with col_nut1:
+                                st.write("**✅ Foods to Focus On:**")
+                                if status.startswith("Kurus"):
+                                    st.write("""
+                                    - Whole milk, yogurt, cheese
+                                    - Nuts & seeds (almonds, walnuts, chia)
+                                    - Avocado & olive oil
+                                    - Fatty fish (salmon, mackerel)
+                                    - Whole grains (oats, quinoa, brown rice)
+                                    - Lean red meat
+                                    - Dried fruits
+                                    - Protein shakes
+                                    """)
+                                else:
+                                    st.write("""
+                                    - Lean proteins (chicken breast, fish, tofu)
+                                    - Vegetables (all types, especially leafy greens)
+                                    - Low-sugar fruits (berries, apples)
+                                    - Whole grains in moderation
+                                    - Legumes (lentils, chickpeas)
+                                    - Low-fat dairy
+                                    - Plenty of water & herbal tea
+                                    """)
+                            
+                            with col_nut2:
+                                st.write("**❌ Foods to Limit:**")
+                                if status.startswith("Kurus"):
+                                    st.write("""
+                                    - Empty calories (soda, candy)
+                                    - Highly processed snacks
+                                    - Excessive caffeine
+                                    - Alcohol (empty calories)
+                                    - Very high fiber foods sebelum makan besar
+                                    """)
+                                else:
+                                    st.write("""
+                                    - Sugar-sweetened beverages
+                                    - Processed carbohydrates
+                                    - Fried foods
+                                    - High-sugar snacks
+                                    - Alcohol (limit to occasional)
+                                    - Processed meats
+                                    """)
+                            
+                            st.write("**🍽️ Sample Meal Timing:**")
+                            st.write("""
+                            - **Breakfast (07:00):** Protein + Complex carbs
+                            - **Snack (10:00):** Fruit + Protein
+                            - **Lunch (13:00):** Balanced meal
+                            - **Snack (16:00):** Pre-workout if needed
+                            - **Dinner (19:00):** Lighter, protein-focused
+                            - **Hydration:** 2-3L water throughout day
+                            """)
+                        
+                        with tab_rec3:
+                            st.subheader("Program Olahraga")
+                            
+                            if status.startswith("Kurus"):
+                                st.write("""
+                                **💪 Mass Building Program (4x/week)**
+                                
+                                **Day 1: Chest & Triceps**
+                                - Bench Press: 3x8-12
+                                - Incline Dumbbell Press: 3x10-12
+                                - Cable Flyes: 3x12-15
+                                - Tricep Pushdown: 3x12-15
+                                - Overhead Tricep Extension: 3x10-12
+                                
+                                **Day 2: Back & Biceps**
+                                - Pull-ups/Lat Pulldown: 3x8-12
+                                - Barbell Row: 3x8-12
+                                - Seated Cable Row: 3x10-12
+                                - Bicep Curls: 3x12-15
+                                - Hammer Curls: 3x12-15
+                                
+                                **Day 3: Legs**
+                                - Squats: 3x8-12
+                                - Leg Press: 3x10-12
+                                - Romanian Deadlift: 3x10-12
+                                - Leg Extensions: 3x12-15
+                                - Calf Raises: 4x15-20
+                                
+                                **Day 4: Shoulders & Abs**
+                                - Military Press: 3x8-12
+                                - Lateral Raises: 3x12-15
+                                - Front Raises: 3x12-15
+                                - Ab Crunches: 3x15-20
+                                - Plank: 3x60 seconds
+                                """)
+                                
+                            elif "Obesitas" in status:
+                                st.write("""
+                                **🚶 Weight Loss & Fitness Program (5x/week)**
+                                
+                                **Day 1: Walking & Mobility**
+                                - Brisk Walking: 30-45 minutes
+                                - Dynamic Stretching: 10 minutes
+                                - Light Yoga: 15 minutes
+                                
+                                **Day 2: Full Body Strength (Light)**
+                                - Bodyweight Squats: 3x12-15
+                                - Wall Push-ups: 3x10-12
+                                - Seated Leg Raises: 3x15
+                                - Bird-Dog: 3x10 each side
+                                
+                                **Day 3: Low-Impact Cardio**
+                                - Stationary Bike: 30 minutes
+                                - Swimming: 30 minutes (optional)
+                                - Light Stretching: 10 minutes
+                                
+                                **Day 4: Rest Active**
+                                - Walking: 20-30 minutes
+                                - Gentle Stretching: 15 minutes
+                                
+                                **Day 5: Full Body Strength (Progressive)**
+                                - Chair Squats: 3x12
+                                - Dumbbell Press (light): 3x12
+                                - Seated Rows: 3x12
+                                - Plank (knees): 3x30 seconds
+                                """)
+                                
+                            else:  # Normal/Overweight
+                                st.write("""
+                                **⚖️ Balanced Fitness Program (4-5x/week)**
+                                
+                                **Day 1: Upper Body Strength**
+                                - Push-ups: 3x10-15
+                                - Dumbbell Rows: 3x12
+                                - Shoulder Press: 3x12
+                                - Bicep Curls: 3x12
+                                - Tricep Dips: 3x10
+                                
+                                **Day 2: Cardio & Core**
+                                - Running/Cycling: 30 minutes
+                                - Plank Variations: 3x60 seconds
+                                - Russian Twists: 3x20
+                                - Leg Raises: 3x15
+                                
+                                **Day 3: Lower Body & Mobility**
+                                - Squats: 3x12-15
+                                - Lunges: 3x10 each leg
+                                - Glute Bridges: 3x15
+                                - Calf Raises: 3x20
+                                - Yoga Flow: 20 minutes
+                                
+                                **Day 4: Active Recovery**
+                                - Walking/Hiking: 45-60 minutes
+                                - Light Stretching: 15 minutes
+                                
+                                **Day 5: Full Body Circuit**
+                                - Circuit training (45 seconds work, 15 rest):
+                                * Jumping Jacks
+                                * Bodyweight Squats
+                                * Push-ups
+                                * Plank
+                                * High Knees
+                                * Repeat 3-4 rounds
+                                """)
+                        
+                        with tab_rec4:
+                            st.subheader("Monitoring & Evaluasi")
+                            
+                            st.write("**📊 Metrics to Track Weekly:**")
+                            col_mon1, col_mon2 = st.columns(2)
+                            
+                            with col_mon1:
+                                st.write("""
+                                **Essential Metrics:**
+                                - Berat badan (weekly, same conditions)
+                                - Lingkar pinggang (monthly)
+                                - Energy levels (daily scale 1-10)
+                                - Sleep quality (hours & quality)
+                                - Workout performance
+                                """)
+                            
+                            with col_mon2:
+                                st.write("""
+                                **Additional Metrics:**
+                                - Progress photos (monthly)
+                                - Blood pressure (if applicable)
+                                - Resting heart rate
+                                - Mood & motivation
+                                - Hunger levels
+                                """)
+                            
+                            st.write("**📅 Evaluation Schedule:**")
+                            st.write("""
+                            - **Daily:** Food journal, activity log
+                            - **Weekly:** Weight check, workout summary
+                            - **Monthly:** Body measurements, progress photos
+                            - **Quarterly:** Comprehensive health assessment
+                            - **Annually:** Medical check-up, blood work
+                            """)
+                            
+                            st.write("**🎯 Success Indicators:**")
+                            st.write("""
+                            - Consistent energy throughout day
+                            - Improved sleep quality
+                            - Better workout performance
+                            - Clothes fitting better
+                            - Positive mood & mental clarity
+                            - Sustainable habits
+                            """)
+                        
+                        # Ringkasan Komprehensif
+                        st.subheader("📋 Ringkasan Analisis Kesehatan")
+                        
+                        # Buat dataframe ringkasan
+                        summary_data = {
+                            'Kategori': [
+                                'Data Diri', 'Data Diri', 'Data Diri', 'Data Diri', 'Data Diri',
+                                'Analisis BMI', 'Analisis BMI', 'Analisis BMI', 'Analisis BMI',
+                                'Target & Rekomendasi', 'Target & Rekomendasi', 'Target & Rekomendasi',
+                                'Nutrisi', 'Nutrisi', 'Nutrisi', 'Nutrisi'
+                            ],
+                            'Parameter': [
+                                'Nama', 'Umur', 'Jenis Kelamin', 'Tinggi Badan', 'Berat Badan',
+                                'BMI Score', 'Kategori BMI', 'Risiko Kesehatan', 'Rekomendasi Utama',
+                                'Target Kesehatan', 'Berat Ideal Range', 'Status Pencapaian',
+                                'Kalori Harian', 'Protein (g)', 'Lemak (g)', 'Karbohidrat (g)'
+                            ],
+                            'Nilai': [
+                                nama, f"{umur} tahun", jenis_kelamin, f"{tinggi_badan} cm", f"{berat_badan} kg",
+                                f"{bmi:.1f}", status, risk, recommendation,
+                                target, f"{berat_ideal_min:.1f} - {berat_ideal_max:.1f} kg",
+                                "Perlu Aksi" if bmi < 18.5 or bmi > 22.9 else "Optimal",
+                                f"{kalori_harian:.0f} kkal", f"{protein:.1f} g", f"{lemak_gram:.1f} g", f"{karbohidrat_gram:.1f} g"
+                            ]
+                        }
+                        
+                        summary_df = pd.DataFrame(summary_data)
+                        st.dataframe(summary_df, use_container_width=True, hide_index=True)
+                        
+                        # Download report
+                        st.download_button(
+                            label="📥 Download Ringkasan Analisis",
+                            data=summary_df.to_csv(index=False),
+                            file_name=f"analisis_kesehatan_{nama.replace(' ', '_')}.csv",
+                            mime="text/csv"
+                        )
+                        
+                        # Disclaimer
+                        st.info("""
+                        **⚠️ Disclaimer:** 
+                        Analisis ini bersifat edukasional dan tidak menggantikan konsultasi dengan profesional kesehatan. 
+                        Selalu konsultasikan dengan dokter sebelum memulai program diet atau olahraga baru, terutama jika 
+                        Anda memiliki kondisi medis tertentu.
+                        """)
+
+            with tab0:
+                st.header("❤️ Analisis Tekanan Darah Lengkap")
+                st.markdown("---")
+                
+                st.subheader("📥 Input Data Tekanan Darah Lengkap")
+                
+                col1, col2, col3, col4 = st.columns(4)
+                
+                with col1:
+                    sistolik = st.number_input("Tekanan Sistolik (mmHg)", 
+                                            min_value=50, max_value=250, value=120,
+                                            help="Tekanan saat jantung berkontraksi/memompa")
+                with col2:
+                    diastolik = st.number_input("Tekanan Diastolik (mmHg)", 
+                                            min_value=30, max_value=150, value=80,
+                                            help="Tekanan saat jantung berelaksasi/mengisi darah")
+                with col3:
+                    denyut_nadi = st.number_input("Denyut Nadi (bpm)", 
+                                                min_value=30, max_value=200, value=72,
+                                                help="Denyut jantung per menit")
+                with col4:
+                    waktu_pengukuran = st.selectbox("Waktu Pengukuran", 
+                                                ["Pagi", "Siang", "Sore", "Malam"],
+                                                help="Waktu saat pengukuran dilakukan")
+                
+                # Data tambahan
+                col1, col2, col3 = st.columns(3)
+                with col1:
+                    usia = st.number_input("Usia (tahun)", min_value=1, max_value=120, value=45)
+                with col2:
+                    berat_badan = st.number_input("Berat Badan (kg)", min_value=20, max_value=200, value=70)
+                with col3:
+                    tinggi_badan = st.number_input("Tinggi Badan (cm)", min_value=100, max_value=250, value=170)
+                
+                # Section 2: Klasifikasi Detail
+                st.subheader("📋 Klasifikasi Tekanan Darah Detail")
+                
+                def klasifikasi_tekanan_darah_detail(sistolik, diastolik):
+                    """Klasifikasi tekanan darah berdasarkan guideline AHA 2023"""
+                    
+                    if sistolik < 90 or diastolik < 60:
+                        return {
+                            "kategori": "Hipotensi (Rendah)",
+                            "status": "danger",
+                            "keterangan": "Tekanan darah di bawah normal, mungkin menyebabkan pusing dan lemas",
+                            "warna": "#FF6B6B",
+                            "kode": "HYPOTENSION"
+                        }
+                    elif sistolik < 120 and diastolik < 80:
+                        return {
+                            "kategori": "Normal",
+                            "status": "success",
+                            "keterangan": "Tekanan darah dalam rentang sehat",
+                            "warna": "#51CF66",
+                            "kode": "NORMAL"
+                        }
+                    elif 120 <= sistolik <= 129 and diastolik < 80:
+                        return {
+                            "kategori": "Elevated (Tinggi Normal)",
+                            "status": "warning",
+                            "keterangan": "Tekanan darah cenderung tinggi, perlu modifikasi gaya hidup",
+                            "warna": "#FCC419",
+                            "kode": "ELEVATED"
+                        }
+                    elif 130 <= sistolik <= 139 or 80 <= diastolik <= 89:
+                        return {
+                            "kategori": "Hipertensi Stage 1",
+                            "status": "warning",
+                            "keterangan": "Hipertensi ringan, konsultasi dokter diperlukan",
+                            "warna": "#FF922B",
+                            "kode": "HYPERTENSION_STAGE_1"
+                        }
+                    elif 140 <= sistolik <= 179 or 90 <= diastolik <= 119:
+                        return {
+                            "kategori": "Hipertensi Stage 2",
+                            "status": "danger",
+                            "keterangan": "Hipertensi sedang-berat, memerlukan penanganan medis",
+                            "warna": "#FF6B6B",
+                            "kode": "HYPERTENSION_STAGE_2"
+                        }
+                    else:
+                        return {
+                            "kategori": "Krisis Hipertensi",
+                            "status": "danger",
+                            "keterangan": "Kondisi darurat medis, segera cari bantuan",
+                            "warna": "#C92A2A",
+                            "kode": "HYPERTENSIVE_CRISIS"
+                        }
+                
+                klasifikasi = klasifikasi_tekanan_darah_detail(sistolik, diastolik)
+                
+                # Tampilkan hasil klasifikasi
+                col1, col2 = st.columns([1, 2])
+                
+                with col1:
+                    # Card status
+                    st.markdown(f"""
+                    <div style="border: 2px solid {klasifikasi['warna']}; border-radius: 10px; padding: 20px; text-align: center; background-color: {klasifikasi['warna']}10;">
+                        <h3 style="color: {klasifikasi['warna']}; margin: 0;">{klasifikasi['kategori']}</h3>
+                        <h1 style="color: {klasifikasi['warna']}; margin: 10px 0;">{sistolik}/{diastolik}</h1>
+                        <p style="margin: 0;">mmHg</p>
+                    </div>
+                    """, unsafe_allow_html=True)
+                
+                with col2:
+                    st.info(f"**Keterangan:** {klasifikasi['keterangan']}")
+                    
+                    # Informasi tambahan
+                    st.markdown("**Detail Klasifikasi:**")
+                    mean_arterial_pressure = diastolik + (sistolik - diastolik) / 3
+                    pulse_pressure = sistolik - diastolik
+                    
+                    st.write(f"• Mean Arterial Pressure (MAP): {mean_arterial_pressure:.1f} mmHg")
+                    st.write(f"• Pulse Pressure: {pulse_pressure} mmHg")
+                    st.write(f"• Denyut Nadi: {denyut_nadi} bpm")
+                
+                # Section 3: Visualisasi Komprehensif
+                st.subheader("📊 Visualisasi Komprehensif")
+                
+                # Gauge charts
+                col1, col2, col3 = st.columns(3)
+                
+                with col1:
+                    # Gauge Sistolik
+                    fig_sistolik = go.Figure(go.Indicator(
+                        mode = "gauge+number+delta",
+                        value = sistolik,
+                        domain = {'x': [0, 1], 'y': [0, 1]},
+                        title = {'text': "SISTOLIK", 'font': {'size': 20}},
+                        number = {'font': {'size': 30}},
+                        gauge = {
+                            'axis': {'range': [50, 250], 'tickwidth': 1, 'tickcolor': "darkblue"},
+                            'bar': {'color': "darkblue"},
+                            'bgcolor': "white",
+                            'borderwidth': 2,
+                            'bordercolor': "gray",
+                            'steps': [
+                                {'range': [50, 90], 'color': '#FF6B6B'},    # Hipotensi
+                                {'range': [90, 120], 'color': '#51CF66'},   # Normal
+                                {'range': [120, 140], 'color': '#FCC419'},  # Elevated
+                                {'range': [140, 250], 'color': '#FF6B6B'}   # Hipertensi
+                            ],
+                            'threshold': {
+                                'line': {'color': "red", 'width': 4},
+                                'thickness': 0.75,
+                                'value': 140
+                            }
+                        }
+                    ))
+                    fig_sistolik.update_layout(height=300)
+                    st.plotly_chart(fig_sistolik, use_container_width=True)
+                
+                with col2:
+                    # Gauge Diastolik
+                    fig_diastolik = go.Figure(go.Indicator(
+                        mode = "gauge+number+delta",
+                        value = diastolik,
+                        domain = {'x': [0, 1], 'y': [0, 1]},
+                        title = {'text': "DIASTOLIK", 'font': {'size': 20}},
+                        number = {'font': {'size': 30}},
+                        gauge = {
+                            'axis': {'range': [30, 150], 'tickwidth': 1, 'tickcolor': "darkblue"},
+                            'bar': {'color': "darkblue"},
+                            'bgcolor': "white",
+                            'borderwidth': 2,
+                            'bordercolor': "gray",
+                            'steps': [
+                                {'range': [30, 60], 'color': '#FF6B6B'},    # Hipotensi
+                                {'range': [60, 80], 'color': '#51CF66'},    # Normal
+                                {'range': [80, 90], 'color': '#FCC419'},    # Elevated
+                                {'range': [90, 150], 'color': '#FF6B6B'}    # Hipertensi
+                            ],
+                            'threshold': {
+                                'line': {'color': "red", 'width': 4},
+                                'thickness': 0.75,
+                                'value': 90
+                            }
+                        }
+                    ))
+                    fig_diastolik.update_layout(height=300)
+                    st.plotly_chart(fig_diastolik, use_container_width=True)
+                
+                with col3:
+                    # Gauge Denyut Nadi
+                    fig_nadi = go.Figure(go.Indicator(
+                        mode = "gauge+number",
+                        value = denyut_nadi,
+                        domain = {'x': [0, 1], 'y': [0, 1]},
+                        title = {'text': "DENYUT NADI", 'font': {'size': 20}},
+                        number = {'font': {'size': 30}},
+                        gauge = {
+                            'axis': {'range': [30, 200], 'tickwidth': 1, 'tickcolor': "darkblue"},
+                            'bar': {'color': "purple"},
+                            'bgcolor': "white",
+                            'borderwidth': 2,
+                            'bordercolor': "gray",
+                            'steps': [
+                                {'range': [30, 60], 'color': '#74C0FC'},    # Sangat rendah
+                                {'range': [60, 100], 'color': '#51CF66'},   # Normal
+                                {'range': [100, 140], 'color': '#FCC419'},  # Tinggi
+                                {'range': [140, 200], 'color': '#FF6B6B'}   # Sangat tinggi
+                            ]
+                        }
+                    ))
+                    fig_nadi.update_layout(height=300)
+                    st.plotly_chart(fig_nadi, use_container_width=True)
+                
+                # Section 4: Analisis Tren Historis yang Diperbaiki
+                st.subheader("📈 Analisis Tren Historis Komprehensif")
+                
+                # Generate realistic historical data berdasarkan input pengguna
+                dates = pd.date_range(start='2024-01-01', periods=30, freq='D')
+                
+                # Fungsi untuk generate data yang lebih realistis
+                def generate_realistic_data(base_value, variability, trend_direction=0, days=30):
+                    """Generate data historis yang realistis dengan tren"""
+                    np.random.seed(42)
+                    # Data dengan noise dan tren gradual
+                    noise = np.random.normal(0, variability, days)
+                    trend = np.linspace(0, trend_direction * variability, days)
+                    data = base_value + noise + trend
+                    return np.clip(data, base_value * 0.7, base_value * 1.3)
+                
+                # Generate data berdasarkan input user dengan variasi yang wajar
+                historis_sistolik = generate_realistic_data(sistolik, 5, 
+                                                        trend_direction=np.random.choice([-1, 0, 1]))
+                historis_diastolik = generate_realistic_data(diastolik, 3,
+                                                            trend_direction=np.random.choice([-1, 0, 1]))
+                historis_nadi = generate_realistic_data(denyut_nadi, 4,
+                                                    trend_direction=np.random.choice([-1, 0, 1]))
+                
+                # Chart 1: Tren Utama
+                col1, col2 = st.columns([2, 1])
+                
+                with col1:
+                    fig_tren_utama = go.Figure()
+                    
+                    fig_tren_utama.add_trace(go.Scatter(
+                        x=dates, y=historis_sistolik, 
+                        mode='lines+markers', 
+                        name='Sistolik',
+                        line=dict(color='#FF6B6B', width=3),
+                        marker=dict(size=6),
+                        hovertemplate='<b>%{x|%d %b}</b><br>Sistolik: %{y} mmHg<extra></extra>'
+                    ))
+                    
+                    fig_tren_utama.add_trace(go.Scatter(
+                        x=dates, y=historis_diastolik, 
+                        mode='lines+markers', 
+                        name='Diastolik',
+                        line=dict(color='#339AF0', width=3),
+                        marker=dict(size=6),
+                        hovertemplate='<b>%{x|%d %b}</b><br>Diastolik: %{y} mmHg<extra></extra>'
+                    ))
+                    
+                    # Tambahkan area berwarna untuk zona risiko
+                    fig_tren_utama.add_hrect(y0=140, y1=250, line_width=0, 
+                                        fillcolor="red", opacity=0.1, 
+                                        annotation_text="Hipertensi", 
+                                        annotation_position="top left")
+                    fig_tren_utama.add_hrect(y0=90, y1=140, line_width=0, 
+                                        fillcolor="orange", opacity=0.1,
+                                        annotation_text="Prehipertensi")
+                    fig_tren_utama.add_hrect(y0=60, y1=90, line_width=0, 
+                                        fillcolor="green", opacity=0.1,
+                                        annotation_text="Normal")
+                    fig_tren_utama.add_hrect(y0=30, y1=60, line_width=0, 
+                                        fillcolor="red", opacity=0.1,
+                                        annotation_text="Hipotensi")
+                    
+                    fig_tren_utama.update_layout(
+                        title="Tren Tekanan Darah 30 Hari Terakhir dengan Zona Risiko",
+                        xaxis_title="Tanggal",
+                        yaxis_title="Tekanan Darah (mmHg)",
+                        hovermode='x unified',
+                        height=400,
+                        showlegend=True
+                    )
+                    
+                    st.plotly_chart(fig_tren_utama, use_container_width=True)
+                
+                with col2:
+                    # Statistik ringkasan
+                    st.subheader("📊 Statistik 30 Hari")
+                    
+                    stat_sistolik = {
+                        "Rata-rata": np.mean(historis_sistolik),
+                        "Maksimum": np.max(historis_sistolik),
+                        "Minimum": np.min(historis_sistolik),
+                        "Std Dev": np.std(historis_sistolik)
+                    }
+                    
+                    stat_diastolik = {
+                        "Rata-rata": np.mean(historis_diastolik),
+                        "Maksimum": np.max(historis_diastolik),
+                        "Minimum": np.min(historis_diastolik),
+                        "Std Dev": np.std(historis_diastolik)
+                    }
+                    
+                    st.metric("Sistolik Avg", f"{stat_sistolik['Rata-rata']:.1f} mmHg")
+                    st.metric("Diastolik Avg", f"{stat_diastolik['Rata-rata']:.1f} mmHg")
+                    st.metric("Variabilitas", f"±{stat_sistolik['Std Dev']:.1f} mmHg")
+                    
+                    # Analisis tren
+                    tren_sistolik = np.polyfit(range(30), historis_sistolik, 1)[0]
+                    tren_status = "Stabil" if abs(tren_sistolik) < 0.1 else "Naik" if tren_sistolik > 0 else "Turun"
+                    st.metric("Tren", tren_status)
+                
+                # Chart 2: Heatmap Tekanan Darah Harian
+                st.subheader("🔥 Heatmap Pola Tekanan Darah Harian")
+                
+                # Buat data heatmap
+                days = ['Sen', 'Sel', 'Rab', 'Kam', 'Jum', 'Sab', 'Min']
+                weeks = ['Minggu 1', 'Minggu 2', 'Minggu 3', 'Minggu 4']
+                
+                # Generate data heatmap yang realistis
+                heatmap_data = np.random.normal(sistolik, 8, (4, 7))
+                heatmap_data = np.clip(heatmap_data, 100, 180)
+                
+                fig_heatmap = go.Figure(data=go.Heatmap(
+                    z=heatmap_data,
+                    x=days,
+                    y=weeks,
+                    colorscale='RdBu_r',
+                    hoverongaps=False,
+                    hovertemplate='<b>%{y} - %{x}</b><br>Tekanan: %{z} mmHg<extra></extra>',
+                    colorbar=dict(title="mmHg")
+                ))
+                
+                fig_heatmap.update_layout(
+                    title="Distribusi Tekanan Darah per Minggu",
+                    height=300
+                )
+                
+                st.plotly_chart(fig_heatmap, use_container_width=True)
+                
+                # Chart 3: Scatter Plot Korelasi Sistolik vs Diastolik
+                st.subheader("🔍 Korelasi Sistolik vs Diastolik")
+                
+                col1, col2 = st.columns([2, 1])
+                
+                with col1:
+                    fig_scatter = go.Figure()
+                    
+                    # Klasifikasi setiap titik data
+                    colors = []
+                    for s, d in zip(historis_sistolik, historis_diastolik):
+                        if s < 120 and d < 80:
+                            colors.append('#51CF66')  # Normal
+                        elif s < 130 and d < 80:
+                            colors.append('#FCC419')  # Elevated
+                        elif s < 140 or d < 90:
+                            colors.append('#FF922B')  # Stage 1
+                        else:
+                            colors.append('#FF6B6B')  # Stage 2
+                    
+                    fig_scatter.add_trace(go.Scatter(
+                        x=historis_sistolik,
+                        y=historis_diastolik,
+                        mode='markers',
+                        marker=dict(
+                            size=10,
+                            color=colors,
+                            opacity=0.7,
+                            line=dict(width=1, color='white')
+                        ),
+                        hovertemplate='<b>Sistolik: %{x}</b><br>Diastolik: %{y}<extra></extra>',
+                        name='Pengukuran Harian'
+                    ))
+                    
+                    # Tambahkan garis referensi
+                    fig_scatter.add_hline(y=80, line_dash="dash", line_color="orange", 
+                                        annotation_text="Batas Diastolik")
+                    fig_scatter.add_vline(x=130, line_dash="dash", line_color="orange",
+                                        annotation_text="Batas Sistolik")
+                    
+                    fig_scatter.update_layout(
+                        title="Korelasi Tekanan Sistolik vs Diastolik",
+                        xaxis_title="Tekanan Sistolik (mmHg)",
+                        yaxis_title="Tekanan Diastolik (mmHg)",
+                        height=400
+                    )
+                    
+                    st.plotly_chart(fig_scatter, use_container_width=True)
+                
+                with col2:
+                    # Analisis korelasi
+                    korelasi = np.corrcoef(historis_sistolik, historis_diastolik)[0,1]
+                    st.metric("Koefisien Korelasi", f"{korelasi:.2f}")
+                    
+                    st.info("""
+                    **Interpretasi Korelasi:**
+                    - > 0.7: Kuat
+                    - 0.3-0.7: Sedang  
+                    - < 0.3: Lemah
+                    """)
+                    
+                    # Distribusi kategori
+                    normal_count = sum(1 for s, d in zip(historis_sistolik, historis_diastolik) 
+                                    if s < 120 and d < 80)
+                    elevated_count = sum(1 for s, d in zip(historis_sistolik, historis_diastolik) 
+                                    if 120 <= s <= 129 and d < 80)
+                    st.metric("Hari Normal", normal_count)
+                    st.metric("Hari Elevated", elevated_count)
+                
+                # Chart 4: Box Plot Variabilitas
+                st.subheader("📦 Variabilitas Tekanan Darah")
+                
+                fig_box = go.Figure()
+                
+                fig_box.add_trace(go.Box(
+                    y=historis_sistolik,
+                    name='Sistolik',
+                    marker_color='#FF6B6B',
+                    boxpoints='all',
+                    jitter=0.3,
+                    pointpos=-1.8
+                ))
+                
+                fig_box.add_trace(go.Box(
+                    y=historis_diastolik,
+                    name='Diastolik',
+                    marker_color='#339AF0',
+                    boxpoints='all',
+                    jitter=0.3,
+                    pointpos=-1.8
+                ))
+                
+                fig_box.update_layout(
+                    title="Distribusi dan Variabilitas Tekanan Darah",
+                    yaxis_title="Tekanan Darah (mmHg)",
+                    height=400
+                )
+                
+                st.plotly_chart(fig_box, use_container_width=True)
+                
+                # Chart 5: Trend dengan Moving Average
+                st.subheader("📈 Trend dengan Moving Average")
+                
+                # Hitung moving average
+                window = 7
+                sistolik_ma = pd.Series(historis_sistolik).rolling(window=window).mean()
+                diastolik_ma = pd.Series(historis_diastolik).rolling(window=window).mean()
+                
+                fig_ma = go.Figure()
+                
+                fig_ma.add_trace(go.Scatter(
+                    x=dates, y=historis_sistolik,
+                    mode='markers',
+                    name='Sistolik Aktual',
+                    marker=dict(color='#FF6B6B', size=4, opacity=0.3)
+                ))
+                
+                fig_ma.add_trace(go.Scatter(
+                    x=dates, y=historis_diastolik,
+                    mode='markers',
+                    name='Diastolik Aktual',
+                    marker=dict(color='#339AF0', size=4, opacity=0.3)
+                ))
+                
+                fig_ma.add_trace(go.Scatter(
+                    x=dates, y=sistolik_ma,
+                    mode='lines',
+                    name=f'Sistolik MA ({window} hari)',
+                    line=dict(color='#C92A2A', width=3)
+                ))
+                
+                fig_ma.add_trace(go.Scatter(
+                    x=dates, y=diastolik_ma,
+                    mode='lines',
+                    name=f'Diastolik MA ({window} hari)',
+                    line=dict(color='#1864AB', width=3)
+                ))
+                
+                fig_ma.update_layout(
+                    title="Trend dengan Moving Average (7 Hari)",
+                    xaxis_title="Tanggal",
+                    yaxis_title="Tekanan Darah (mmHg)",
+                    height=400,
+                    hovermode='x unified'
+                )
+                
+                st.plotly_chart(fig_ma, use_container_width=True)
+
+                # Section 5: Kalkulator Risiko Kardiovaskular Lengkap
+                st.subheader("🧮 Kalkulator Risiko Kardiovaskular")
+                
+                with st.expander("Input Faktor Risiko", expanded=True):
+                    col1, col2 = st.columns(2)
+                    
+                    with col1:
+                        merokok = st.selectbox("Status Merokok", 
+                                            ["Tidak pernah", "Mantan perokok", "Perokok aktif"],
+                                            help="Risiko meningkat pada perokok aktif")
+                        diabetes = st.selectbox("Diabetes", 
+                                            ["Tidak", "Prediabetes", "Diabetes Tipe 2", "Diabetes Tipe 1"],
+                                            help="Diabetes meningkatkan risiko kardiovaskular")
+                        aktivitas_fisik = st.selectbox("Aktivitas Fisik",
+                                                    ["Sedentary", "Ringan", "Sedang", "Tinggi"],
+                                                    help="Aktivitas fisik teratur mengurangi risiko")
+                    
+                    with col2:
+                        kolesterol_total = st.number_input("Kolesterol Total (mg/dL)", 
+                                                        min_value=100, max_value=400, value=200)
+                        kolesterol_hdl = st.number_input("HDL (mg/dL)", 
+                                                    min_value=20, max_value=100, value=50,
+                                                    help="Kolesterol baik,越高越好")
+                        riwayat_keluarga = st.selectbox("Riwayat Keluarga Penyakit Jantung", 
+                                                    ["Tidak", "Ya (orang tua/saudara kandung)"])
+                
+                def hitung_risiko_kardiovaskular(usia, sistolik, merokok, diabetes, kolesterol_total, kolesterol_hdl, riwayat_keluarga, aktivitas_fisik):
+                    """Menghitung risiko kardiovaskular berdasarkan multiple factors"""
+                    skor = 0
+                    
+                    # Usia
+                    if usia >= 65: skor += 3
+                    elif usia >= 55: skor += 2
+                    elif usia >= 45: skor += 1
+                    
+                    # Tekanan darah
+                    if sistolik >= 160: skor += 3
+                    elif sistolik >= 140: skor += 2
+                    elif sistolik >= 130: skor += 1
+                    
+                    # Merokok
+                    if merokok == "Perokok aktif": skor += 3
+                    elif merokok == "Mantan perokok": skor += 1
+                    
+                    # Diabetes
+                    if diabetes == "Diabetes Tipe 1": skor += 3
+                    elif diabetes == "Diabetes Tipe 2": skor += 2
+                    elif diabetes == "Prediabetes": skor += 1
+                    
+                    # Kolesterol
+                    ratio_kolesterol = kolesterol_total / kolesterol_hdl
+                    if ratio_kolesterol >= 6: skor += 3
+                    elif ratio_kolesterol >= 5: skor += 2
+                    elif ratio_kolesterol >= 4: skor += 1
+                    
+                    # Riwayat keluarga
+                    if riwayat_keluarga == "Ya": skor += 2
+                    
+                    # Aktivitas fisik
+                    if aktivitas_fisik == "Sedentary": skor += 2
+                    elif aktivitas_fisik == "Ringan": skor += 1
+                    
+                    return skor
+                
+                if st.button("🔄 Hitung Risiko Kardiovaskular"):
+                    skor_risiko = hitung_risiko_kardiovaskular(usia, sistolik, merokok, diabetes, 
+                                                            kolesterol_total, kolesterol_hdl, 
+                                                            riwayat_keluarga, aktivitas_fisik)
+                    
+                    # Interpretasi skor
+                    if skor_risiko <= 4:
+                        risiko = "Rendah"
+                        warna = "green"
+                        rekomendasi_risiko = "Pertahankan gaya hidup sehat"
+                    elif skor_risiko <= 8:
+                        risiko = "Sedang"
+                        warna = "orange"
+                        rekomendasi_risiko = "Perbaiki faktor risiko yang dapat dimodifikasi"
+                    else:
+                        risiko = "Tinggi"
+                        warna = "red"
+                        rekomendasi_risiko = "Konsultasi segera dengan dokter"
+                    
+                    col1, col2 = st.columns(2)
+                    with col1:
+                        st.metric("Skor Risiko", skor_risiko)
+                        st.markdown(f"<h3 style='color: {warna}'>Tingkat Risiko: {risiko}</h3>", 
+                                unsafe_allow_html=True)
+                    with col2:
+                        st.info(f"**Rekomendasi:** {rekomendasi_risiko}")
+                
+                # Section 6: Rekomendasi Kesehatan Personalisasi
+                st.subheader("💡 Rekomendasi Kesehatan Personalisasi")
+                
+                rekomendasi_detail = {
+                    "HYPOTENSION": {
+                        "title": "Rekomendasi untuk Hipotensi",
+                        "rekomendasi": [
+                            "💧 Perbanyak konsumsi air (2-3 liter/hari)",
+                            "🧂 Tingkatkan asupan garam (konsultasi dokter terlebih dahulu)",
+                            "🚶 Lakukan perubahan posisi secara bertahap",
+                        "🍖 Konsumsi makanan kecil lebih sering",
+                            "🏥 Monitor gejala pusing dan lemas"
+                        ]
+                    },
+                    "NORMAL": {
+                        "title": "Pertahankan Tekanan Darah Normal",
+                        "rekomendasi": [
+                            "✅ Lanjutkan pola makan sehat dan seimbang",
+                            "✅ Rutin berolahraga 30 menit/hari",
+                            "✅ Kelola stres dengan baik",
+                            "✅ Pertahankan berat badan ideal",
+                            "✅ Batasi konsumsi alkohol"
+                        ]
+                    },
+                    "ELEVATED": {
+                        "title": "Pencegahan Hipertensi",
+                        "rekomendasi": [
+                            "⚠️ Kurangi konsumsi garam (<5g/hari)",
+                            "⚠️ Tingkatkan aktivitas fisik",
+                            "⚠️ Monitor tekanan darah mingguan",
+                            "⚠️ Batasi kafein dan alkohol",
+                            "⚠️ Kelola stres dengan meditasi/yoga"
+                        ]
+                    },
+                    "HYPERTENSION_STAGE_1": {
+                        "title": "Penanganan Hipertensi Stage 1",
+                        "rekomendasi": [
+                            "🔴 Konsultasi dengan dokter segera",
+                            "🔴 Terapkan diet DASH (Dietary Approaches to Stop Hypertension)",
+                            "🔴 Olahraga aerobik teratur",
+                            "🔴 Berhenti merokok jika perokok",
+                            "🔴 Batasi konsumsi lemak jenuh"
+                        ]
+                    },
+                    "HYPERTENSION_STAGE_2": {
+                        "title": "Penanganan Hipertensi Stage 2",
+                        "rekomendasi": [
+                            "🚨 Segera konsultasi dokter untuk evaluasi pengobatan",
+                            "🚨 Monitor tekanan darah harian",
+                            "🚨 Patuhi regimen pengobatan yang diresepkan",
+                            "🚨 Modifikasi gaya hidup secara ketat",
+                            "🚨 Waspada gejala darurat: sakit kepala berat, nyeri dada"
+                        ]
+                    }
+                }
+                
+                rekom = rekomendasi_detail.get(klasifikasi['kode'], rekomendasi_detail["NORMAL"])
+                
+                col1, col2 = st.columns(2)
+                with col1:
+                    st.subheader(rekom["title"])
+                    for item in rekom["rekomendasi"]:
+                        st.write(f"• {item}")
+                
+                with col2:
+                    # Kalkulator BMI
+                    st.subheader("📊 Indeks Massa Tubuh (BMI)")
+                    tinggi_meter = tinggi_badan / 100
+                    bmi = berat_badan / (tinggi_meter ** 2)
+                    
+                    st.metric("BMI", f"{bmi:.1f}")
+                    
+                    if bmi < 18.5:
+                        st.warning("Underweight - Pertahankan pola makan bergizi")
+                    elif bmi < 25:
+                        st.success("Normal - Pertahankan berat badan ideal")
+                    elif bmi < 30:
+                        st.warning("Overweight - Disarankan menurunkan berat badan")
+                    else:
+                        st.error("Obesitas - Konsultasi dengan ahli gizi")
+                
+                # Section 7: Ekspor Laporan Lengkap
+                st.subheader("📤 Ekspor Laporan Lengkap")
+                
+                col1, col2, col3 = st.columns(3)
+                
+                with col1:
+                    if st.button("📄 Generate Laporan PDF"):
+                        st.success("Laporan PDF berhasil digenerate!")
+                        # Simulasi laporan
+                        laporan_pdf = "Laporan tekanan darah lengkap..."
+                        
+                with col2:
+                    if st.button("📊 Export Data CSV"):
+                        # Simulasi data CSV
+                        data_csv = pd.DataFrame({
+                            'Parameter': ['Sistolik', 'Diastolik', 'Denyut Nadi', 'Kategori'],
+                            'Nilai': [sistolik, diastolik, denyut_nadi, klasifikasi['kategori']],
+                            'Unit': ['mmHg', 'mmHg', 'bpm', '-']
+                        })
+                        st.download_button(
+                            label="Download CSV",
+                            data=data_csv.to_csv(index=False),
+                            file_name="data_tekanan_darah.csv",
+                            mime="text/csv"
+                        )
+                
+                with col3:
+                    if st.button("🖨️ Print Laporan"):
+                        st.info("Fitur print akan membuka dialog print browser")
+                
+                # Section 8: Informasi Medis
+                with st.expander("ℹ️ Informasi Medis Lengkap tentang Tekanan Darah"):
+                    st.markdown("""
+                    ### 📚 Pemahaman Tekanan Darah
+                    
+                    **Tekanan Sistolik:**
+                    - Tekanan maksimum dalam arteri saat jantung berkontraksi
+                    - Mencerminkan kekuatan pompa jantung
+                    - Nilai normal: < 120 mmHg
+                    
+                    **Tekanan Diastolik:**
+                    - Tekanan minimum dalam arteri saat jantung berelaksasi
+                    - Menunjukkan resistensi pembuluh darah perifer
+                    - Nilai normal: < 80 mmHg
+                    
+                    **Klasifikasi Berdasarkan AHA 2023:**
+                    - **Normal:** <120/<80 mmHg
+                    - **Elevated:** 120-129/<80 mmHg  
+                    - **Hipertensi Stage 1:** 130-139/80-89 mmHg
+                    - **Hipertensi Stage 2:** ≥140/≥90 mmHg
+                    - **Krisis Hipertensi:** >180/>120 mmHg
+                    
+                    ### ⚠️ Faktor Risiko Hipertensi
+                    - Usia di atas 65 tahun
+                    - Riwayat keluarga hipertensi
+                    - Kelebihan berat badan
+                    - Kurang aktivitas fisik
+                    - Konsumsi garam berlebihan
+                    - Stres kronis
+                    - Konsumsi alkohol berlebihan
+                    """)
+                
+                # Section 9: Monitoring Harian
+                st.subheader("📝 Log Monitoring Harian")
+                
+                col1, col2 = st.columns(2)
+                with col1:
+                    tanggal_monitoring = st.date_input("Tanggal Monitoring")
+                    waktu_monitoring = st.selectbox("Waktu", ["Pagi", "Siang", "Sore", "Malam"])
+                
+                with col2:
+                    catatan_tambahan = st.text_area("Catatan Tambahan", 
+                                                placeholder="Gejala, aktivitas, atau catatan lain...")
+                
+                if st.button("💾 Simpan Log Harian"):
+                    st.success("Log harian berhasil disimpan!")
+                    
+                # Disclaimer
+                st.markdown("---")
+                st.caption("""
+                ⚠️ **Disclaimer:** Aplikasi ini hanya untuk tujuan informasi dan edukasi. 
+                Tidak menggantikan konsultasi dengan tenaga medis profesional. 
+                Untuk diagnosis dan pengobatan, konsultasikan dengan dokter.
+                """)
+
 
     with tab17:
         st.header("👤 Analisis Wajah Lengkap dengan OpenCV")
@@ -18784,15 +20353,35 @@ if __name__ == "__main__":
             """)
         
         with col2:
-            st.image("https://cdn-icons-png.flaticon.com/512/3135/3135715.png", 
-                    width=150, caption="Dwi Bakti N Dev")
+            st.markdown(
+                """
+                <div style="text-align:center;">
+                    <img src="https://github.com/DwiDevelopes/gambar/raw/main/dwi%20bakti%20n%20dev.jpeg"
+                        style="
+                            width:150px; 
+                            height:150px; 
+                            object-fit:cover; 
+                            border-radius:50%; 
+                            border:2px solid #ddd;
+                            margin-bottom: 8px;
+                        "
+                    />
+                    <div style="font-size:14px; color:#555; font-weight:500;">
+                        Dwi Bakti N Dev
+                    </div>
+                </div>
+                """,
+                unsafe_allow_html=True
+            )
+
+
         
         # Fitur Utama dengan cards
         st.markdown("### ⭐ Fitur Utama")
         col1, col2, col3, col4 = st.columns(4)
         
         with col1:
-            st.info("**📐 Analisis Statistik**\n\nMean, Median, Modus, Standar Deviasi")
+            st.info("**📐 Analisis Statistik**\n\nMean, Median, Modus, Etc.")
         
         with col2:
             st.success("**🎨 Visualisasi Interaktif**\n\nChart dan Grafik Real-time")
@@ -19173,7 +20762,7 @@ if __name__ == "__main__":
         with col3:
             st.markdown("""
             ### 🔄 Update
-            - Versi terbaru: 2.3.8
+            - Versi terbaru: 3.7.8
             - Rilis: Oktober 2025
             - Last updated: 2025
             - Compatibility: Python 3.8+
@@ -20243,7 +21832,7 @@ st.markdown("""
     <p style="margin: 15px 0 5px 0; font-style: italic;">Dikembangkan dengan ❤️ oleh:</p>
     <p style="margin: 0; font-weight: bold; color: #636EFA; font-size: 16px;">Dwi Bakti N Dev</p>
     <p style="margin: 5px 0; font-size: 12px;">Data Scientist & Business Intelligence Developer</p>
-    <p style="margin: 5px 0; font-size: 12px;">V3.5.7 Streamlit Launcher</p>
+    <p style="margin: 5px 0; font-size: 12px;">V3.7.8 Streamlit Launcher</p>
     <p style="margin: 5px 0; font-size: 12px;">🍰 <a href="https://pypi.org/project/streamlit-launcher/" target="_blank">Python Install Offline Streamlit Launcher</a></p>
 </div>
 """, unsafe_allow_html=True)
