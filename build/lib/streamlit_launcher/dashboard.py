@@ -4255,6 +4255,7 @@ def create_diamond_chart_ultralight(df, numeric_cols, non_numeric_cols):
         st.info(f"Ultra-Light Diamond Mode: {len(display_df):,} points")
 
 def create_scatter_plot(df, numeric_cols, non_numeric_cols):
+    """Membuat scatter plot dengan optimasi dan analisis statistik lengkap"""
     
     # Deteksi ukuran data
     data_size = len(df)
@@ -4330,8 +4331,8 @@ def create_scatter_plot(df, numeric_cols, non_numeric_cols):
                 
                 st.plotly_chart(fig, use_container_width=True, config=config)
                 
-                # Tampilkan statistik korelasi
-                display_correlation_stats(plot_data, x_col, y_col)
+                # Tampilkan statistik korelasi dengan confidence interval lengkap
+                display_comprehensive_correlation_stats(plot_data, x_col, y_col)
                 
                 # Tampilkan info optimasi
                 show_scatter_optimization_info(data_size, len(plot_data), optimization_mode)
@@ -4340,6 +4341,1005 @@ def create_scatter_plot(df, numeric_cols, non_numeric_cols):
             st.error(f"Error membuat scatter plot: {str(e)}")
             # Fallback ke metode sederhana
             create_simple_scatter_fallback(df, x_col, y_col, color_col)
+            
+import pandas as pd
+import streamlit as st
+from mlxtend.frequent_patterns import apriori, association_rules
+from mlxtend.preprocessing import TransactionEncoder
+import numpy as np
+from scipy import stats
+
+def calculate_descriptive_stats_with_ci(data):
+    """Menghitung statistik deskriptif dengan confidence interval 95%"""
+    n = len(data)
+    mean = np.mean(data)
+    std_err = stats.sem(data)
+    ci = stats.t.interval(0.95, n-1, loc=mean, scale=std_err)
+    ci_margin = (ci[1] - ci[0]) / 2
+    
+    return {
+        'mean': mean,
+        'ci_lower': ci[0],
+        'ci_upper': ci[1],
+        'ci_margin': ci_margin
+    }
+
+def prepare_data_for_association_rules(data, x_col, y_col, n_bins=3):
+    """
+    Siapkan data untuk association rules analysis dengan mempertahankan tanggal
+    """
+    # Buat salinan data
+    processed_data = data.copy()
+    
+    # Bin variabel numerik
+    processed_data[f'{x_col}_bin'] = pd.cut(processed_data[x_col], bins=n_bins, labels=[f'{x_col}_bin_{i}' for i in range(n_bins)])
+    processed_data[f'{y_col}_bin'] = pd.cut(processed_data[y_col], bins=n_bins, labels=[f'{y_col}_bin_{i}' for i in range(n_bins)])
+    
+    # Buat transactions untuk association rules
+    transactions = []
+    for idx, row in processed_data.iterrows():
+        transaction = []
+        transaction.append(str(row[f'{x_col}_bin']))
+        transaction.append(str(row[f'{y_col}_bin']))
+        transactions.append(transaction)
+    
+    # Kembalikan transactions dan data lengkap dengan binned columns
+    return transactions, processed_data
+
+def calculate_association_metrics(transactions, antecedents, consequents):
+    """
+    Menghitung metrics association rules menggunakan mlxtend
+    """
+    # Transaction encoder
+    te = TransactionEncoder()
+    te_ary = te.fit(transactions).transform(transactions)
+    df_encoded = pd.DataFrame(te_ary, columns=te.columns_)
+    
+    # Mining frequent itemsets
+    frequent_itemsets = apriori(df_encoded, min_support=0.1, use_colnames=True)
+    
+    if len(frequent_itemsets) == 0:
+        raise ValueError("Tidak ada frequent itemsets yang ditemukan. Coba turunkan min_support.")
+    
+    # Generate association rules
+    rules = association_rules(frequent_itemsets, metric="confidence", min_threshold=0.1)
+    
+    if len(rules) == 0:
+        raise ValueError("Tidak ada association rules yang ditemukan. Coba turunkan min_threshold.")
+    
+    # Cari rule yang sesuai dengan antecedents dan consequents
+    target_rule = None
+    for _, rule in rules.iterrows():
+        if set(antecedents).issubset(rule['antecedents']) and set(consequents).issubset(rule['consequents']):
+            target_rule = rule
+            break
+    
+    if target_rule is None:
+        # Jika tidak ditemukan exact match, gunakan rule dengan confidence tertinggi
+        target_rule = rules.iloc[rules['confidence'].idxmax()]
+        st.info(f"Menggunakan rule dengan confidence tertinggi: {set(target_rule['antecedents'])} -> {set(target_rule['consequents'])}")
+    
+    return {
+        'support': target_rule['support'],
+        'confidence': target_rule['confidence'],
+        'lift': target_rule['lift'],
+        'leverage': target_rule['leverage'],
+        'conviction': target_rule['conviction'],
+        'antecedents': set(target_rule['antecedents']),
+        'consequents': set(target_rule['consequents'])
+    }
+
+def display_comprehensive_correlation_stats(plot_data, x_col, y_col):
+    """Tampilkan statistik korelasi dengan confidence interval lengkap dan detail"""
+    
+    with st.expander("📊 Analisis Statistik Lengkap dengan Confidence Intervals", expanded=True):
+        
+        if len(plot_data) < 3:
+            st.warning("⚠️ Data tidak cukup untuk analisis statistik (minimal 3 observasi)")
+            return
+            
+        try:
+            # Hitung korelasi Pearson dan confidence interval
+            correlation, p_value, ci_lower, ci_upper, se = calculate_correlation_with_ci(plot_data[x_col], plot_data[y_col])
+            n = len(plot_data)
+            
+            # Header dengan ringkasan utama
+            col1, col2, col3, col4= st.columns(4)
+            
+            with col1:
+                st.metric(
+                    "Korelasi Pearson (r)", 
+                    f"{correlation:.4f}",
+                    delta=f"p-value: {p_value:.4f}" if p_value < 0.05 else None,
+                    delta_color="normal" if p_value < 0.05 else "off"
+                )
+                st.caption(f"95% CI: [{ci_lower:.4f}, {ci_upper:.4f}]")
+            
+            with col2:
+                # Interpretasi kekuatan korelasi
+                strength, strength_color, strength_desc = interpret_correlation_strength(correlation)
+                st.metric("Kekuatan Korelasi", strength)
+                st.caption(strength_desc)
+            
+            with col3:
+                # Arah korelasi
+                direction, direction_color, direction_desc = interpret_correlation_direction(correlation, p_value)
+                st.metric("Arah & Signifikansi", direction)
+                st.caption(direction_desc)
+            
+            with col4:
+                # Effect size berdasarkan Cohen's guidelines
+                effect_size, effect_desc, effect_color = calculate_effect_size(correlation)
+                st.metric("Effect Size", effect_desc)
+                st.caption(f"|r| = {effect_size:.3f}")
+                
+
+            # MAIN CODE
+            st.subheader("📊 Statistik Deskriptif")
+
+            col1, col2, col3, col4, col5 = st.columns(5)
+            with col1:
+                st.metric("Minimum", f"{plot_data[x_col].min():.4f}")
+                st.metric("Maximum", f"{plot_data[x_col].max():.4f}")
+            with col2:
+                st.metric("Variance X", f"{plot_data[x_col].var():.4f}")
+                st.metric("Variance Y", f"{plot_data[y_col].var():.4f}")
+            with col3:
+                st.metric("Kurtosis X", f"{plot_data[x_col].kurt():.4f}")
+                st.metric("Kurtosis Y", f"{plot_data[y_col].kurt():.4f}")
+            with col4:
+                st.metric("Median X", f"{plot_data[x_col].median():.4f}")
+                st.metric("Median Y", f"{plot_data[y_col].median():.4f}")
+            with col5:
+                st.metric("Skewness X", f"{plot_data[x_col].skew():.4f}") 
+                st.metric("Skewness Y", f"{plot_data[y_col].skew():.4f}")
+
+            # STATISTIK DESKRIPTIF DENGAN CONFIDENCE INTERVALS
+            st.subheader("📈 Statistik Deskriptif dengan Confidence Intervals (95%)")
+
+            col5, col6, col7, col8 = st.columns(4)
+
+            with col5:
+                st.metric("Jumlah Observasi", f"{n:,}")
+                st.caption("Data valid setelah cleaning")
+
+            with col6:
+                x_stats = calculate_descriptive_stats_with_ci(plot_data[x_col])
+                st.metric(
+                    f"Rata-rata {x_col}", 
+                    f"{x_stats['mean']:.4f}",
+                    delta=f"±{x_stats['ci_margin']:.4f}"
+                )
+                st.caption(f"CI: [{x_stats['ci_lower']:.4f}, {x_stats['ci_upper']:.4f}]")
+
+            with col7:
+                y_stats = calculate_descriptive_stats_with_ci(plot_data[y_col])
+                st.metric(
+                    f"Rata-rata {y_col}", 
+                    f"{y_stats['mean']:.4f}",
+                    delta=f"±{y_stats['ci_margin']:.4f}"
+                )
+                st.caption(f"CI: [{y_stats['ci_lower']:.4f}, {y_stats['ci_upper']:.4f}]")
+
+            with col8:
+                r_squared = correlation ** 2
+                st.metric("R-squared (R²)", f"{r_squared:.4f}")
+                st.caption(f"Varians yang dijelaskan: {r_squared*100:.2f}%")
+
+                
+
+
+
+                
+            
+            # INFORMASI DETIL CONFIDENCE INTERVAL
+            st.markdown("---")
+            st.subheader("🎯 Analisis Detail Confidence Interval")
+            
+            display_ci_analysis(correlation, ci_lower, ci_upper, n, p_value)
+            
+            # METRIK TAMBAHAN DAN UJI STATISTIK
+            st.markdown("---")
+            st.subheader("🔬 Metrik Statistik Tambahan")
+            
+            col9, col10, col11, col12 = st.columns(4)
+            
+            with col9:
+                # Standard error
+                st.metric("Standard Error (r)", f"{se:.6f}")
+                st.caption("Ketidakpastian estimasi korelasi")
+            
+            with col10:
+                # Statistical power
+                power = calculate_statistical_power(correlation, n)
+                power_color = "green" if power > 0.8 else "orange" if power > 0.5 else "red"
+                st.metric("Statistical Power", f"{power:.3f}")
+                st.caption(f"Kemampuan deteksi efek")
+            
+            with col11:
+                # Confidence interval width
+                ci_width = ci_upper - ci_lower
+                st.metric("Lebar CI", f"{ci_width:.4f}")
+                st.caption("Presisi estimasi")
+            
+            with col12:
+                # Required sample size untuk power 80%
+                required_n = calculate_required_sample_size(correlation)
+                st.metric("Sample Ideal", f"{required_n:,}")
+                st.caption("Untuk power 80%")
+            
+            # INTERPRETASI VISUAL CONFIDENCE INTERVAL
+            st.markdown("---")
+            st.subheader("📊 Visualisasi Confidence Interval")
+            
+            # Buat visualisasi CI
+            fig_ci = create_ci_visualization(correlation, ci_lower, ci_upper, p_value)
+            st.plotly_chart(fig_ci, use_container_width=True)
+            
+            # REKOMENDASI DAN IMPLIKASI
+            st.markdown("---")
+            st.subheader("💡 Rekomendasi dan Implikasi Praktis")
+            
+            display_practical_recommendations(correlation, ci_lower, ci_upper, p_value, n, power)
+            
+            
+            st.markdown("---")
+            st.header("📈 Analisis Korelasi")
+
+            # Buat dua kolom utama
+            left_col, right_col = st.columns(2)
+
+            with left_col:
+                try:
+                    # Hitung korelasi
+                    correlation = plot_data[x_col].corr(plot_data[y_col])
+
+                    # Baris pertama metrik
+                    c1, c2, c3 = st.columns(3)
+                    with c1:
+                        st.metric("Korelasi Pearson", f"{correlation:.3f}")
+
+                    with c2:
+                        # Interpretasi kekuatan korelasi
+                        if abs(correlation) < 0.3:
+                            strength = "Lemah"
+                        elif abs(correlation) < 0.7:
+                            strength = "Sedang"
+                        else:
+                            strength = "Kuat"
+                        st.metric("Kekuatan", strength)
+
+                    with c3:
+                        # Arah korelasi
+                        direction = "Positif" if correlation > 0 else "Negatif"
+                        st.metric("Arah", direction)
+
+                    # Baris kedua metrik
+                    c4, c5, c6 = st.columns(3)
+                    with c4:
+                        st.metric("Jumlah Titik", len(plot_data))
+                    with c5:
+                        st.metric(f"Rata2 {x_col}", f"{plot_data[x_col].mean():.2f}")
+                    with c6:
+                        st.metric(f"Rata2 {y_col}", f"{plot_data[y_col].mean():.2f}")
+
+                except Exception as e:
+                    st.warning(f"Tidak dapat menghitung korelasi: {str(e)}")
+
+            with right_col:
+                try:
+                    st.subheader("📊 Association Rules Metrics")
+                    
+                    # Siapkan data untuk association rules
+                    transactions, binned_data = prepare_data_for_association_rules(plot_data, x_col, y_col)
+                    
+                    # Tentukan antecedents dan consequents (gunakan bins pertama sebagai contoh)
+                    antecedents = [f'{x_col}_bin_0']  # Bin pertama dari variabel X
+                    consequents = [f'{y_col}_bin_0']  # Bin pertama dari variabel Y
+                    
+                    # Hitung metrics association rules
+                    assoc_metrics = calculate_association_metrics(transactions, antecedents, consequents)
+                    
+                    # Baris 1: Antecedents & Consequents
+                    a1, a2 = st.columns(2)
+                    with a1:
+                        st.metric("Antecedents (A)", str(assoc_metrics['antecedents']))
+                    with a2:
+                        st.metric("Consequents (B)", str(assoc_metrics['consequents']))
+
+                    # Baris 2: Support & Confidence
+                    b1, b2 = st.columns(2)
+                    with b1:
+                        st.metric("Support", f"{assoc_metrics['support']:.3f}")
+                        st.caption("Frekuensi A dan B bersama")
+                    with b2:
+                        st.metric("Confidence", f"{assoc_metrics['confidence']:.3f}")
+                        st.caption("P(B|A)")
+
+                    # Baris 3: Lift
+                    c1, c2 = st.columns(2)
+                    with c1:
+                        st.metric("Lift", f"{assoc_metrics['lift']:.3f}")
+                        st.caption("Kekuatan asosiasi")
+                    with c2:
+                        leverage_count = assoc_metrics['leverage'] * len(plot_data)
+                        st.metric("Hitungan Leverage", f"{leverage_count:.2f}")
+
+                    # Baris 4: Leverage & Conviction
+                    d1, d2 = st.columns(2)
+                    with d1:
+                        st.metric("Leverage", f"{assoc_metrics['leverage']:.5f}")
+                        st.caption("Perbedaan observasi vs ekspektasi")
+                    with d2:
+                        st.metric("Conviction", f"{assoc_metrics['conviction']:.3f}")
+                        st.caption("Seberapa sering rule salah")
+
+                except Exception as e:
+                    st.warning(f"Tidak dapat menampilkan metrik asosiasi: {str(e)}")
+                    st.info("Pastikan dataset cukup besar dan memiliki variasi data yang memadai.")
+
+            # PENJELASAN METRIK - DIPINDAHKAN KE LUAR KOLOM
+            st.subheader("ℹ️ Penjelasan Metrik")
+
+            # Buat tabs untuk penjelasan yang berbeda
+            tab1, tab2 = st.tabs(["Association Rules", "Korelasi"])
+
+            with tab1:
+                st.markdown("""
+                **Penjelasan Metrik Association Rules:**
+                
+                - **Support**: Frekuensi kemunculan itemset A dan B bersama-sama
+                - **Confidence**: Probabilitas B diberikan A (P(B|A))
+                - **Lift**: Seberapa sering A dan B muncul bersama dibanding ekspektasi acak
+                - Lift = 1: A dan B independen
+                - Lift > 1: A dan B berasosiasi positif
+                - Lift < 1: A dan B berasosiasi negatif
+                - **Leverage**: Perbedaan antara observasi dan ekspektasi jika independen
+                - **Conviction**: Mengukur seberapa sering rule membuat prediksi yang salah
+                """)
+
+            with tab2:
+                st.markdown("""
+                **Penjelasan Korelasi Pearson:**
+                
+                - **Kekuatan**:
+                - 0.0 - 0.3: Korelasi lemah
+                - 0.3 - 0.7: Korelasi sedang  
+                - 0.7 - 1.0: Korelasi kuat
+                - **Arah**:
+                - Positif: Ketika X meningkat, Y juga meningkat
+                - Negatif: Ketika X meningkat, Y menurun
+                """)
+
+            # DATA BINNED - DIPINDAHKAN KE LUAR KOLOM
+            st.subheader("🔍 Data Binned untuk Association Rules")
+
+            try:
+                # Buat DataFrame yang menampilkan data asli dan binned
+                display_data = plot_data.copy()
+                
+                # Tambahkan kolom binned ke display_data
+                if 'binned_data' in locals() and binned_data is not None:
+                    # Gabungkan data binned dengan data asli
+                    for col in binned_data.columns:
+                        if col.endswith('_bin'):
+                            # Cari kolom asli yang sesuai
+                            original_col = col.replace('_bin', '')
+                            if original_col in display_data.columns:
+                                display_data[f'{original_col}_bin'] = binned_data[col]
+                    
+                    # Tampilkan data dengan kolom yang relevan
+                    cols_to_show = []
+                    
+                    # Prioritaskan kolom tanggal jika ada
+                    date_cols = display_data.select_dtypes(include=['datetime64']).columns
+                    if len(date_cols) > 0:
+                        cols_to_show.extend(date_cols.tolist())
+                    
+                    # Tambahkan kolom asli dan binned
+                    cols_to_show.extend([x_col, f'{x_col}_bin', y_col, f'{y_col}_bin'])
+                    
+                    # Hapus duplikat dan pastikan kolom ada
+                    cols_to_show = [col for col in set(cols_to_show) if col in display_data.columns]
+                    
+                    st.dataframe(display_data[cols_to_show].head(10))
+                    
+                    # Tampilkan info tentang binning
+                    st.info("**Keterangan Binning:**")
+                    st.write(f"- `{x_col}_bin`: Nilai binned untuk {x_col}")
+                    st.write(f"- `{y_col}_bin`: Nilai binned untuk {y_col}")
+                    st.write("Binning digunakan untuk mengelompokkan nilai numerik menjadi kategori untuk analisis association rules.")
+                    
+                else:
+                    st.warning("Data binned tidak tersedia")
+
+            except Exception as e:
+                st.error(f"❌ Error dalam analisis association rules: {str(e)}")
+        except Exception as e:
+            st.error(f"❌ Error dalam perhitungan statistik: {str(e)}")
+
+def calculate_correlation_with_ci(x, y, confidence=0.95):
+    """Hitung korelasi Pearson dengan confidence interval menggunakan Fisher Z transformation"""
+    
+    n = len(x)
+    if n <= 2:
+        raise ValueError("Sample size terlalu kecil untuk perhitungan CI")
+    
+    # Korelasi Pearson dan p-value
+    correlation, p_value = stats.pearsonr(x, y)
+    
+    # Fisher Z transformation
+    z = np.arctanh(correlation)
+    z_se = 1 / math.sqrt(n - 3)
+    
+    # Z-score untuk confidence level
+    z_score = stats.norm.ppf((1 + confidence) / 2)
+    
+    # Confidence interval dalam Z space
+    z_lower = z - z_score * z_se
+    z_upper = z + z_score * z_se
+    
+    # Transform back to correlation space
+    ci_lower = np.tanh(z_lower)
+    ci_upper = np.tanh(z_upper)
+    
+    return correlation, p_value, ci_lower, ci_upper, z_se
+
+def calculate_descriptive_stats_with_ci(data, confidence=0.95):
+    """Hitung statistik deskriptif dengan confidence interval untuk mean"""
+    
+    n = len(data)
+    mean = np.mean(data)
+    std = np.std(data, ddof=1)  # Sample standard deviation
+    sem = stats.sem(data)  # Standard error of the mean
+    
+    # T-score untuk confidence interval
+    if n > 1:
+        t_score = stats.t.ppf((1 + confidence) / 2, n - 1)
+        margin_of_error = t_score * sem
+        ci_lower = mean - margin_of_error
+        ci_upper = mean + margin_of_error
+    else:
+        margin_of_error = 0
+        ci_lower = ci_upper = mean
+    
+    return {
+        'mean': mean,
+        'std': std,
+        'sem': sem,
+        'ci_lower': ci_lower,
+        'ci_upper': ci_upper,
+        'ci_margin': margin_of_error,
+        'n': n
+    }
+
+def interpret_correlation_strength(correlation):
+    """Interpretasi kekuatan korelasi berdasarkan berbagai guidelines"""
+    
+    abs_corr = abs(correlation)
+    
+    if abs_corr >= 0.9:
+        return "Sangat Kuat", "green", "Hubungan hampir sempurna"
+    elif abs_corr >= 0.7:
+        return "Kuat", "green", "Hubungan kuat"
+    elif abs_corr >= 0.5:
+        return "Moderat", "blue", "Hubungan sedang"
+    elif abs_corr >= 0.3:
+        return "Lemah", "orange", "Hubungan lemah"
+    elif abs_corr >= 0.1:
+        return "Sangat Lemah", "red", "Hubungan sangat lemah"
+    else:
+        return "Dapat abaikan", "gray", "Tidak ada hubungan praktis"
+
+def interpret_correlation_direction(correlation, p_value):
+    """Interpretasi arah dan signifikansi korelasi"""
+    
+    if p_value > 0.05:
+        return "Tidak Signifikan", "gray", "p > 0.05: Tidak signifikan secara statistik"
+    elif correlation > 0:
+        return "Positif ↗", "green", f"p = {p_value:.4f}: Hubungan positif signifikan"
+    else:
+        return "Negatif ↘", "red", f"p = {p_value:.4f}: Hubungan negatif signifikan"
+
+def calculate_effect_size(correlation):
+    """Hitung effect size berdasarkan Cohen's guidelines"""
+    
+    abs_corr = abs(correlation)
+    
+    if abs_corr >= 0.5:
+        return abs_corr, "Besar", "green"
+    elif abs_corr >= 0.3:
+        return abs_corr, "Sedang", "blue"
+    elif abs_corr >= 0.1:
+        return abs_corr, "Kecil", "orange"
+    else:
+        return abs_corr, "Sangat Kecil", "red"
+
+def calculate_statistical_power(correlation, n, alpha=0.05):
+    """Hitung statistical power untuk korelasi"""
+    
+    # Effect size berdasarkan Cohen's conventions
+    effect_size = abs(correlation)
+    
+    # Degrees of freedom
+    df = n - 2
+    
+    # Non-centrality parameter
+    ncp = effect_size * math.sqrt(df)
+    
+    # Critical t-value
+    t_critical = stats.t.ppf(1 - alpha/2, df)
+    
+    # Power calculation
+    power = 1 - stats.nct.cdf(t_critical, df, ncp) + stats.nct.cdf(-t_critical, df, ncp)
+    
+    return power
+
+def calculate_required_sample_size(correlation, power=0.8, alpha=0.05):
+    """Hitung required sample size untuk mencapai power tertentu"""
+    
+    effect_size = abs(correlation)
+    if effect_size == 0:
+        return float('inf')
+    
+    # Using Cohen's power tables approximation
+    z_alpha = stats.norm.ppf(1 - alpha/2)
+    z_beta = stats.norm.ppf(power)
+    
+    # Formula for correlation sample size
+    n_required = ((z_alpha + z_beta) / (0.5 * math.log((1 + effect_size)/(1 - effect_size)))) ** 2 + 3
+    
+    return int(np.ceil(n_required))
+
+def display_ci_analysis(correlation, ci_lower, ci_upper, n, p_value):
+    """Tampilkan analisis detail confidence interval"""
+    
+    ci_width = ci_upper - ci_lower
+    
+    col1, col2 = st.columns(2)
+    
+    with col1:
+        st.markdown("**📐 Analisis Teknis:**")
+        
+        # Presisi estimasi
+        if ci_width < 0.1:
+            precision = "Tinggi"
+            precision_color = "green"
+            precision_icon = "✅"
+        elif ci_width < 0.3:
+            precision = "Sedang"
+            precision_color = "orange"
+            precision_icon = "⚠️"
+        else:
+            precision = "Rendah"
+            precision_color = "red"
+            precision_icon = "❌"
+        
+        st.markdown(f"{precision_icon} **Presisi Estimasi**: :{precision_color}[{precision}]")
+        st.markdown(f"   - Lebar CI: `{ci_width:.4f}`")
+        st.markdown(f"   - Margin of Error: `±{(ci_width/2):.4f}`")
+        
+        # Signifikansi statistik
+        if ci_lower > 0 or ci_upper < 0:
+            significance = "Signifikan secara statistik"
+            sig_color = "green"
+            sig_icon = "✅"
+        else:
+            significance = "Tidak signifikan"
+            sig_color = "red"
+            sig_icon = "❌"
+        
+        st.markdown(f"{sig_icon} **Signifikansi**: :{sig_color}[{significance}]")
+        st.markdown(f"   - p-value: `{p_value:.6f}`")
+        st.markdown(f"   - α = 0.05: {'p < 0.05' if p_value < 0.05 else 'p ≥ 0.05'}")
+        
+        # Kualitas estimasi
+        st.markdown("**📊 Kualitas Estimasi:**")
+        st.markdown(f"- Standard Error: `{1/math.sqrt(n-3):.6f}`")
+        st.markdown(f"- Degrees of Freedom: `{n-2}`")
+        st.markdown(f"- Confidence Level: `95%`")
+    
+    with col2:
+        st.markdown("**🔍 Interpretasi Praktis:**")
+        
+        # Kekuatan bukti
+        if ci_lower > 0.7 or ci_upper < -0.7:
+            evidence = "Bukti sangat kuat"
+            evidence_color = "green"
+            evidence_icon = "🎯"
+        elif ci_lower > 0.5 or ci_upper < -0.5:
+            evidence = "Bukti kuat"
+            evidence_color = "green"
+            evidence_icon = "✅"
+        elif ci_lower > 0.3 or ci_upper < -0.3:
+            evidence = "Bukti moderat"
+            evidence_color = "blue"
+            evidence_icon = "📊"
+        elif ci_lower > 0.1 or ci_upper < -0.1:
+            evidence = "Bukti lemah"
+            evidence_color = "orange"
+            evidence_icon = "⚠️"
+        else:
+            evidence = "Tidak ada bukti hubungan yang jelas"
+            evidence_color = "red"
+            evidence_icon = "❌"
+        
+        st.markdown(f"{evidence_icon} **Kekuatan Bukti**: :{evidence_color}[{evidence}]")
+        
+        # Arah yang konsisten
+        if ci_lower > 0 and ci_upper > 0:
+            direction_consistent = "Positif konsisten"
+            dir_icon = "↗️"
+        elif ci_lower < 0 and ci_upper < 0:
+            direction_consistent = "Negatif konsisten"
+            dir_icon = "↘️"
+        else:
+            direction_consistent = "Arah tidak pasti"
+            dir_icon = "↔️"
+        
+        st.markdown(f"{dir_icon} **Konsistensi Arah**: {direction_consistent}")
+        
+        # Rekomendasi sample size
+        if ci_width > 0.4:
+            rec_sample = "Sangat direkomendasikan sample lebih besar"
+            rec_color = "red"
+            rec_icon = "🚨"
+        elif ci_width > 0.2:
+            rec_sample = "Dianjurkan sample lebih besar"
+            rec_color = "orange"
+            rec_icon = "⚠️"
+        else:
+            rec_sample = "Sample size memadai"
+            rec_color = "green"
+            rec_icon = "✅"
+        
+        st.markdown(f"{rec_icon} **Rekomendasi Sample**: :{rec_color}[{rec_sample}]")
+        
+        # Interpretasi klinis/praktis
+        st.markdown("**💼 Implikasi Praktis:**")
+        if abs(correlation) < 0.1 or (ci_lower < 0 and ci_upper > 0):
+            st.markdown("- Tidak ada hubungan yang bermakna secara praktis")
+        elif abs(correlation) < 0.3:
+            st.markdown("- Hubungan lemah, dampak praktis terbatas")
+        elif abs(correlation) < 0.5:
+            st.markdown("- Hubungan moderat, pertimbangkan dalam keputusan")
+        else:
+            st.markdown("- Hubungan kuat, relevan untuk pengambilan keputusan")
+
+def create_ci_visualization(correlation, ci_lower, ci_upper, p_value):
+    """Buat visualisasi confidence interval"""
+    
+    fig = go.Figure()
+    
+    # Titik estimasi korelasi
+    fig.add_trace(go.Scatter(
+        x=[correlation],
+        y=[1],
+        mode='markers',
+        marker=dict(size=15, color='red'),
+        name=f'Estimasi Korelasi (r = {correlation:.3f})',
+        hovertemplate='Korelasi: %{x:.3f}<extra></extra>'
+    ))
+    
+    # Confidence interval
+    fig.add_trace(go.Scatter(
+        x=[ci_lower, ci_upper],
+        y=[1, 1],
+        mode='lines',
+        line=dict(color='blue', width=4),
+        name=f'95% CI [{ci_lower:.3f}, {ci_upper:.3f}]',
+        hovertemplate='CI Bound: %{x:.3f}<extra></extra>'
+    ))
+    
+    # Area no effect (nol)
+    fig.add_vline(x=0, line_dash="dash", line_color="gray", 
+                  annotation_text="No Effect", 
+                  annotation_position="top left")
+    
+    fig.update_layout(
+        title="Visualisasi Confidence Interval Korelasi",
+        xaxis_title="Nilai Korelasi (r)",
+        yaxis=dict(showticklabels=False),
+        height=200,
+        margin=dict(l=50, r=50, t=60, b=50),
+        showlegend=True
+    )
+    
+    # Tambahkan annotasi untuk interpretasi
+    if p_value < 0.05:
+        significance_text = "Signifikan (p < 0.05)"
+    else:
+        significance_text = "Tidak Signifikan (p ≥ 0.05)"
+    
+    fig.add_annotation(
+        x=0.5,
+        y=0.5,
+        xref="paper",
+        yref="paper",
+        text=significance_text,
+        showarrow=False,
+        font=dict(size=12, color="black"),
+        bgcolor="white",
+        bordercolor="black",
+        borderwidth=1
+    )
+    
+    return fig
+
+def display_practical_recommendations(correlation, ci_lower, ci_upper, p_value, n, power):
+    """Tampilkan rekomendasi praktis berdasarkan analisis"""
+    
+    col1, col2 = st.columns(2)
+    
+    with col1:
+        st.markdown("**🎯 Rekomendasi Statistik:**")
+        
+        if p_value > 0.05:
+            st.markdown("- ❌ **Tolak hipotesis alternatif** - tidak cukup bukti")
+            st.markdown("- 🔍 **Pertimbangkan** meningkatkan sample size")
+            st.markdown("- 📊 **Evaluasi** apakah effect size cukup besar secara praktis")
+        else:
+            st.markdown("- ✅ **Terima hipotesis alternatif** - hubungan signifikan")
+            
+            if power < 0.8:
+                st.markdown("- ⚠️ **Power rendah** - risiko Type II error")
+            else:
+                st.markdown("- ✅ **Power memadai** - deteksi efek reliable")
+            
+            if abs(correlation) < 0.3:
+                st.markdown("- 📉 **Effect size kecil** - pertimbangkan signifikansi praktis")
+            elif abs(correlation) < 0.5:
+                st.markdown("- 📊 **Effect size sedang** - hasil meaningful")
+            else:
+                st.markdown("- 📈 **Effect size besar** - hasil kuat")
+    
+    with col2:
+        st.markdown("**🚀 Rekomendasi Tindakan:**")
+        
+        ci_width = ci_upper - ci_lower
+        
+        if ci_width > 0.4:
+            st.markdown("- 🎯 **Prioritas**: Kumpulkan lebih banyak data")
+            st.markdown("- 📝 **Tindakan**: Tingkatkan sample size 2-3x")
+            st.markdown("- ⏰ **Timeline**: Evaluasi ulang setelah pengumpulan data")
+        elif ci_width > 0.2:
+            st.markdown("- 🎯 **Prioritas**: Validasi dengan data tambahan")
+            st.markdown("- 📝 **Tindakan**: Pertimbangkan replicate study")
+            st.markdown("- ⏰ **Timeline**: Monitoring berkelanjutan")
+        else:
+            st.markdown("- 🎯 **Prioritas**: Implementasi temuan")
+            st.markdown("- 📝 **Tindakan**: Gunakan untuk pengambilan keputusan")
+            st.markdown("- ⏰ **Timeline**: Aksi segera berdasarkan hasil")
+        
+        if abs(correlation) > 0.7:
+            st.markdown("- 💪 **Korelasi kuat** - dapat diandalkan untuk prediksi")
+        elif abs(correlation) > 0.5:
+            st.markdown("- 👍 **Korelasi moderat** - berguna untuk insight")
+        else:
+            st.markdown("- 🤔 **Korelasi lemah** - hati-hati dalam interpretasi")
+
+def optimize_scatter_data(df, x_col, y_col, color_col, data_size, optimization_mode, max_points):
+    """Optimasi data untuk scatter plot dengan sampling yang tepat"""
+    columns_needed = [x_col, y_col]
+    if color_col:
+        columns_needed.append(color_col)
+    
+    # Filter data yang valid
+    plot_data = df[columns_needed].dropna()
+    
+    if len(plot_data) == 0:
+        return plot_data
+    
+    # Tentukan target sample size
+    target_sizes = {
+        "Auto": min(max_points, data_size),
+        "Fast": min(3000, data_size),
+        "Balanced": min(10000, data_size),
+        "Detailed": min(20000, data_size)
+    }
+    
+    target_size = target_sizes[optimization_mode]
+    
+    # Jika data lebih besar dari target, lakukan sampling
+    if len(plot_data) > target_size:
+        if optimization_mode == "Fast":
+            # Systematic sampling untuk performa maksimal
+            step = len(plot_data) // target_size
+            sampled_data = plot_data.iloc[::step]
+        elif optimization_mode == "Balanced":
+            # Stratified sampling berdasarkan quadrant
+            try:
+                x_median = plot_data[x_col].median()
+                y_median = plot_data[y_col].median()
+                
+                # Bagi data menjadi 4 quadrant
+                quadrants = [
+                    (plot_data[x_col] <= x_median) & (plot_data[y_col] <= y_median),
+                    (plot_data[x_col] <= x_median) & (plot_data[y_col] > y_median),
+                    (plot_data[x_col] > x_median) & (plot_data[y_col] <= y_median),
+                    (plot_data[x_col] > x_median) & (plot_data[y_col] > y_median)
+                ]
+                
+                samples_per_quadrant = target_size // 4
+                sampled_dfs = []
+                
+                for quadrant in quadrants:
+                    quadrant_data = plot_data[quadrant]
+                    if len(quadrant_data) > 0:
+                        sample_size = min(samples_per_quadrant, len(quadrant_data))
+                        sampled_dfs.append(quadrant_data.sample(n=sample_size, random_state=42))
+                
+                sampled_data = pd.concat(sampled_dfs, ignore_index=True)
+                
+                # Jika masih kurang, tambahkan random sampling
+                if len(sampled_data) < target_size:
+                    remaining = target_size - len(sampled_data)
+                    additional_samples = plot_data.sample(n=remaining, random_state=42)
+                    sampled_data = pd.concat([sampled_data, additional_samples], ignore_index=True)
+                    
+            except:
+                # Fallback ke random sampling
+                sampled_data = plot_data.sample(n=target_size, random_state=42)
+        else:
+            # Random sampling untuk mode lain
+            sampled_data = plot_data.sample(n=target_size, random_state=42)
+        
+        return sampled_data
+    
+    return plot_data
+
+def create_optimized_scatter(plot_data, x_col, y_col, color_col, point_size, opacity, original_size):
+    """Buat scatter plot dengan optimasi performa"""
+    
+    # OPTIMASI: Gunakan scattergl (WebGL) untuk data banyak
+    if len(plot_data) > 5000:
+        scatter_function = px.scatter_gl
+        scatter_name = "ScatterGL"
+    else:
+        scatter_function = px.scatter
+        scatter_name = "Scatter"
+    
+    # Buat plot
+    fig = scatter_function(
+        plot_data,
+        x=x_col,
+        y=y_col,
+        color=color_col,
+        title=f"{scatter_name}: {y_col} vs {x_col} ({len(plot_data):,} points)",
+        opacity=opacity,
+        size_max=point_size * 2
+    )
+    
+    # Update marker size dan style
+    fig.update_traces(
+        marker=dict(
+            size=point_size,
+            line=dict(width=0)  # No border untuk performa
+        ),
+        selector=dict(mode='markers')
+    )
+    
+    # OPTIMASI: Sederhanakan hover template untuk performa
+    if len(plot_data) > 5000:
+        hover_template = f'{x_col}: %{{x:.2f}}<br>{y_col}: %{{y:.2f}}<extra></extra>'
+    else:
+        if color_col:
+            hover_template = f'{x_col}: %{{x:.2f}}<br>{y_col}: %{{y:.2f}}<br>{color_col}: %{{marker.color}}<extra></extra>'
+        else:
+            hover_template = f'{x_col}: %{{x:.2f}}<br>{y_col}: %{{y:.2f}}<extra></extra>'
+    
+    fig.update_traces(hovertemplate=hover_template)
+    
+    # Layout yang dioptimalkan
+    fig.update_layout(
+        height=500,
+        showlegend=len(plot_data) <= 10000,  # Sembunyikan legend untuk data sangat banyak
+        margin=dict(l=50, r=50, t=60, b=50),
+        plot_bgcolor='white'
+    )
+    
+    # Tambahkan trendline untuk data yang tidak terlalu banyak
+    if len(plot_data) <= 10000 and len(plot_data) > 10:
+        try:
+            # Hitung regression line
+            z = np.polyfit(plot_data[x_col], plot_data[y_col], 1)
+            p = np.poly1d(z)
+            
+            # Buat trendline
+            x_trend = np.linspace(plot_data[x_col].min(), plot_data[x_col].max(), 100)
+            y_trend = p(x_trend)
+            
+            fig.add_trace(go.Scatter(
+                x=x_trend,
+                y=y_trend,
+                mode='lines',
+                line=dict(color='red', width=2, dash='dash'),
+                name='Trend Line',
+                hovertemplate='Trend: %{y:.2f}<extra></extra>'
+            ))
+        except:
+            pass  # Skip trendline jika error
+    
+    return fig
+
+def show_scatter_optimization_info(original_size, processed_size, optimization_mode):
+    """Tampilkan informasi optimasi"""
+    reduction_pct = ((original_size - processed_size) / original_size) * 100 if original_size > 0 else 0
+    
+    if reduction_pct > 10:
+        with st.expander("⚡ Info Optimasi Performa", expanded=False):
+            col1, col2, col3 = st.columns(3)
+            with col1:
+                st.metric("Data Original", f"{original_size:,}")
+            with col2:
+                st.metric("Data Ditampilkan", f"{processed_size:,}")
+            with col3:
+                st.metric("Reduksi", f"{reduction_pct:.1f}%")
+            
+            st.info(f"**Mode {optimization_mode}**: Scatter plot dioptimalkan untuk kecepatan rendering")
+            
+            if optimization_mode == "Fast":
+                st.markdown("• ✅ **WebGL Rendering** (ScatterGL)")
+                st.markdown("• ✅ **Systematic Sampling**")
+                st.markdown("• ✅ **Minimal Hover Effects**")
+            elif optimization_mode == "Balanced":
+                st.markdown("• ✅ **Stratified Sampling** (per quadrant)")
+                st.markdown("• ✅ **Trend Line Analysis**")
+                st.markdown("• ✅ **Optimized Hover**")
+
+def create_simple_scatter_fallback(df, x_col, y_col, color_col):
+    """Fallback method untuk data yang bermasalah"""
+    st.warning("Menggunakan metode fallback yang sederhana...")
+    
+    # Sample kecil untuk memastikan bisa render
+    sample_size = min(1000, len(df))
+    plot_data = df[[x_col, y_col] + ([color_col] if color_col else [])].dropna().head(sample_size)
+    
+    fig = px.scatter(
+        plot_data,
+        x=x_col,
+        y=y_col,
+        color=color_col,
+        title=f"Simple Scatter: {y_col} vs {x_col} ({len(plot_data)} points)"
+    )
+    
+    fig.update_layout(height=400)
+    st.plotly_chart(fig, use_container_width=True)
+
+# Versi ultra-ringan untuk data ekstrem
+def create_ultra_fast_scatter(df, numeric_cols, non_numeric_cols):
+    """Versi ultra-ringan untuk data > 500k rows"""
+    
+    col1, col2 = st.columns(2)
+    with col1:
+        x_col = st.selectbox("Pilih kolom X", numeric_cols[:8], key="ultra_scatter_x")
+    with col2:
+        y_col = st.selectbox("Pilih kolom Y", numeric_cols[:8], key="ultra_scatter_y")
+    
+    if x_col and y_col:
+        # Sampling agresif - hanya 2000 points
+        if len(df) > 2000:
+            plot_data = df[[x_col, y_col]].dropna().sample(n=2000, random_state=42)
+        else:
+            plot_data = df[[x_col, y_col]].dropna()
+        
+        # ScatterGL dengan konfigurasi minimal
+        fig = px.scatter_gl(
+            plot_data,
+            x=x_col,
+            y=y_col,
+            title=f"Ultra-Fast: {y_col} vs {x_col} (2,000 samples)"
+        )
+        
+        fig.update_traces(
+            marker=dict(size=2, opacity=0.5),
+            hovertemplate='%{x:.1f}, %{y:.1f}<extra></extra>'
+        )
+        
+        fig.update_layout(height=350, showlegend=False)
+        
+        st.plotly_chart(fig, use_container_width=True, config={'displayModeBar': False})
+        st.info(f"📊 Menampilkan 2,000 sample dari {len(df[[x_col, y_col]].dropna()):,} data points")
 
 def optimize_scatter_data(df, x_col, y_col, color_col, data_size, optimization_mode, max_points):
     """Optimasi data untuk scatter plot dengan sampling yang tepat"""
@@ -4486,45 +5486,6 @@ def create_optimized_scatter(plot_data, x_col, y_col, color_col, point_size, opa
     
     return fig
 
-def display_correlation_stats(plot_data, x_col, y_col):
-    """Tampilkan statistik korelasi"""
-    with st.expander("📈 Analisis Korelasi", expanded=False):
-        col1, col2, col3 = st.columns(3)
-        
-        try:
-            # Hitung korelasi
-            correlation = plot_data[x_col].corr(plot_data[y_col])
-            
-            with col1:
-                st.metric("Korelasi Pearson", f"{correlation:.3f}")
-            
-            with col2:
-                # Interpretasi korelasi
-                if abs(correlation) < 0.3:
-                    st.metric("Kekuatan", "Lemah")
-                elif abs(correlation) < 0.7:
-                    st.metric("Kekuatan", "Sedang")
-                else:
-                    st.metric("Kekuatan", "Kuat")
-            
-            with col3:
-                # Arah korelasi
-                if correlation > 0:
-                    st.metric("Arah", "Positif")
-                else:
-                    st.metric("Arah", "Negatif")
-            
-            # Additional stats
-            col4, col5, col6 = st.columns(3)
-            with col4:
-                st.metric("Jumlah Titik", len(plot_data))
-            with col5:
-                st.metric(f"Rata2 {x_col}", f"{plot_data[x_col].mean():.2f}")
-            with col6:
-                st.metric(f"Rata2 {y_col}", f"{plot_data[y_col].mean():.2f}")
-                
-        except Exception as e:
-            st.warning(f"Tidak dapat menghitung korelasi: {str(e)}")
 
 def show_scatter_optimization_info(original_size, processed_size, optimization_mode):
     """Tampilkan informasi optimasi"""
@@ -20762,7 +21723,7 @@ if __name__ == "__main__":
         with col3:
             st.markdown("""
             ### 🔄 Update
-            - Versi terbaru: 3.7.8
+            - Versi terbaru: 3.7.9
             - Rilis: Oktober 2025
             - Last updated: 2025
             - Compatibility: Python 3.8+
@@ -21832,7 +22793,7 @@ st.markdown("""
     <p style="margin: 15px 0 5px 0; font-style: italic;">Dikembangkan dengan ❤️ oleh:</p>
     <p style="margin: 0; font-weight: bold; color: #636EFA; font-size: 16px;">Dwi Bakti N Dev</p>
     <p style="margin: 5px 0; font-size: 12px;">Data Scientist & Business Intelligence Developer</p>
-    <p style="margin: 5px 0; font-size: 12px;">V3.7.8 Streamlit Launcher</p>
+    <p style="margin: 5px 0; font-size: 12px;">V3.7.9 Streamlit Launcher</p>
     <p style="margin: 5px 0; font-size: 12px;">🍰 <a href="https://pypi.org/project/streamlit-launcher/" target="_blank">Python Install Offline Streamlit Launcher</a></p>
 </div>
 """, unsafe_allow_html=True)
