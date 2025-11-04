@@ -69,6 +69,9 @@ import keras
 import re
 import pydeck as pdk
 from sklearn.cluster import DBSCAN
+from mlxtend.frequent_patterns import apriori, association_rules
+from mlxtend.preprocessing import TransactionEncoder
+from scipy import stats
 
 
 
@@ -4341,13 +4344,6 @@ def create_scatter_plot(df, numeric_cols, non_numeric_cols):
             st.error(f"Error membuat scatter plot: {str(e)}")
             # Fallback ke metode sederhana
             create_simple_scatter_fallback(df, x_col, y_col, color_col)
-            
-import pandas as pd
-import streamlit as st
-from mlxtend.frequent_patterns import apriori, association_rules
-from mlxtend.preprocessing import TransactionEncoder
-import numpy as np
-from scipy import stats
 
 def calculate_descriptive_stats_with_ci(data):
     """Menghitung statistik deskriptif dengan confidence interval 95%"""
