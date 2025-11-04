@@ -61,7 +61,59 @@
 - 📈 Remove Background
 - 📈 dll
 
-# Update 3.7.8 Anlisis And Doctor Analisis
+# Update 3.7.9 Anlisis And Doctor Analisis
+
+## vitur Update Scatterplot Visualisasi Interval
+
+<img src="https://github.com/DwiDevelopes/gambar/raw/main/Screenshot%202025-11-04%20225922.png" width="100%" height="100%">
+
+1. Korelasi Pearson (r)
+2. Kekuatan Korelasi
+3. Arah & Signifikansi
+4. Effect Size
+5. Minimum
+6. Maximum
+7. Variance X
+8. Variance Y
+9. Variance Total
+10. Variance Population
+11. Variance Sample
+12. Variance
+13. Standard Deviation X
+14. Standard Deviation Y
+15. Standard Deviation Total
+16. Standard Deviation Population
+17. Standard Deviation Sample
+18. Standard Deviation
+19. Mean X
+20. Mean Y
+21. Mean Total
+22. Mean Population
+23. Mean Sample
+24. Mean
+25. Median X
+26. Median Y
+27. Median Total
+28. Median Population
+29. Median Sample
+30. Median
+31. Mode X
+32. Mode Y
+33. Mode Total
+34. Mode Population
+35. Mode Sample
+36. Mode
+37. Interquartile Range X
+38. Interquartile Range Y
+39. Interquartile Range Total
+40. Interquartile Range Population
+41. Interquartile Range Sample
+42. Interquartile Range
+43. Range X
+44. Range Y
+45. Confidence Interval
+46. Implikasi Praktis
+
 ## Vitur Update Chart Visualisasi
 <img src="https://github.com/DwiDevelopes/gambar/raw/main/kesehatan/k1.png" width="100%" height="100%">
 
