@@ -13869,15 +13869,480 @@ def create_dna_visualizations(dna_df):
 REMOVE_BG_API_KEY = "xQH5KznYiupRrywK5yPcjeyi"
 PIXELS_API_KEY = "LH59shPdj1xO0lolnHPsClH23qsnHE4NjkCFBhKEXvR0CbqwkrXbqBnw"
 
+import streamlit as st
+import pandas as pd
+import requests
+import json
+import hashlib
+import secrets
+from datetime import datetime, timedelta
+import sqlite3
+import os
+import plotly.express as px
+import plotly.graph_objects as go
+
+# Fungsi untuk inisialisasi database API keys
+def init_db():
+    conn = sqlite3.connect('api_keys.db')
+    c = conn.cursor()
+    c.execute('''CREATE TABLE IF NOT EXISTS api_keys
+                 (id INTEGER PRIMARY KEY AUTOINCREMENT,
+                  api_key TEXT UNIQUE,
+                  created_at TIMESTAMP,
+                  is_active BOOLEAN DEFAULT TRUE,
+                  usage_count INTEGER DEFAULT 0,
+                  last_used TIMESTAMP)''')
+    conn.commit()
+    conn.close()
+
+# Generate API key
+def generate_api_key():
+    return f"sk_{secrets.token_hex(16)}"
+
+# Validasi API key - FIXED VERSION
+def validate_api_key(api_key):
+    try:
+        conn = sqlite3.connect('api_keys.db')
+        c = conn.cursor()
+        c.execute("SELECT * FROM api_keys WHERE api_key = ? AND is_active = 1", (api_key,))
+        result = c.fetchone()
+        conn.close()
+        return result is not None
+    except Exception as e:
+        st.error(f"Error validating API key: {e}")
+        return False
+
+# Update usage statistics
+def update_usage(api_key):
+    try:
+        conn = sqlite3.connect('api_keys.db')
+        c = conn.cursor()
+        c.execute("UPDATE api_keys SET usage_count = usage_count + 1, last_used = ? WHERE api_key = ?", 
+                  (datetime.now(), api_key))
+        conn.commit()
+        conn.close()
+        return True
+    except Exception as e:
+        st.error(f"Error updating usage: {e}")
+        return False
+
+# Get all API keys for display
+def get_all_api_keys():
+    try:
+        conn = sqlite3.connect('api_keys.db')
+        api_keys_df = pd.read_sql_query("SELECT * FROM api_keys ORDER BY created_at DESC", conn)
+        conn.close()
+        return api_keys_df
+    except Exception as e:
+        st.error(f"Error getting API keys: {e}")
+        return pd.DataFrame()
+
+# Hapus API key
+def delete_api_key(api_key):
+    try:
+        conn = sqlite3.connect('api_keys.db')
+        c = conn.cursor()
+        c.execute("DELETE FROM api_keys WHERE api_key = ?", (api_key,))
+        conn.commit()
+        conn.close()
+        return True
+    except Exception as e:
+        st.error(f"Error deleting API key: {e}")
+        return False
+
+# Fungsi untuk membuat chart statistik
+def create_usage_chart(api_keys_df):
+    if api_keys_df.empty:
+        return None
+    
+    # Chart 1: Usage Distribution
+    fig_usage = px.bar(
+        api_keys_df, 
+        x='api_key', 
+        y='usage_count',
+        title='📊 Usage Count per API Key',
+        labels={'api_key': 'API Key', 'usage_count': 'Usage Count'},
+        color='usage_count',
+        color_continuous_scale='viridis'
+    )
+    fig_usage.update_layout(xaxis_tickangle=-45)
+    
+    # Chart 2: Active/Inactive Keys
+    active_count = len(api_keys_df[api_keys_df['is_active'] == 1])
+    inactive_count = len(api_keys_df[api_keys_df['is_active'] == 0])
+    
+    fig_status = px.pie(
+        names=['Active', 'Inactive'], 
+        values=[active_count, inactive_count],
+        title='🔔 Key Status Distribution',
+        color=['Active', 'Inactive'],
+        color_discrete_map={'Active':'green', 'Inactive':'red'}
+    )
+    
+    # Chart 3: Usage Over Time (Jika ada data last_used)
+    api_keys_df['created_at'] = pd.to_datetime(api_keys_df['created_at'])
+    if 'last_used' in api_keys_df.columns and api_keys_df['last_used'].notna().any():
+        api_keys_df['last_used'] = pd.to_datetime(api_keys_df['last_used'])
+        monthly_usage = api_keys_df.groupby(api_keys_df['last_used'].dt.to_period('M')).size()
+        
+        fig_timeline = px.line(
+            x=monthly_usage.index.astype(str),
+            y=monthly_usage.values,
+            title='📈 Monthly API Usage Trend',
+            labels={'x': 'Month', 'y': 'Number of API Calls'}
+        )
+    else:
+        # Fallback: Creation timeline
+        monthly_creation = api_keys_df.groupby(api_keys_df['created_at'].dt.to_period('M')).size()
+        fig_timeline = px.line(
+            x=monthly_creation.index.astype(str),
+            y=monthly_creation.values,
+            title='📈 API Keys Creation Timeline',
+            labels={'x': 'Month', 'y': 'Keys Created'}
+        )
+    
+    # Chart 4: Top Performers
+    top_keys = api_keys_df.nlargest(5, 'usage_count')
+    fig_top = px.bar(
+        top_keys,
+        x='api_key',
+        y='usage_count',
+        title='🏆 Top 5 Most Used API Keys',
+        color='usage_count',
+        color_continuous_scale='thermal'
+    )
+    fig_top.update_layout(xaxis_tickangle=-45)
+    
+    return fig_usage, fig_status, fig_timeline, fig_top
+
+# Tambahkan tab19 untuk API Management
 if df is not None:
-    tab1, tab2, tab3, tab4, tab5, tab6, tab7, tab8, tab9, tab10, tab11, tab12, tab13, tab14, tab15, tab16, tab17, tab18 = st.tabs([
+    tab1, tab2, tab3, tab4, tab5, tab6, tab7, tab8, tab9, tab10, tab11, tab12, tab13, tab14, tab15, tab16, tab17, tab18, tab19 = st.tabs([
         "📊 Statistik", "📈 Visualisasi", "💾 Data", "ℹ️ Informasi", "🧮 Kalkulator",
         "🖼️ Vitures", "📍 Flowchart", "📊 Grafik Saham", "🗃️ SQL Style", 
         "🔄 3D Model & Analisis", "⚡ Konversi Cepat", "📝 Editor File", "🧬 Analisis DNA",
         "🔐 Enkripsi Data", "📊 Source Elements Lanjutan", "📁 Visualisasi Lanjutan", "👤 Analisis Wajah",
-        "🩺 Doctor Analytics"
+        "🩺 Doctor Analytics", "🔑 API Management"
     ])
-    
+
+    with tab19:
+        st.header("🔑 API Management System")
+        
+        # Inisialisasi database
+        init_db()
+        
+        # Section 1: Generate API Key
+        st.subheader("🎯 Generate API Key")
+        
+        col1, col2 = st.columns([2, 1])
+        
+        with col1:
+            if st.button("🎁 Generate New API Key", type="primary"):
+                new_api_key = generate_api_key()
+                conn = sqlite3.connect('api_keys.db')
+                c = conn.cursor()
+                try:
+                    c.execute("INSERT INTO api_keys (api_key, created_at) VALUES (?, ?)",
+                             (new_api_key, datetime.now()))
+                    conn.commit()
+                    st.success("✅ API Key berhasil dibuat!")
+                    st.session_state.generated_key = new_api_key
+                    
+                except sqlite3.IntegrityError:
+                    st.error("❌ API Key sudah ada, coba generate ulang.")
+                except Exception as e:
+                    st.error(f"❌ Error: {e}")
+                finally:
+                    conn.close()
+        
+        # Show generated key if exists
+        if 'generated_key' in st.session_state:
+            st.info("🔐 **API Key Anda:**")
+            st.code(st.session_state.generated_key, language="text")
+            
+            # Copy functionality
+            if st.button("📋 Copy to Clipboard"):
+                st.write(f"🔗 Copied: {st.session_state.generated_key}")
+            
+            st.warning("""
+            ⚠️ **Penting:** 
+            - Simpan API Key ini di tempat yang aman
+            - Key tidak akan ditampilkan lagi setelah refresh halaman
+            - Gunakan key ini untuk testing di bawah
+            """)
+        
+        # Section 2: Test API Key
+        st.subheader("🧪 Test Your API Key")
+        
+        test_col1, test_col2 = st.columns([3, 1])
+        
+        with test_col1:
+            default_test_key = st.session_state.get('generated_key', '')
+            test_api_key = st.text_input("Masukkan API Key untuk testing:", 
+                                       value=default_test_key,
+                                       type="password",
+                                       placeholder="sk_your_api_key_here")
+        
+        with test_col2:
+            st.write("") 
+            st.write("") 
+            if st.button("🔍 Validate Key", type="secondary"):
+                if not test_api_key:
+                    st.error("❌ Masukkan API Key terlebih dahulu!")
+                else:
+                    if validate_api_key(test_api_key):
+                        st.success("✅ API Key VALID dan AKTIF!")
+                        
+                        # Show key info
+                        conn = sqlite3.connect('api_keys.db')
+                        c = conn.cursor()
+                        c.execute("SELECT created_at, usage_count, last_used FROM api_keys WHERE api_key = ?", 
+                                 (test_api_key,))
+                        key_info = c.fetchone()
+                        conn.close()
+                        
+                        if key_info:
+                            st.info(f"""
+                            **Key Information:**
+                            - Dibuat pada: {key_info[0]}
+                            - Digunakan: {key_info[1]} kali
+                            - Terakhir digunakan: {key_info[2] or 'Belum pernah'}
+                            """)
+                    else:
+                        st.error("❌ API Key TIDAK VALID atau TIDAK AKTIF!")
+        
+        # Section 3: Quick Test dengan API Key yang valid
+        if test_api_key and validate_api_key(test_api_key):
+            st.subheader("🚀 Quick API Test")
+            
+            if st.button("Test API Endpoint Simulation"):
+                update_usage(test_api_key)
+                
+                col1, col2, col3 = st.columns(3)
+                
+                with col1:
+                    st.success("GET /statistics")
+                    st.json({"status": "success", "data": {"total_rows": len(df), "columns": list(df.columns)}})
+                
+                with col2:
+                    st.success("GET /data")
+                    st.json({"status": "success", "data_preview": "5 rows returned", "total_records": len(df)})
+                
+                with col3:
+                    st.success("POST /visualize")
+                    st.json({"status": "success", "chart_created": True, "chart_type": "bar"})
+        
+        # Section 4: Manage API Keys dengan FITUR HAPUS
+        st.subheader("⚙️ Manage API Keys")
+        
+        # Refresh keys data
+        api_keys_df = get_all_api_keys()
+        
+        if not api_keys_df.empty:
+            # Display keys dengan format yang lebih baik
+            st.write("**📋 API Keys Database:**")
+            
+            # Create display version dengan masking
+            display_df = api_keys_df.copy()
+            display_df['api_key_display'] = display_df['api_key'].apply(
+                lambda x: f"{x[:8]}...{x[-8:]}" if len(x) > 16 else x
+            )
+            display_df['created_at'] = pd.to_datetime(display_df['created_at']).dt.strftime('%Y-%m-%d %H:%M')
+            display_df['last_used'] = pd.to_datetime(display_df['last_used']).dt.strftime('%Y-%m-%d %H:%M') if display_df['last_used'].notna().any() else 'Never'
+            display_df['status'] = display_df['is_active'].apply(lambda x: '🟢 Active' if x == 1 else '🔴 Inactive')
+            
+            # Tampilkan tabel
+            st.dataframe(display_df[['api_key_display', 'status', 'usage_count', 'created_at', 'last_used']], 
+                        use_container_width=True)
+            
+            # Management actions dengan FITUR HAPUS
+            st.write("**🎛️ Management Actions:**")
+            col1, col2, col3 = st.columns(3)
+            
+            with col1:
+                full_keys = api_keys_df['api_key'].tolist()
+                selected_key = st.selectbox("Pilih API Key:", full_keys, 
+                                          format_func=lambda x: f"{x[:8]}... ({api_keys_df[api_keys_df['api_key'] == x]['usage_count'].iloc[0]} uses)")
+            
+            with col2:
+                action = st.selectbox("Pilih Aksi:", ["Aktifkan", "Nonaktifkan", "🗑️ Hapus Permanent", "Reset Usage"])
+                
+            with col3:
+                if st.button("🚀 Execute Action", type="primary"):
+                    conn = sqlite3.connect('api_keys.db')
+                    c = conn.cursor()
+                    try:
+                        if action == "Aktifkan":
+                            c.execute("UPDATE api_keys SET is_active = 1 WHERE api_key = ?", (selected_key,))
+                            st.success("✅ API Key diaktifkan")
+                        elif action == "Nonaktifkan":
+                            c.execute("UPDATE api_keys SET is_active = 0 WHERE api_key = ?", (selected_key,))
+                            st.success("✅ API Key dinonaktifkan")
+                        elif action == "🗑️ Hapus Permanent":
+                            # Konfirmasi hapus
+                            if st.session_state.get('confirm_delete') != selected_key:
+                                st.session_state.confirm_delete = selected_key
+                                st.warning(f"⚠️ Konfirmasi penghapusan API Key: {selected_key[:8]}...")
+                                st.info("Klik lagi 'Execute Action' untuk konfirmasi hapus permanent")
+                            else:
+                                if delete_api_key(selected_key):
+                                    st.success("✅ API Key berhasil dihapus permanent")
+                                    st.session_state.confirm_delete = None
+                        elif action == "Reset Usage":
+                            c.execute("UPDATE api_keys SET usage_count = 0 WHERE api_key = ?", (selected_key,))
+                            st.success("✅ Usage counter direset")
+                        
+                        conn.commit()
+                    except Exception as e:
+                        st.error(f"❌ Error: {e}")
+                    finally:
+                        conn.close()
+                    st.rerun()
+            
+            # Tombol Hapus Massal untuk keys tidak aktif
+            inactive_keys = api_keys_df[api_keys_df['is_active'] == 0]
+            if not inactive_keys.empty:
+                st.write("**🧹 Bulk Actions:**")
+                if st.button("🗑️ Hapus Semua Key Tidak Aktif", type="secondary"):
+                    count_deleted = 0
+                    for key in inactive_keys['api_key']:
+                        if delete_api_key(key):
+                            count_deleted += 1
+                    st.success(f"✅ {count_deleted} inactive keys berhasil dihapus")
+                    st.rerun()
+        else:
+            st.info("💡 Belum ada API Key yang dibuat. Klik 'Generate New API Key' untuk membuat yang pertama.")
+        
+        # Section 5: CHART STATISTIK - BAGIAN BARU
+        st.subheader("📈 API Usage Statistics & Charts")
+        
+        if not api_keys_df.empty:
+            # Overall metrics
+            col1, col2, col3, col4 = st.columns(4)
+            
+            total_keys = len(api_keys_df)
+            active_keys = len(api_keys_df[api_keys_df['is_active'] == 1])
+            total_usage = api_keys_df['usage_count'].sum()
+            avg_usage = api_keys_df['usage_count'].mean()
+            
+            with col1:
+                st.metric("🔑 Total API Keys", total_keys)
+            with col2:
+                st.metric("🟢 Active Keys", active_keys)
+            with col3:
+                st.metric("📊 Total Usage", total_usage)
+            with col4:
+                st.metric("📈 Avg Usage/Key", f"{avg_usage:.1f}")
+            
+            # Generate charts
+            fig_usage, fig_status, fig_timeline, fig_top = create_usage_chart(api_keys_df)
+            
+            # Tampilkan charts dalam tabs
+            chart_tab1, chart_tab2, chart_tab3, chart_tab4 = st.tabs([
+                "📊 Usage Distribution", 
+                "🔔 Status Distribution", 
+                "📈 Timeline", 
+                "🏆 Top Performers"
+            ])
+            
+            with chart_tab1:
+                st.plotly_chart(fig_usage, use_container_width=True)
+                
+            with chart_tab2:
+                st.plotly_chart(fig_status, use_container_width=True)
+                
+            with chart_tab3:
+                st.plotly_chart(fig_timeline, use_container_width=True)
+                
+            with chart_tab4:
+                st.plotly_chart(fig_top, use_container_width=True)
+            
+            # Additional statistics
+            st.write("**📋 Detailed Statistics:**")
+            col1, col2 = st.columns(2)
+            
+            with col1:
+                st.write("**Usage Statistics:**")
+                usage_stats = api_keys_df['usage_count'].describe()
+                st.write(usage_stats)
+                
+            with col2:
+                st.write("**Recent Activity:**")
+                recent_activity = api_keys_df.nlargest(5, 'last_used')[['api_key', 'last_used', 'usage_count']]
+                st.dataframe(recent_activity)
+                
+        else:
+            st.info("📊 Chart statistics akan muncul setelah ada API Key yang dibuat")
+        
+        # Section 6: Troubleshooting Guide
+        st.subheader("🔧 Troubleshooting Guide")
+        
+        with st.expander("❌ Masalah: API Key tidak valid atau tidak aktif", expanded=True):
+            st.markdown("""
+            ### Penyebab dan Solusi:
+            
+            **1. 🆕 Key Belum Dibuat**
+            - **Solusi**: Klik tombol **"Generate New API Key"**
+            
+            **2. 🔄 Key Dinonaktifkan**
+            - **Solusi**: Pilih key dan klik **"Aktifkan"**
+            
+            **3. 🗑️ Key Terhapus**
+            - **Solusi**: Generate key baru
+            - **Prevention**: Backup key yang penting
+            
+            **4. 📋 Format Key Salah**
+            - **Solusi**: Copy seluruh key (format: `sk_xxxxxxxxxxxxxxxx`)
+            """)
+        
+        # Section 7: Real API Server Code
+        st.subheader("🚀 Deploy Real API Server")
+        
+        with st.expander("📦 Download API Server Code", expanded=True):
+            st.markdown("""
+            ### File: `api_server.py`
+            ```python
+            from flask import Flask, request, jsonify
+            import pandas as pd
+            import sqlite3
+            from datetime import datetime
+            import os
+            
+            app = Flask(__name__)
+            
+            def validate_api_key(api_key):
+                try:
+                    conn = sqlite3.connect('api_keys.db')
+                    c = conn.cursor()
+                    c.execute("SELECT * FROM api_keys WHERE api_key = ? AND is_active = 1", (api_key,))
+                    result = c.fetchone()
+                    conn.close()
+                    return result is not None
+                except Exception as e:
+                    print(f"Validation error: {e}")
+                    return False
+            
+            @app.route('/api/v1/health', methods=['GET'])
+            def health_check():
+                return jsonify({'status': 'healthy', 'timestamp': datetime.now().isoformat()})
+            
+            @app.route('/api/v1/statistics', methods=['GET'])
+            def get_statistics():
+                api_key = request.args.get('api_key')
+                if not api_key or not validate_api_key(api_key):
+                    return jsonify({'error': 'Invalid or inactive API key'}), 401
+                
+                try:
+                    # Your statistics logic here
+                    return jsonify({'status': 'success', 'data': 'statistics'})
+                except Exception as e:
+                    return jsonify({'error': str(e)}), 500
+            
+            if __name__ == '__main__':
+                app.run(host='0.0.0.0', port=5000, debug=True)
+            ```
+            """)
+            
     with tab18:
         if df is not None:
             tab0, tab00 = st.tabs([
@@ -21719,7 +22184,7 @@ if __name__ == "__main__":
         with col3:
             st.markdown("""
             ### 🔄 Update
-            - Versi terbaru: 3.7.9
+            - Versi terbaru: 3.8.5
             - Rilis: Oktober 2025
             - Last updated: 2025
             - Compatibility: Python 3.8+
@@ -22789,7 +23254,7 @@ st.markdown("""
     <p style="margin: 15px 0 5px 0; font-style: italic;">Dikembangkan dengan ❤️ oleh:</p>
     <p style="margin: 0; font-weight: bold; color: #636EFA; font-size: 16px;">Dwi Bakti N Dev</p>
     <p style="margin: 5px 0; font-size: 12px;">Data Scientist & Business Intelligence Developer</p>
-    <p style="margin: 5px 0; font-size: 12px;">V3.7.9 Streamlit Launcher</p>
+    <p style="margin: 5px 0; font-size: 12px;">V3.8.5 Streamlit Launcher</p>
     <p style="margin: 5px 0; font-size: 12px;">🍰 <a href="https://pypi.org/project/streamlit-launcher/" target="_blank">Python Install Offline Streamlit Launcher</a></p>
 </div>
 """, unsafe_allow_html=True)
