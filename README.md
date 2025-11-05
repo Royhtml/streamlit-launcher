@@ -44,6 +44,8 @@
 
 # Update 3.8.7 Install Streamlit Launcher Make Termux ☕
 
+<img src="https://github.com/DwiDevelopes/gambar/raw/main/Desain%20tanpa%20judul%20(10).jpg" width="100%" height="100%">
+
 # 🌱 Pantun untuk Anak Programming
 Baik, saatnya puisi kecil untuk pejuang logika digital.
 Pantun bukan algoritma, tapi ritmenya juga perlu rapi supaya compiler kehidupan tidak error karna logika.
@@ -322,6 +324,7 @@ Bayangkan ini sebagai menu spell:
 ## vitur Update Api Key And Api Server
 
 <img src="https://github.com/DwiDevelopes/gambar/raw/main/Screenshot%202025-11-05%20092327.png" width="100%" height="100%">
+
 
 1. Api key
 2. Api server
