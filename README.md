@@ -42,6 +42,262 @@
 - **Researchers** - Eksperimen dan presentasi hasil penelitian
 - **Educators** - Materi pembelajaran interaktif
 
+# Update 3.8.7 Install Streamlit Launcher Make Termux ☕
+
+# 🌱 Pantun untuk Anak Programming
+Baik, saatnya puisi kecil untuk pejuang logika digital.
+Pantun bukan algoritma, tapi ritmenya juga perlu rapi supaya compiler kehidupan tidak error karna logika.
+
+### 🌱 Pantun untuk Anak Programming Indonesia
+
+#### 🐞 Debugging Pantun
+1. Naik sepeda ke tempat angringan,
+2. Bawa laptop sambil tersenyum sopan.
+3. Kalau kode sering berantakan,
+4. Sabar… bug itu cuma ujian keimanan
+
+#### 🥮 Pantun Mie Instan
+
+1. Makan mie instan dua porsi bareng-bareng,
+2. Sambil commit patch di repository terang-terang.
+3. Jika hasil kerja belum dipuji orang,
+4. Santai… kode bagus lama-lama sendiri yang gemilang.
+
+---
+
+### ✅ **Step-by-step install Streamlit dan jalankan launcher di Termux**
+
+#### **1. Update & install paket penting**
+
+```bash
+pkg update && pkg upgrade -y
+pkg install python git clang cmake libffi libffi-dev openssl openssl-dev -y
+pkg install python
+```
+
+#### **2. Upgrade pip**
+
+```bash
+pip install --upgrade pip wheel setuptools
+```
+
+#### **3. Install Streamlit (dan fix dependencies)**
+
+> Streamlit butuh beberapa paket scientific + wheel builder
+
+```bash
+pip install streamlit==1.49.1
+pip install pandas==2.3.2
+pip install numpy==2.2.2
+pip install plotly==5.24.1
+pip install matplotlib==3.9.2
+pip install seaborn==0.13.2
+pip install wordcloud==1.9.4
+pip install streamlit-folium==0.23.1
+pip install graphviz==0.20.3
+pip install pillow==10.4.0
+pip install pydeck==0.9.1  
+pip install scipy==1.14.1
+pip install scikit-learn==1.5.2   
+pip install xgboost==2.1.1
+pip install statsmodels==0.14.3   
+pip install tensorflow-cpu==2.20.0
+pip install keras==3.11.3
+pip install networkx==3.4.2
+pip install rich==14.2.0
+pip install requests==2.32.3
+pip install openpyxl==3.1.5
+pip install xlrd==2.0.1
+pip install numpy-stl==3.2.0
+pip install trimesh==4.3.2
+pip install streamlit-modal==0.1.2
+pip install opencv-python-headless
+pip install mlxtend==0.23.4
+```
+
+Kalau masih error, alternatif lebih aman:
+
+```bash
+pip install streamlit --no-cache-dir
+```
+
+#### **4. Clone repo**
+
+```bash
+git clone https://github.com/DwiDevelopes/Launcher.git
+cd Launcher/build/lib/streamlit_launcher
+```
+
+#### **5. Install requirements project**
+
+```bash
+pip install -r requirements.txt --no-cache-dir
+```
+
+#### **6. Jalankan Streamlit**
+
+```bash
+streamlit run dashboard.py --server.address=0.0.0.0 --server.port=8501
+```
+
+---
+
+### ⚠️ **Kalau muncul error “No module named xyz”**
+
+Install modul manual, contoh:
+
+```bash
+pip install streamlit
+pip install pandas
+pip install numpy
+pip install plotly
+pip install matplotlib
+pip install seaborn
+pip install wordcloud
+pip install streamlit-folium
+pip install graphviz
+pip install pillow
+pip install pydeck 
+pip install scipy
+pip install scikit-learn
+pip install xgboost
+pip install statsmodels  
+pip install tensorflow-cpu
+pip install keras
+pip install networkx
+pip install rich
+pip install requests
+pip install openpyxl
+pip install xlrd
+pip install numpy-stl
+pip install trimesh
+pip install streamlit-modal
+pip install opencv-python-headless
+pip install mlxtend
+```
+
+---
+
+### 🎯 **Tips penting**
+
+| Masalah                  | Solusi                                                          |
+| ------------------------ | --------------------------------------------------------------- |
+| Streamlit gagal build    | Pastikan `clang`, `cmake`, `openssl`, `libffi` sudah terinstall |
+| Termux tidak buka web UI | Buka dari browser HP ke `http://localhost:8501`                 |
+| Masih error              | Coba `termux-chroot` (kalau pakai proot distro)                 |
+
+---
+
+# ☕ Simple Install Streamlit Launcher Termux.sh
+
+Berikut resep terminal layaknya koki DevOps yang sedang menyiapkan dapur Termux agar Streamlit mau nurut. Ini adalah file **`install_streamlit_termux.sh`** yang tinggal kamu simpan dan eksekusi.
+
+> Script ini memastikan dependency, pip builder, dan repo Launcher terpasang rapi tanpa drama.
+
+---
+
+### ✅ **`install_streamlit_termux.sh`**
+
+---
+
+### 📦 **Cara pakai**
+
+```bash
+chmod +x install_streamlit_termux.sh
+./install_streamlit_termux.sh
+```
+
+---
+
+### 🎯 Hasil akhir
+
+Jika sukses, buka browser Android lalu masuk ke:
+
+```
+http://localhost:8501
+```
+
+---
+
+### 🍵 Catatan teknis kecil
+
+1. Script ini tidak menghapus environment lama; aman untuk update
+2. coffie panas opsional, tapi bikin suasana ngoding lebih damai
+
+---
+
+Menjalankan `install_streamlit_termux.sh` itu seperti membangunkan naga kecil di Termux: perlu sedikit ritual, tapi setelah hidup, dia akan menghembuskan Streamlit dari pori-pori ponselmu.
+
+# ✅ **Langkah menjalankan skrip di Termux**
+
+1. **Masuk ke folder tempat file disimpan**
+   Misal file ada di `~/` (home):
+
+   ```bash
+   cd ~
+   ```
+
+2. **Pastikan file punya izin eksekusi**
+
+   ```bash
+   chmod +x install_streamlit_termux.sh
+   ```
+
+3. **Jalankan script**
+
+   ```bash
+   ./install_streamlit_termux.sh
+   ```
+
+Kalau kamu ingin menjalankan langsung via `bash`, boleh juga:
+
+```bash
+bash install_streamlit_termux.sh
+```
+
+---
+
+### 🧠 **Kalau file belum ada di Termux**
+
+Kamu bisa buat file manual:
+
+```bash
+nano install_streamlit_termux.sh
+```
+
+Paste script ke dalamnya, lalu:
+
+`CTRL + O` untuk save
+`ENTER`
+`CTRL + X` untuk keluar
+
+Lanjut ke langkah **chmod** dan **run** di atas.
+
+---
+
+### 🛠️ **Troubleshooting singkat**
+
+| Masalah               | Solusi                                                                    |
+| --------------------- | ------------------------------------------------------------------------- |
+| Permission denied     | Pastikan sudah `chmod +x`                                                 |
+| Command not found     | Pastikan berada di folder yang benar                                      |
+| Gagal install package | Coba jalankan ulang script, atau install `termux-chroot` jika pakai PRoot |
+
+---
+
+
+Bayangkan ini sebagai menu spell:
+
+| Nomor | Mantra                               | Hasil                                                                  |
+| ----- | ------------------------------------ | ---------------------------------------------------------------------- |
+| 1     | **Auto-installer 1 baris**           | Tinggal copy-paste, semua terinstal otomatis                           |
+| 2     | **Installer + Virtual Env**          | Termux jadi rapi, paket terisolasi seperti laboratorium kimia          |
+| 3     | **Termux Widget Shortcut**           | Tinggal tap ikon di Android, Streamlit langsung menyala                |
+| 4     | **Systemd-like auto-restart script** | Kalau Streamlit error, bangkit sendiri seperti zombie ramah            |
+| 5     | **Full Linux magic (proot Ubuntu)**  | Streamlit jalan layaknya di PC, lebih stabil                           |
+| 6     | **Gabungan level Hokage**            | Semua opsi di atas, sistem jalan sendiri, kamu tinggal menyeruput kopi |
+
+
 ### 📊 Fitur
 
 - 📊 Analisis DNA
@@ -61,7 +317,7 @@
 - 📈 Remove Background
 - 📈 dll
 
-# Update 3.8.5 Anlisis And Doctor Analisis
+# Update 3.8.7 Anlisis And Doctor Analisis and Install Streamlit Launcher Make Termux ☕
 
 ## vitur Update Api Key And Api Server
 
