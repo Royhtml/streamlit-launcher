@@ -61,7 +61,62 @@
 - 📈 Remove Background
 - 📈 dll
 
-# Update 3.7.9 Anlisis And Doctor Analisis
+# Update 3.8.5 Anlisis And Doctor Analisis
+
+## vitur Update Api Key And Api Server
+
+<img src="https://github.com/DwiDevelopes/gambar/raw/main/Screenshot%202025-11-05%20092327.png" width="100%" height="100%">
+
+1. Api key
+2. Api server
+3. Api server code
+4. Test api server
+5. Simple
+6. Generated
+
+## Source Code Server Api key Is Running
+
+```python
+# api_server.py
+from flask import Flask, request, jsonify
+import pandas as pd
+import sqlite3
+from datetime import datetime
+import os
+
+app = Flask(__name__)
+
+def validate_api_key(api_key):
+    try:
+        conn = sqlite3.connect('api_keys.db')
+        c = conn.cursor()
+        c.execute("SELECT * FROM api_keys WHERE api_key = ? AND is_active = 1", (api_key,))
+        result = c.fetchone()
+        conn.close()
+        return result is not None
+    except Exception as e:
+        print(f"Validation error: {e}")
+        return False
+
+@app.route('/api/v1/health', methods=['GET'])
+def health_check():
+    return jsonify({'status': 'healthy', 'timestamp': datetime.now().isoformat()})
+
+@app.route('/api/v1/statistics', methods=['GET'])
+def get_statistics():
+    api_key = request.args.get('api_key')
+    if not api_key or not validate_api_key(api_key):
+        return jsonify({'error': 'Invalid or inactive API key'}), 401
+    
+    try:
+        # Your statistics logic here
+        return jsonify({'status': 'success', 'data': 'statistics'})
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+if __name__ == '__main__':
+    app.run(host='0.0.0.0', port=5000, debug=True)
+```
 
 ## vitur Update Scatterplot Visualisasi Interval
 
