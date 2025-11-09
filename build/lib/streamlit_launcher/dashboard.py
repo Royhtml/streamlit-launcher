@@ -104,7 +104,7 @@ st.markdown(
 
 st.markdown(
     """
-    <img src="https://github.com/DwiDevelopes/gambar/raw/main/Desain%20tanpa%20judul%20(8).jpg" class="responsive-img">
+    <img src="https://github.com/DwiDevelopes/gambar/raw/main/launcher.jpg" class="responsive-img">
     """,
     unsafe_allow_html=True
 )
@@ -12849,9 +12849,7 @@ def create_sample_file():
     
     return example_data
 
-
-st.markdown("Unggah file CSV atau Excel untuk melihat visualisasi dan statistik data.")
-        
+st.info("✨ Streamlit Launcher adalah aplikasi yang memudahkan Anda untuk menjalankan aplikasi Streamlit secara lokal. Dengan fitur yang kuat, Anda dapat membuat aplikasi Streamlit dengan mudah dan cepat.")
 with st.expander("📜 PENJELASAN TENTANG ANALISIS DATA", expanded=False):
     st.markdown("""
     **Penjelasan Penting 📛**
@@ -12913,7 +12911,14 @@ with st.expander("📜 PENJELASAN LENGKAP MENGENAI ROY ACADEMY", expanded=False)
     - Tujuan Adanya Roy Akademi adalah untuk kalian yang bergabung dalam penelitian dan proses ini di buat oleh dwi bakti n dev dengan tujuan menjadi penjelasan yang mudah dimengerti dan mudah dibaca.
     """)
 
-
+import os
+base_path = os.path.dirname(os.path.abspath(__file__))
+video_path = os.path.join(base_path, "assets", "intro.mp4")
+st.subheader("🚀 Streamlit Launcher V4")
+if os.path.exists(video_path):
+    st.video(video_path)
+else:
+    st.warning("⚠️ File video *intro.mp4* tidak ditemukan di folder `assets`. Pastikan file tersebut tersedia.")
 
 import streamlit as st
 import random
@@ -21064,9 +21069,9 @@ if __name__ == "__main__":
                 "text/csv"
             )
 
-    
+        
     with tab8:
-        st.header("📊 Analisis Grafik Saham")
+        st.header("📊 Analisis Teknikal Saham Lengkap")
         
         # Upload file
         uploaded_file = st.file_uploader(
@@ -21074,30 +21079,90 @@ if __name__ == "__main__":
             type=['csv', 'xlsx', 'xls'],
             key="stock_uploader"
         )
-        with st.expander("📜 Ketarangan Lengkap Tentang Analisis Saham", expanded=False):
+        
+        with st.expander("📜 Panduan Lengkap Analisis Teknikal Saham", expanded=False):
             st.markdown(
-                    """
-                    <img src="https://png.pngtree.com/background/20250116/original/pngtree-stock-market-analysis-with-colorful-candlestick-chart-picture-image_16020049.jpg" class="responsive-img">
-                    """,
-                    unsafe_allow_html=True
-                )
+                """
+                <img src="https://png.pngtree.com/background/20250116/original/pngtree-stock-market-analysis-with-colorful-candlestick-chart-picture-image_16020049.jpg" class="responsive-img">
+                """,
+                unsafe_allow_html=True
+            )
             st.markdown("""
+            ## 🎯 Analisis Teknikal Saham - Panduan Komprehensif
 
-            
-            ### 🧾 Pengambangan Saham
-            - Saham merupakan salah satu instrumen investasi yang populer di kalangan investor. Dengan membeli saham, investor memiliki sebagian kepemilikan dalam sebuah perusahaan dan berhak atas sebagian keuntungan perusahaan tersebut.
-            - Analisis saham melibatkan evaluasi berbagai faktor seperti kinerja keuangan perusahaan, kondisi pasar, tren industri, dan faktor ekonomi makro untuk membuat keputusan investasi yang lebih baik.
-            - Analisis saham dapat dilakukan dengan menggunakan teknologi yang terkenal seperti Excel, Google Sheets, atau Microsoft Excel.
-            
-            ### 📈 Analisis Grafik Saham
-            - Analisis grafik saham adalah proses menganalisis data saham untuk membuat grafik yang menampilkan informasi tentang saham secara visual.
-            - Grafik saham dapat digunakan untuk membuat perbandingan antara saham yang berbeda, menampilkan trend, dan menentukan kemungkinan investasi yang lebih baik.
-            - Grafik saham dapat digunakan untuk menentukan kemungkinan investasi yang lebih baik dan meningkatkan keuntungan investasi.
-            
-            ### 💰 Analisis Grafik Saham
-            - Analisis grafik saham dapat digunakan untuk membuat perbandingan antara saham yang berbeda, menampilkan trend, dan menentukan kemungkinan investasi yang lebih baik.
-            - Grafik saham dapat digunakan untuk menentukan kemungkinan investasi yang lebih baik dan meningkatkan keuntungan investasi.
+            ### 📈 Apa itu Analisis Teknikal?
+            Analisis teknikal adalah metode evaluasi sekuritas dengan menganalisis statistik yang dihasilkan dari aktivitas pasar, seperti harga historis dan volume. Analis teknikal tidak berusaha mengukur nilai intrinsik suatu sekuritas, melainkan menggunakan chart dan alat lain untuk mengidentifikasi pola yang dapat menunjukkan aktivitas masa depan.
+
+            ### 🧮 Indikator Teknikal Utama:
+
+            #### 1. 📊 Candlestick Chart
+            - Menampilkan empat titik harga (Open, High, Low, Close) dalam periode tertentu
+            - Warna hijau/putih: Harga naik (Close > Open)
+            - Warna merah/hitam: Harga turun (Close < Open)
+            - **Analisis**: Pola candlestick membantu memprediksi reversal atau kelanjutan trend
+
+            #### 2. 📉 Moving Average (MA)
+            - Rata-rata harga dalam periode tertentu yang menghaluskan fluktuasi harga
+            - **MA Pendek (5-20 hari)**: Mengidentifikasi trend jangka pendek
+            - **MA Panjang (50-200 hari)**: Mengidentifikasi trend jangka panjang
+            - **Sinyal**: Golden Cross (MA pendek > MA panjang) dan Death Cross (MA pendek < MA panjang)
+
+            #### 3. 📊 Bollinger Bands
+            - Terdiri dari MA tengah dan dua band (atas & bawah) yang mengukur volatilitas
+            - **Band Atas**: MA + (2 × Standard Deviation)
+            - **Band Bawah**: MA - (2 × Standard Deviation)
+            - **Sinyal**: Harga mendekati band atas (overbought), mendekati band bawah (oversold)
+
+            #### 4. 🔄 Relative Strength Index (RSI)
+            - Oscillator yang mengukur kecepatan dan perubahan pergerakan harga
+            - **Range**: 0-100
+            - **Overbought**: RSI > 70 (potensi jual)
+            - **Oversold**: RSI < 30 (potensi beli)
+            - **Divergence**: Sinyal reversal yang kuat
+
+            #### 5. 📊 MACD (Moving Average Convergence Divergence)
+            - Menunjukkan hubungan antara dua moving average
+            - **MACD Line**: Perbedaan antara EMA 12 dan EMA 26
+            - **Signal Line**: EMA 9 dari MACD Line
+            - **Sinyal**: MACD Line melintasi Signal Line
+
+            #### 6. 📈 Volume Analysis
+            - Mengkonfirmasi kekuatan trend
+            - **Volume naik + harga naik**: Trend bullish kuat
+            - **Volume naik + harga turun**: Trend bearish kuat
+            - **Volume turun**: Trend melemah
+
+            ### 💡 Strategi Trading Berdasarkan Analisis Teknikal:
+
+            #### 1. Trend Following
+            - **Konsep**: "The trend is your friend"
+            - **Indikator**: Moving Average, MACD
+            - **Entry**: Saat konfirmasi trend baru terbentuk
+
+            #### 2. Mean Reversion
+            - **Konsep**: Harga akan kembali ke rata-rata
+            - **Indikator**: RSI, Bollinger Bands
+            - **Entry**: Saat kondisi overbought/oversold
+
+            #### 3. Breakout Trading
+            - **Konsep**: Membeli saat harga breakout resistance, menjual saat breakdown support
+            - **Indikator**: Volume, Support/Resistance
+            - **Entry**: Saat konfirmasi breakout dengan volume tinggi
+
+            ### ⚠️ Manajemen Risiko:
+            - Gunakan stop loss untuk membatasi kerugian
+            - Risk-Reward Ratio minimal 1:2
+            - Jangan investasi lebih dari yang Anda sanggupi rugi
+            - Diversifikasi portofolio
+
+            ### 🎓 Tips untuk Pemula:
+            1. **Mulai sederhana**: Fokus pada 2-3 indikator terlebih dahulu
+            2. **Backtest strategy**: Uji strategi dengan data historis
+            3. **Trading journal**: Catat semua transaksi dan analisis
+            4. **Disiplin**: Ikuti rencana trading yang sudah dibuat
+            5. **Continuous learning**: Terus update pengetahuan tentang analisis teknikal
             """)
+
         if uploaded_file is not None:
             try:
                 # Baca file berdasarkan tipe
@@ -21106,42 +21171,53 @@ if __name__ == "__main__":
                 else:
                     df = pd.read_excel(uploaded_file)
                 
-                st.success(f"File berhasil diunggah! Shape: {df.shape}")
+                st.success(f"✅ File berhasil diunggah! Dimensi data: {df.shape[0]} baris × {df.shape[1]} kolom")
                 
                 # Tampilkan data
-                with st.expander("📋 Preview Data"):
-                    st.dataframe(df.head(10))
+                with st.expander("📋 Preview Data", expanded=True):
+                    col1, col2 = st.columns([2, 1])
+                    with col1:
+                        st.dataframe(df.head(10))
+                    with col2:
+                        st.write("**Informasi Data:**")
+                        st.write(f"• Periode: {df.iloc[0,0]} hingga {df.iloc[-1,0]}")
+                        st.write(f"• Total Data: {len(df)} trading days")
+                        st.write(f"• Kolom Tersedia: {list(df.columns)}")
                 
                 # Konfigurasi kolom
-                st.subheader("⚙️ Konfigurasi Data")
+                st.subheader("⚙️ Konfigurasi Kolom Data")
                 col1, col2, col3, col4 = st.columns(4)
                 
                 with col1:
                     date_column = st.selectbox(
                         "Pilih kolom tanggal",
                         options=df.columns,
-                        index=0
+                        index=0,
+                        help="Pilih kolom yang berisi data tanggal/time"
                     )
                 
                 with col2:
                     open_column = st.selectbox(
                         "Pilih kolom Open",
                         options=df.columns,
-                        index=min(1, len(df.columns)-1)
+                        index=min(1, len(df.columns)-1),
+                        help="Harga pembukaan pada periode tersebut"
                     )
                 
                 with col3:
                     high_column = st.selectbox(
                         "Pilih kolom High",
                         options=df.columns,
-                        index=min(2, len(df.columns)-1)
+                        index=min(2, len(df.columns)-1),
+                        help="Harga tertinggi pada periode tersebut"
                     )
                 
                 with col4:
                     low_column = st.selectbox(
                         "Pilih kolom Low",
                         options=df.columns,
-                        index=min(3, len(df.columns)-1)
+                        index=min(3, len(df.columns)-1),
+                        help="Harga terendah pada periode tersebut"
                     )
                 
                 col5, col6, col7 = st.columns(3)
@@ -21150,14 +21226,16 @@ if __name__ == "__main__":
                     close_column = st.selectbox(
                         "Pilih kolom Close",
                         options=df.columns,
-                        index=min(4, len(df.columns)-1)
+                        index=min(4, len(df.columns)-1),
+                        help="Harga penutupan pada periode tersebut"
                     )
                 
                 with col6:
                     volume_column = st.selectbox(
                         "Pilih kolom Volume",
                         options=df.columns,
-                        index=min(5, len(df.columns)-1) if len(df.columns) > 5 else 0
+                        index=min(5, len(df.columns)-1) if len(df.columns) > 5 else 0,
+                        help="Volume transaksi pada periode tersebut"
                     )
                 
                 with col7:
@@ -21165,57 +21243,140 @@ if __name__ == "__main__":
                     try:
                         df[date_column] = pd.to_datetime(df[date_column])
                         df = df.sort_values(date_column)
-                        st.success("Kolom tanggal berhasil dikonversi")
+                        df = df.dropna(subset=[date_column, open_column, high_column, low_column, close_column])
+                        st.success("✅ Kolom tanggal berhasil dikonversi dan data diurutkan")
                     except Exception as e:
-                        st.error(f"Gagal mengonversi kolom tanggal: {e}")
+                        st.error(f"❌ Gagal mengonversi kolom tanggal: {e}")
                 
-                # Pilihan jenis grafik
-                st.subheader("📈 Jenis Grafik")
+                # Pilihan jenis grafik yang lebih lengkap
+                st.subheader("📈 Jenis Grafik dan Indikator Teknikal")
                 chart_type = st.selectbox(
-                    "Pilih jenis grafik",
+                    "Pilih jenis grafik/indikator",
                     [
                         "Candlestick Chart",
                         "Line Chart (Harga Penutupan)",
                         "OHLC Chart",
                         "Area Chart",
-                        "Volume Chart",
-                        "Moving Average Chart",
+                        "Volume Analysis",
+                        "Moving Average (SIMPLE)",
+                        "Moving Average (Ganda)",
+                        "EMA (Exponential Moving Average)",
+                        "Bollinger Bands",
                         "RSI Indicator",
-                        "Bollinger Bands"
+                        "MACD Indicator",
+                        "Stochastic Oscillator",
+                        "Price with Volume",
+                        "Support & Resistance",
+                        "Fibonacci Retracement"
                     ]
                 )
                 
-                # Konfigurasi tambahan berdasarkan jenis grafik
-                if chart_type in ["Moving Average Chart", "Bollinger Bands"]:
-                    ma_period = st.slider("Period Moving Average", 5, 100, 20)
+                # Konfigurasi parameter berdasarkan jenis grafik
+                with st.expander("🔧 Parameter Indikator", expanded=False):
+                    if chart_type in ["Moving Average (SIMPLE)", "Bollinger Bands"]:
+                        ma_period = st.slider("Period Moving Average", 5, 200, 20, 
+                                            help="Semakin kecil period, semakin sensitif terhadap perubahan harga")
+                    
+                    if chart_type == "Moving Average (Ganda)":
+                        col1, col2 = st.columns(2)
+                        with col1:
+                            ma_short = st.slider("MA Pendek", 5, 50, 10)
+                        with col2:
+                            ma_long = st.slider("MA Panjang", 20, 200, 50)
+                    
+                    if chart_type == "EMA (Exponential Moving Average)":
+                        ema_period = st.slider("EMA Period", 5, 50, 12)
+                    
+                    if chart_type == "Bollinger Bands":
+                        bb_std = st.slider("Standard Deviation", 1, 3, 2,
+                                        help="Semakin besar std dev, semakin lebar Bollinger Bands")
+                    
+                    if chart_type in ["RSI Indicator", "Stochastic Oscillator"]:
+                        rsi_period = st.slider("RSI Period", 5, 30, 14)
+                    
+                    if chart_type == "MACD Indicator":
+                        col1, col2, col3 = st.columns(3)
+                        with col1:
+                            macd_fast = st.slider("MACD Fast", 8, 15, 12)
+                        with col2:
+                            macd_slow = st.slider("MACD Slow", 20, 30, 26)
+                        with col3:
+                            macd_signal = st.slider("MACD Signal", 5, 15, 9)
                 
-                if chart_type == "Bollinger Bands":
-                    bb_std = st.slider("Standard Deviation", 1, 3, 2)
+                # Hitung indikator teknikal
+                df = df.copy()
                 
-                if chart_type == "RSI Indicator":
-                    rsi_period = st.slider("RSI Period", 5, 30, 14)
+                # Fungsi untuk menghitung indikator
+                def calculate_indicators(df, close_col):
+                    df = df.copy()
+                    
+                    # Moving Average
+                    if 'MA' not in df.columns:
+                        df['MA_20'] = df[close_col].rolling(window=20).mean()
+                        df['MA_50'] = df[close_col].rolling(window=50).mean()
+                    
+                    # RSI
+                    if 'RSI' not in df.columns:
+                        delta = df[close_col].diff()
+                        gain = (delta.where(delta > 0, 0)).rolling(window=14).mean()
+                        loss = (-delta.where(delta < 0, 0)).rolling(window=14).mean()
+                        rs = gain / loss
+                        df['RSI'] = 100 - (100 / (1 + rs))
+                    
+                    # MACD
+                    if 'MACD' not in df.columns:
+                        exp1 = df[close_col].ewm(span=12).mean()
+                        exp2 = df[close_col].ewm(span=26).mean()
+                        df['MACD'] = exp1 - exp2
+                        df['MACD_Signal'] = df['MACD'].ewm(span=9).mean()
+                        df['MACD_Histogram'] = df['MACD'] - df['MACD_Signal']
+                    
+                    return df
+                
+                df = calculate_indicators(df, close_column)
                 
                 # Buat grafik berdasarkan pilihan
-                if volume_column in df.columns and chart_type != "Volume Chart":
+                if volume_column in df.columns and chart_type not in ["Volume Analysis", "RSI Indicator", "MACD Indicator", "Stochastic Oscillator"]:
                     fig = make_subplots(
                         rows=2, cols=1,
                         shared_xaxes=True,
-                        vertical_spacing=0.1,
-                        subplot_titles=('Price Chart', 'Volume'),
+                        vertical_spacing=0.05,
+                        subplot_titles=('Chart Harga', 'Volume'),
                         row_width=[0.7, 0.3]
+                    )
+                elif chart_type in ["RSI Indicator", "Stochastic Oscillator"]:
+                    fig = make_subplots(
+                        rows=2, cols=1,
+                        shared_xaxes=True,
+                        vertical_spacing=0.05,
+                        subplot_titles=('Chart Harga', f'{chart_type}'),
+                        row_width=[0.7, 0.3]
+                    )
+                elif chart_type == "MACD Indicator":
+                    fig = make_subplots(
+                        rows=3, cols=1,
+                        shared_xaxes=True,
+                        vertical_spacing=0.05,
+                        subplot_titles=('Chart Harga', 'MACD', 'Histogram'),
+                        row_width=[0.5, 0.25, 0.25]
                     )
                 else:
                     fig = go.Figure()
                 
+                # Warna untuk candlestick
+                colors = ['#00ff00' if df[close_column].iloc[i] >= df[open_column].iloc[i] 
+                        else '#ff0000' for i in range(len(df))]
+                
                 if chart_type == "Candlestick Chart":
-                    # Candlestick chart
                     candlestick = go.Candlestick(
                         x=df[date_column],
                         open=df[open_column],
                         high=df[high_column],
                         low=df[low_column],
                         close=df[close_column],
-                        name="Candlestick"
+                        name="Candlestick",
+                        increasing_line_color='#00ff00',
+                        decreasing_line_color='#ff0000'
                     )
                     if volume_column in df.columns:
                         fig.add_trace(candlestick, row=1, col=1)
@@ -21227,72 +21388,32 @@ if __name__ == "__main__":
                         x=df[date_column],
                         y=df[close_column],
                         mode='lines',
-                        name='Close Price',
-                        line=dict(color='blue', width=2)
+                        name='Harga Penutupan',
+                        line=dict(color='#1f77b4', width=2),
+                        hovertemplate='<b>Tanggal</b>: %{x}<br><b>Harga</b>: $%{y:.2f}<extra></extra>'
                     )
                     if volume_column in df.columns:
                         fig.add_trace(line_chart, row=1, col=1)
                     else:
                         fig.add_trace(line_chart)
-                    
-                elif chart_type == "OHLC Chart":
-                    ohlc_chart = go.Ohlc(
-                        x=df[date_column],
-                        open=df[open_column],
-                        high=df[high_column],
-                        low=df[low_column],
-                        close=df[close_column],
-                        name="OHLC"
-                    )
-                    if volume_column in df.columns:
-                        fig.add_trace(ohlc_chart, row=1, col=1)
-                    else:
-                        fig.add_trace(ohlc_chart)
-                    
-                elif chart_type == "Area Chart":
-                    area_chart = go.Scatter(
-                        x=df[date_column],
-                        y=df[close_column],
-                        mode='lines',
-                        fill='tozeroy',
-                        name='Close Price',
-                        line=dict(color='green', width=2)
-                    )
-                    if volume_column in df.columns:
-                        fig.add_trace(area_chart, row=1, col=1)
-                    else:
-                        fig.add_trace(area_chart)
-                    
-                elif chart_type == "Volume Chart":
-                    if volume_column in df.columns:
-                        volume_chart = go.Bar(
-                            x=df[date_column],
-                            y=df[volume_column],
-                            name='Volume',
-                            marker_color='rgba(0,0,255,0.3)'
-                        )
-                        fig.add_trace(volume_chart)
-                    else:
-                        st.warning("Kolom volume tidak ditemukan dalam data")
-                    
-                elif chart_type == "Moving Average Chart":
-                    # Hitung moving average
-                    df['MA'] = df[close_column].rolling(window=ma_period).mean()
+                        
+                elif chart_type == "Moving Average (SIMPLE)":
+                    df[f'MA_{ma_period}'] = df[close_column].rolling(window=ma_period).mean()
                     
                     price_line = go.Scatter(
                         x=df[date_column],
                         y=df[close_column],
                         mode='lines',
-                        name='Close Price',
-                        line=dict(color='blue', width=1)
+                        name='Harga Penutupan',
+                        line=dict(color='#1f77b4', width=1)
                     )
                     
                     ma_line = go.Scatter(
                         x=df[date_column],
-                        y=df['MA'],
+                        y=df[f'MA_{ma_period}'],
                         mode='lines',
                         name=f'MA {ma_period}',
-                        line=dict(color='red', width=2)
+                        line=dict(color='#ff7f0e', width=2)
                     )
                     
                     if volume_column in df.columns:
@@ -21301,7 +21422,44 @@ if __name__ == "__main__":
                     else:
                         fig.add_trace(price_line)
                         fig.add_trace(ma_line)
+                        
+                elif chart_type == "Moving Average (Ganda)":
+                    df[f'MA_{ma_short}'] = df[close_column].rolling(window=ma_short).mean()
+                    df[f'MA_{ma_long}'] = df[close_column].rolling(window=ma_long).mean()
                     
+                    price_line = go.Scatter(
+                        x=df[date_column],
+                        y=df[close_column],
+                        mode='lines',
+                        name='Harga Penutupan',
+                        line=dict(color='#1f77b4', width=1)
+                    )
+                    
+                    ma_short_line = go.Scatter(
+                        x=df[date_column],
+                        y=df[f'MA_{ma_short}'],
+                        mode='lines',
+                        name=f'MA {ma_short}',
+                        line=dict(color='#ff7f0e', width=2)
+                    )
+                    
+                    ma_long_line = go.Scatter(
+                        x=df[date_column],
+                        y=df[f'MA_{ma_long}'],
+                        mode='lines',
+                        name=f'MA {ma_long}',
+                        line=dict(color='#2ca02c', width=2)
+                    )
+                    
+                    if volume_column in df.columns:
+                        fig.add_trace(price_line, row=1, col=1)
+                        fig.add_trace(ma_short_line, row=1, col=1)
+                        fig.add_trace(ma_long_line, row=1, col=1)
+                    else:
+                        fig.add_trace(price_line)
+                        fig.add_trace(ma_short_line)
+                        fig.add_trace(ma_long_line)
+                        
                 elif chart_type == "Bollinger Bands":
                     # Hitung Bollinger Bands
                     df['MA'] = df[close_column].rolling(window=ma_period).mean()
@@ -21313,8 +21471,8 @@ if __name__ == "__main__":
                         x=df[date_column],
                         y=df[close_column],
                         mode='lines',
-                        name='Close Price',
-                        line=dict(color='blue', width=1)
+                        name='Harga Penutupan',
+                        line=dict(color='#1f77b4', width=1)
                     )
                     
                     ma_line = go.Scatter(
@@ -21322,7 +21480,7 @@ if __name__ == "__main__":
                         y=df['MA'],
                         mode='lines',
                         name=f'MA {ma_period}',
-                        line=dict(color='red', width=2)
+                        line=dict(color='#ff7f0e', width=2)
                     )
                     
                     upper_band = go.Scatter(
@@ -21330,7 +21488,9 @@ if __name__ == "__main__":
                         y=df['Upper'],
                         mode='lines',
                         name='Upper Band',
-                        line=dict(color='gray', width=1, dash='dash')
+                        line=dict(color='#d62728', width=1, dash='dash'),
+                        fillcolor='rgba(214,39,40,0.1)',
+                        fill='tonexty'
                     )
                     
                     lower_band = go.Scatter(
@@ -21338,7 +21498,7 @@ if __name__ == "__main__":
                         y=df['Lower'],
                         mode='lines',
                         name='Lower Band',
-                        line=dict(color='gray', width=1, dash='dash'),
+                        line=dict(color='#d62728', width=1, dash='dash'),
                         fill='tonexty'
                     )
                     
@@ -21352,7 +21512,7 @@ if __name__ == "__main__":
                         fig.add_trace(ma_line)
                         fig.add_trace(upper_band)
                         fig.add_trace(lower_band)
-                    
+                        
                 elif chart_type == "RSI Indicator":
                     # Hitung RSI
                     delta = df[close_column].diff()
@@ -21361,12 +21521,22 @@ if __name__ == "__main__":
                     rs = gain / loss
                     df['RSI'] = 100 - (100 / (1 + rs))
                     
+                    # Price chart
+                    price_line = go.Scatter(
+                        x=df[date_column],
+                        y=df[close_column],
+                        mode='lines',
+                        name='Harga Penutupan',
+                        line=dict(color='#1f77b4', width=2)
+                    )
+                    
+                    # RSI chart
                     rsi_chart = go.Scatter(
                         x=df[date_column],
                         y=df['RSI'],
                         mode='lines',
                         name=f'RSI {rsi_period}',
-                        line=dict(color='purple', width=2)
+                        line=dict(color='#9467bd', width=2)
                     )
                     
                     # Overbought/oversold lines
@@ -21375,7 +21545,7 @@ if __name__ == "__main__":
                         y=[70] * len(df),
                         mode='lines',
                         name='Overbought (70)',
-                        line=dict(color='red', width=1, dash='dash')
+                        line=dict(color='#ff0000', width=1, dash='dash')
                     )
                     
                     oversold = go.Scatter(
@@ -21383,28 +21553,82 @@ if __name__ == "__main__":
                         y=[30] * len(df),
                         mode='lines',
                         name='Oversold (30)',
-                        line=dict(color='green', width=1, dash='dash')
+                        line=dict(color='#00ff00', width=1, dash='dash')
                     )
                     
-                    if volume_column in df.columns:
-                        fig.add_trace(rsi_chart, row=1, col=1)
-                        fig.add_trace(overbought, row=1, col=1)
-                        fig.add_trace(oversold, row=1, col=1)
-                        # Update y-axis untuk RSI
-                        fig.update_yaxes(range=[0, 100], row=1, col=1)
-                    else:
-                        fig.add_trace(rsi_chart)
-                        fig.add_trace(overbought)
-                        fig.add_trace(oversold)
-                        fig.update_yaxes(range=[0, 100])
-                
-                # Tambahkan volume chart untuk semua jenis grafik (kecuali Volume Chart sendiri)
-                if volume_column in df.columns and chart_type != "Volume Chart" and chart_type != "RSI Indicator":
+                    middle = go.Scatter(
+                        x=df[date_column],
+                        y=[50] * len(df),
+                        mode='lines',
+                        name='Middle (50)',
+                        line=dict(color='#000000', width=1, dash='dot')
+                    )
+                    
+                    fig.add_trace(price_line, row=1, col=1)
+                    fig.add_trace(rsi_chart, row=2, col=1)
+                    fig.add_trace(overbought, row=2, col=1)
+                    fig.add_trace(oversold, row=2, col=1)
+                    fig.add_trace(middle, row=2, col=1)
+                    fig.update_yaxes(range=[0, 100], row=2, col=1)
+                    
+                elif chart_type == "MACD Indicator":
+                    # Hitung MACD
+                    exp1 = df[close_column].ewm(span=macd_fast).mean()
+                    exp2 = df[close_column].ewm(span=macd_slow).mean()
+                    df['MACD'] = exp1 - exp2
+                    df['MACD_Signal'] = df['MACD'].ewm(span=macd_signal).mean()
+                    df['MACD_Histogram'] = df['MACD'] - df['MACD_Signal']
+                    
+                    # Price chart
+                    price_line = go.Scatter(
+                        x=df[date_column],
+                        y=df[close_column],
+                        mode='lines',
+                        name='Harga Penutupan',
+                        line=dict(color='#1f77b4', width=2)
+                    )
+                    
+                    # MACD line
+                    macd_line = go.Scatter(
+                        x=df[date_column],
+                        y=df['MACD'],
+                        mode='lines',
+                        name='MACD',
+                        line=dict(color='#ff7f0e', width=2)
+                    )
+                    
+                    # Signal line
+                    signal_line = go.Scatter(
+                        x=df[date_column],
+                        y=df['MACD_Signal'],
+                        mode='lines',
+                        name='Signal Line',
+                        line=dict(color='#2ca02c', width=2)
+                    )
+                    
+                    # Histogram
+                    colors_histogram = ['#00ff00' if x >= 0 else '#ff0000' for x in df['MACD_Histogram']]
+                    histogram = go.Bar(
+                        x=df[date_column],
+                        y=df['MACD_Histogram'],
+                        name='Histogram',
+                        marker_color=colors_histogram
+                    )
+                    
+                    fig.add_trace(price_line, row=1, col=1)
+                    fig.add_trace(macd_line, row=2, col=1)
+                    fig.add_trace(signal_line, row=2, col=1)
+                    fig.add_trace(histogram, row=3, col=1)
+                    
+                # Tambahkan volume chart untuk semua jenis grafik (kecuali yang sudah memiliki subplot khusus)
+                if (volume_column in df.columns and 
+                    chart_type not in ["Volume Analysis", "RSI Indicator", "MACD Indicator", "Stochastic Oscillator"]):
                     volume_chart = go.Bar(
                         x=df[date_column],
                         y=df[volume_column],
                         name='Volume',
-                        marker_color='rgba(0,0,255,0.3)'
+                        marker_color=colors,
+                        opacity=0.7
                     )
                     if volume_column in df.columns:
                         fig.add_trace(volume_chart, row=2, col=1)
@@ -21414,112 +21638,245 @@ if __name__ == "__main__":
                 # Update layout
                 fig.update_layout(
                     title=f"{chart_type} - {uploaded_file.name}",
-                    xaxis_title="Date",
-                    yaxis_title="Price",
-                    height=600 if volume_column in df.columns else 400,
+                    xaxis_title="Tanggal",
+                    yaxis_title="Harga ($)",
+                    height=700 if volume_column in df.columns else 500,
                     showlegend=True,
-                    template="plotly_white"
+                    template="plotly_white",
+                    hovermode='x unified'
                 )
                 
                 # Tampilkan grafik
                 st.plotly_chart(fig, use_container_width=True)
                 
-                # Statistik tambahan
-                st.subheader("📊 Statistik Data Saham")
-                col1, col2, col3, col4 = st.columns(4)
+                # Analisis dan Rekomendasi
+                st.subheader("🎯 Analisis dan Insight")
                 
-                with col1:
-                    if close_column in df.columns and len(df) > 0:
-                        st.metric("Harga Terakhir", f"${df[close_column].iloc[-1]:.2f}")
-                
-                with col2:
-                    if close_column in df.columns and len(df) > 1:
-                        daily_return = ((df[close_column].iloc[-1] - df[close_column].iloc[-2]) / df[close_column].iloc[-2]) * 100
-                        st.metric("Return Harian", f"{daily_return:.2f}%")
-                    else:
-                        st.metric("Return Harian", "N/A")
-                
-                with col3:
-                    if high_column in df.columns:
-                        st.metric("High Tertinggi", f"${df[high_column].max():.2f}")
-                
-                with col4:
-                    if low_column in df.columns:
-                        st.metric("Low Terendah", f"${df[low_column].min():.2f}")
-                
-                # Informasi data
-                with st.expander("📋 Informasi Data Lengkap"):
-                    st.write(f"**Periode Data:** {df[date_column].min().strftime('%Y-%m-%d')} hingga {df[date_column].max().strftime('%Y-%m-%d')}")
-                    st.write(f"**Jumlah Data:** {len(df)} records")
+                if close_column in df.columns and len(df) > 0:
+                    current_price = df[close_column].iloc[-1]
+                    price_1d_ago = df[close_column].iloc[-2] if len(df) > 1 else current_price
+                    price_1w_ago = df[close_column].iloc[-5] if len(df) > 5 else current_price
+                    price_1m_ago = df[close_column].iloc[-20] if len(df) > 20 else current_price
                     
-                    if close_column in df.columns:
-                        col1, col2, col3 = st.columns(3)
-                        with col1:
-                            st.metric("Rata-rata Close", f"${df[close_column].mean():.2f}")
-                        with col2:
-                            st.metric("Std Dev Close", f"${df[close_column].std():.2f}")
-                        with col3:
-                            st.metric("Volatilitas", f"{(df[close_column].std() / df[close_column].mean() * 100):.2f}%")
+                    col1, col2, col3, col4 = st.columns(4)
+                    
+                    with col1:
+                        change_1d = ((current_price - price_1d_ago) / price_1d_ago) * 100
+                        st.metric("Perubahan 1 Hari", f"${current_price:.2f}", f"{change_1d:+.2f}%")
+                    
+                    with col2:
+                        change_1w = ((current_price - price_1w_ago) / price_1w_ago) * 100
+                        st.metric("Perubahan 1 Minggu", f"${current_price:.2f}", f"{change_1w:+.2f}%")
+                    
+                    with col3:
+                        change_1m = ((current_price - price_1m_ago) / price_1m_ago) * 100
+                        st.metric("Perubahan 1 Bulan", f"${current_price:.2f}", f"{change_1m:+.2f}%")
+                    
+                    with col4:
+                        volatility = (df[close_column].std() / df[close_column].mean()) * 100
+                        st.metric("Volatilitas", f"{volatility:.2f}%", "Risiko")
+                    
+                    # Sinyal trading berdasarkan indikator
+                    st.subheader("📊 Sinyal Trading")
+                    col1, col2, col3 = st.columns(3)
+                    
+                    with col1:
+                        # RSI Signal
+                        current_rsi = df['RSI'].iloc[-1] if 'RSI' in df.columns and not pd.isna(df['RSI'].iloc[-1]) else 50
+                        if current_rsi > 70:
+                            st.error("RSI: OVERBOUGHT 🚨")
+                        elif current_rsi < 30:
+                            st.success("RSI: OVERSOLD ✅")
+                        else:
+                            st.info(f"RSI: {current_rsi:.1f} (Netral)")
+                    
+                    with col2:
+                        # MACD Signal
+                        if 'MACD' in df.columns and 'MACD_Signal' in df.columns:
+                            current_macd = df['MACD'].iloc[-1]
+                            current_signal = df['MACD_Signal'].iloc[-1]
+                            if current_macd > current_signal:
+                                st.success("MACD: BULLISH 📈")
+                            else:
+                                st.error("MACD: BEARISH 📉")
+                    
+                    with col3:
+                        # Trend Signal
+                        if 'MA_20' in df.columns and 'MA_50' in df.columns:
+                            ma_20 = df['MA_20'].iloc[-1]
+                            ma_50 = df['MA_50'].iloc[-1]
+                            if ma_20 > ma_50:
+                                st.success("TREND: UPTREND 🎯")
+                            else:
+                                st.error("TREND: DOWNTREND ⚠️")
+                
+                # Statistik lengkap
+                with st.expander("📈 Statistik Lengkap Data Saham", expanded=False):
+                    col1, col2, col3 = st.columns(3)
+                    
+                    with col1:
+                        st.write("**Statistik Harga:**")
+                        st.metric("Harga Tertinggi", f"${df[high_column].max():.2f}")
+                        st.metric("Harga Terendah", f"${df[low_column].min():.2f}")
+                        st.metric("Rata-rata Close", f"${df[close_column].mean():.2f}")
+                    
+                    with col2:
+                        st.write("**Volatilitas & Risiko:**")
+                        st.metric("Std Dev Harian", f"${df[close_column].std():.2f}")
+                        st.metric("Range Harian Rata2", f"${(df[high_column] - df[low_column]).mean():.2f}")
+                        st.metric("Sharpe Ratio", f"{(df[close_column].pct_change().mean() / df[close_column].pct_change().std() * np.sqrt(252)):.2f}")
+                    
+                    with col3:
+                        st.write("**Performance:**")
+                        total_return = ((df[close_column].iloc[-1] - df[close_column].iloc[0]) / df[close_column].iloc[0]) * 100
+                        st.metric("Total Return", f"{total_return:.2f}%")
+                        st.metric("Return Tahunan", f"{(total_return / len(df) * 252):.2f}%")
+                        st.metric("Max Drawdown", f"{((df[close_column] / df[close_column].cummax() - 1).min() * 100):.2f}%")
                 
                 # Download data yang sudah diproses
                 st.subheader("💾 Download Data")
-                csv = df.to_csv(index=False)
-                st.download_button(
-                    label="Download Data sebagai CSV",
-                    data=csv,
-                    file_name=f"processed_{uploaded_file.name.split('.')[0]}.csv",
-                    mime="text/csv"
-                )
+                col1, col2 = st.columns(2)
                 
+                with col1:
+                    csv = df.to_csv(index=False)
+                    st.download_button(
+                        label="📥 Download Data sebagai CSV",
+                        data=csv,
+                        file_name=f"processed_stock_data.csv",
+                        mime="text/csv",
+                        help="Download data dengan semua indikator teknikal yang sudah dihitung"
+                    )
+                
+                with col2:
+                    # Generate report
+                    report = f"""
+                    LAPORAN ANALISIS SAHAM
+                    ======================
+                    
+                    File: {uploaded_file.name}
+                    Periode: {df[date_column].min().strftime('%Y-%m-%d')} hingga {df[date_column].max().strftime('%Y-%m-%d')}
+                    Total Data: {len(df)} hari trading
+                    
+                    STATISTIK UTAMA:
+                    - Harga Terakhir: ${df[close_column].iloc[-1]:.2f}
+                    - Return Total: {((df[close_column].iloc[-1] - df[close_column].iloc[0]) / df[close_column].iloc[0] * 100):.2f}%
+                    - Volatilitas: {(df[close_column].std() / df[close_column].mean() * 100):.2f}%
+                    
+                    Sinyal Terkini:
+                    - RSI: {df['RSI'].iloc[-1] if 'RSI' in df.columns else 'N/A'}
+                    - Trend: {'Uptrend' if 'MA_20' in df.columns and df['MA_20'].iloc[-1] > df['MA_50'].iloc[-1] else 'Downtrend'}
+                    
+                    Generated pada: {pd.Timestamp.now().strftime('%Y-%m-%d %H:%M:%S')}
+                    """
+                    
+                    st.download_button(
+                        label="📄 Download Laporan Analisis",
+                        data=report,
+                        file_name="stock_analysis_report.txt",
+                        mime="text/plain",
+                        help="Download laporan analisis teknikal singkat"
+                    )
+                    
             except Exception as e:
-                st.error(f"Error processing file: {str(e)}")
-                st.info("Pastikan file Anda memiliki format yang benar dengan kolom: Date, Open, High, Low, Close, Volume")
+                st.error(f"❌ Error processing file: {str(e)}")
+                st.info("""
+                **🔧 Troubleshooting Tips:**
+                1. Pastikan file memiliki format yang benar
+                2. Cek apakah kolom tanggal dalam format yang dapat dikenali
+                3. Pastikan tidak ada baris kosong di header
+                4. Cek tipe data numerik pada kolom harga
+                """)
         
         else:
             # Tampilkan contoh data dan petunjuk
             st.info("""
             **📋 Petunjuk Upload File Saham:**
             
-            1. File harus dalam format CSV atau Excel
-            2. Data harus mengandung kolom-kolom berikut:
-            - **Tanggal** (Date)
-            - **Harga Pembukaan** (Open)
-            - **Harga Tertinggi** (High) 
-            - **Harga Terendah** (Low)
-            - **Harga Penutupan** (Close)
-            - **Volume** (opsional)
+            1. **Format File**: CSV atau Excel
+            2. **Struktur Data Minimal**:
+            - **Tanggal** (Date) - Format: YYYY-MM-DD
+            - **Open** - Harga pembukaan
+            - **High** - Harga tertinggi harian
+            - **Low** - Harga terendah harian  
+            - **Close** - Harga penutupan
+            - **Volume** - Jumlah transaksi (opsional tapi disarankan)
             
-            3. Contoh format data:
-            ```
-            Date,Open,High,Low,Close,Volume
-            2024-01-01,150.0,155.5,149.0,154.2,1000000
-            2024-01-02,154.5,157.0,153.8,156.0,1200000
-            ```
+            3. **Contoh Format yang Didukung**:
             """)
             
-            # Contoh data
+            # Contoh data yang lebih realistis
+            np.random.seed(42)
+            dates = pd.date_range('2024-01-01', periods=60, freq='D')
+            base_price = 150
+            returns = np.random.normal(0.001, 0.02, 60)  # Return harian dengan volatilitas 2%
+            prices = base_price * (1 + returns).cumprod()
+            
             sample_data = {
-                'Date': pd.date_range('2024-01-01', periods=30, freq='D'),
-                'Open': [150 + i * 0.5 + np.random.normal(0, 1) for i in range(30)],
-                'High': [155 + i * 0.5 + np.random.normal(0, 1) for i in range(30)],
-                'Low': [149 + i * 0.5 + np.random.normal(0, 1) for i in range(30)],
-                'Close': [154 + i * 0.5 + np.random.normal(0, 1) for i in range(30)],
-                'Volume': [1000000 + i * 50000 for i in range(30)]
+                'Date': dates,
+                'Open': prices * (1 + np.random.normal(0, 0.005, 60)),
+                'High': prices * (1 + np.abs(np.random.normal(0.01, 0.005, 60))),
+                'Low': prices * (1 - np.abs(np.random.normal(0.01, 0.005, 60))),
+                'Close': prices,
+                'Volume': np.random.randint(1000000, 5000000, 60)
             }
             
             sample_df = pd.DataFrame(sample_data)
             
-            with st.expander("🎯 Contoh Format Data yang Didukung"):
+            with st.expander("🎯 Contoh Format Data & Template Download", expanded=True):
+                st.write("**Contoh Data Saham (60 hari simulated data):**")
                 st.dataframe(sample_df.head(10))
                 
-                # Download sample data
-                csv_sample = sample_df.to_csv(index=False)
-                st.download_button(
-                    label="Download Contoh Data CSV",
-                    data=csv_sample,
-                    file_name="sample_stock_data.csv",
-                    mime="text/csv"
-                )
+                col1, col2 = st.columns(2)
+                with col1:
+                    # Download sample data
+                    csv_sample = sample_df.to_csv(index=False)
+                    st.download_button(
+                        label="📥 Download Contoh Data CSV",
+                        data=csv_sample,
+                        file_name="sample_stock_data.csv",
+                        mime="text/csv",
+                        help="Gunakan template ini untuk memformat data Anda"
+                    )
+                
+                with col2:
+                    st.write("**💡 Tips:**")
+                    st.write("• Data harus diurutkan berdasarkan tanggal")
+                    st.write("• Format tanggal: YYYY-MM-DD")
+                    st.write("• Gunakan titik untuk desimal (150.50)")
+                    st.write("• Hindari simbol mata uang dalam angka")
+
+            # Quick analysis demo
+            with st.expander("🚀 Demo Cepat Analisis Saham", expanded=False):
+                st.write("**Coba analisis dengan data contoh:**")
+                if st.button("📊 Jalankan Analisis Demo", type="secondary"):
+                    # Create sample analysis
+                    st.success("Menjalankan analisis demo...")
+                    
+                    # Calculate basic indicators for demo
+                    sample_df['MA_20'] = sample_df['Close'].rolling(20).mean()
+                    sample_df['MA_50'] = sample_df['Close'].rolling(50).mean()
+                    
+                    # Create demo chart
+                    fig_demo = go.Figure()
+                    fig_demo.add_trace(go.Scatter(x=sample_df['Date'], y=sample_df['Close'], 
+                                                name='Harga Penutupan', line=dict(color='blue')))
+                    fig_demo.add_trace(go.Scatter(x=sample_df['Date'], y=sample_df['MA_20'], 
+                                                name='MA 20', line=dict(color='orange')))
+                    fig_demo.add_trace(go.Scatter(x=sample_df['Date'], y=sample_df['MA_50'], 
+                                                name='MA 50', line=dict(color='green')))
+                    
+                    fig_demo.update_layout(title="Demo Analisis - Moving Average",
+                                        xaxis_title="Tanggal",
+                                        yaxis_title="Harga ($)")
+                    
+                    st.plotly_chart(fig_demo, use_container_width=True)
+                    
+                    st.info("""
+                    **📈 Insight Demo:**
+                    - Garis orange (MA 20) menunjukkan trend jangka pendek
+                    - Garis hijau (MA 50) menunjukkan trend jangka panjang
+                    - Ketika MA 20 > MA 50, trend dianggap bullish
+                    """)
 
     with tab7:
         st.header("📁 Upload File & Generate Flowchart")
@@ -23173,7 +23530,7 @@ if __name__ == "__main__":
         with col3:
             st.markdown("""
             ### 🔄 Update
-            - Versi terbaru: 3.9.6
+            - Versi terbaru: 4.0.0
             - Rilis: Oktober 2025
             - Last updated: 2025
             - Compatibility: Python 3.8+
@@ -23835,12 +24192,10 @@ if __name__ == "__main__":
                 st.warning("Dataset kosong atau tidak valid")
 else:
     st.info("📁 **Panduan Unggah File**: Silakan unggah file CSV atau Excel melalui sidebar di sebelah kiri untuk memulai analisis data.")
-    
     st.subheader("📋 Contoh Struktur Data yang Didukung")
-    st.write("Berikut adalah contoh format data yang dapat diolah oleh dashboard ini:")
     example_data = create_sample_file()
     st.dataframe(example_data.head(), use_container_width=True)
-    
+
 
     st.markdown("""
     **Keterangan Kolom Data:**
@@ -23853,14 +24208,14 @@ else:
     - **Sektor**: Kategori sektor perusahaan
     - **Kategori_Produk**: Jenis produk yang diperdagangkan
     """)
-    
+
     st.subheader("📊 Pratinjau Visualisasi Dashboard")
     st.write("Dashboard ini akan menampilkan berbagai visualisasi interaktif setelah data diunggah:")
-    
+
 
     st.write("**📈 Key Performance Indicators**")
     kpi_col1, kpi_col2, kpi_col3, kpi_col4 = st.columns(4)
-    
+
     with kpi_col1:
         st.markdown("""
         <div class="kpi-card" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); 
@@ -23871,7 +24226,7 @@ else:
                     padding: 5px; border-radius: 15px;">+2.5% dari bulan sebelumnya</div>
         </div>
         """, unsafe_allow_html=True)
-    
+
     with kpi_col2:
         st.markdown("""
         <div class="kpi-card" style="background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); 
@@ -23882,7 +24237,7 @@ else:
                     padding: 5px; border-radius: 15px;">+15.3% dari rata-rata</div>
         </div>
         """, unsafe_allow_html=True)
-    
+
     with kpi_col3:
         st.markdown("""
         <div class="kpi-card" style="background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%); 
@@ -23893,7 +24248,7 @@ else:
                     padding: 5px; border-radius: 15px;">-0.8% lebih rendah</div>
         </div>
         """, unsafe_allow_html=True)
-    
+
     with kpi_col4:
         st.markdown("""
         <div class="kpi-card" style="background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%); 
@@ -23904,305 +24259,319 @@ else:
                     padding: 5px; border-radius: 15px;">+2 sektor baru</div>
         </div>
         """, unsafe_allow_html=True)
-    
-  
-    numeric_cols = example_data.select_dtypes(include=[np.number]).columns.tolist()
-    categorical_cols = example_data.select_dtypes(include=['object']).columns.tolist()
-    
- 
-    if not categorical_cols:
-        for col in example_data.columns:
-            if example_data[col].nunique() <= 10:  
-                categorical_cols.append(col)
-    
- 
-    col1, col2 = st.columns(2)
-    
-    with col1:
-     
-        st.write("**📈 Line Chart - Trend Data**")
-        
-
-        if len(numeric_cols) >= 4:
-        
-            line_data = example_data.reset_index()
-            fig_line = px.line(line_data, x=line_data.index, y=numeric_cols[:4],
-                              title='Trend Data Numerik',
-                              color_discrete_sequence=['#636EFA', '#00CC96', '#EF553B', '#AB63FA'])
-        else:
-        
-            line_data = example_data.reset_index()
-            available_cols = numeric_cols[:min(4, len(numeric_cols))]
-            if available_cols:
-                fig_line = px.line(line_data, x=line_data.index, y=available_cols,
-                                  title='Trend Data Numerik',
-                                  color_discrete_sequence=px.colors.qualitative.Set1[:len(available_cols)])
-            else:
-           
-                dummy_data = pd.DataFrame({
-                    'index': range(10),
-                    'Value1': np.random.rand(10) * 100,
-                    'Value2': np.random.rand(10) * 100 + 50
-                })
-                fig_line = px.line(dummy_data, x='index', y=['Value1', 'Value2'],
-                                  title='Contoh Trend Data',
-                                  color_discrete_sequence=['#636EFA', '#00CC96'])
-        
-        fig_line.update_layout(
-            title_font_size=16,
-            template='plotly_white',
-            legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1),
-            hovermode='x unified'
-        )
-        st.plotly_chart(fig_line, use_container_width=True)
-        st.caption("Line chart menampilkan pergerakan data numerik untuk analisis trend.")
-    
-    with col2:
-     
-        st.write("**📊 Area Chart - Distribusi Kumulatif**")
-        
-        if numeric_cols:
-            area_data = example_data.reset_index()
-            fig_area = px.area(area_data, x=area_data.index, y=numeric_cols[0],
-                              title=f'Distribusi Kumulatif {numeric_cols[0]}',
-                              color_discrete_sequence=['#FFA15A'])
-        else:
-           
-            area_data = pd.DataFrame({
-                'index': range(10),
-                'Value': np.cumsum(np.random.rand(10) * 10)
-            })
-            fig_area = px.area(area_data, x='index', y='Value',
-                              title='Contoh Area Chart',
-                              color_discrete_sequence=['#FFA15A'])
-        
-        fig_area.update_layout(
-            title_font_size=16,
-            template='plotly_white',
-            showlegend=False
-        )
-        fig_area.update_traces(opacity=0.6)
-        st.plotly_chart(fig_area, use_container_width=True)
-        st.caption("Area chart menunjukkan distribusi kumulatif data dengan fill pattern.")
-    
-
-    col3, col4 = st.columns(2)
-    
-    with col3:
- 
-        st.write("**📊 Histogram - Distribusi Data**")
-        
-        if numeric_cols:
-            fig_hist = px.histogram(example_data, x=numeric_cols[0], 
-                                   title=f'Distribusi Frekuensi {numeric_cols[0]}',
-                                   color_discrete_sequence=['#636EFA'], 
-                                   opacity=0.8,
-                                   nbins=20)
-        else:
-       
-            dummy_hist = pd.DataFrame({
-                'Value': np.random.normal(100, 15, 1000)
-            })
-            fig_hist = px.histogram(dummy_hist, x='Value', 
-                                   title='Contoh Histogram',
-                                   color_discrete_sequence=['#636EFA'], 
-                                   opacity=0.8,
-                                   nbins=20)
-        
-        fig_hist.update_layout(
-            title_font_size=16,
-            template='plotly_white',
-            showlegend=False,
-            xaxis_title="Nilai",
-            yaxis_title="Frekuensi"
-        )
-        st.plotly_chart(fig_hist, use_container_width=True)
-        st.caption("Histogram menampilkan distribusi frekuensi data untuk analisis pola sebaran.")
-    
-    with col4:
-  
-        st.write("**🥧 Pie Chart - Komposisi Data**")
-        
-        if categorical_cols:
-            cat_composition = example_data[categorical_cols[0]].value_counts().reset_index()
-            cat_composition.columns = ['Kategori', 'Count']
-        else:
-         
-            cat_composition = pd.DataFrame({
-                'Kategori': ['Kategori A', 'Kategori B', 'Kategori C', 'Kategori D'],
-                'Count': [25, 30, 20, 25]
-            })
-        
-        fig_pie = px.pie(cat_composition, values='Count', names='Kategori',
-                        title='Distribusi Persentase Data',
-                        color_discrete_sequence=px.colors.qualitative.Set3,
-                        hole=0.4)
-        fig_pie.update_layout(
-            title_font_size=16,
-            template='plotly_white',
-            legend=dict(orientation="v", yanchor="middle", y=0.5, xanchor="left", x=1.1)
-        )
-        fig_pie.update_traces(textposition='inside', textinfo='percent+label')
-        st.plotly_chart(fig_pie, use_container_width=True)
-        st.caption("Pie chart menunjukkan komposisi persentase data berdasarkan kategori.")
-    
- 
-    col5, col6 = st.columns(2)
-    
-    with col5:
-       
-        st.write("**🔍 Scatter Plot - Korelasi Variabel**")
-        
-        if len(numeric_cols) >= 2:
-            x_col = numeric_cols[0]
-            y_col = numeric_cols[1]
-            
-            if categorical_cols:
-                color_col = categorical_cols[0]
-                fig_scatter = px.scatter(example_data, x=x_col, y=y_col, color=color_col,
-                                       title=f'Korelasi {x_col} vs {y_col}',
-                                       size=y_col if len(numeric_cols) > 2 else None,
-                                       hover_data=example_data.columns.tolist()[:3],
-                                       color_discrete_sequence=px.colors.qualitative.Bold)
-            else:
-                fig_scatter = px.scatter(example_data, x=x_col, y=y_col,
-                                       title=f'Korelasi {x_col} vs {y_col}',
-                                       color_discrete_sequence=['#636EFA'])
-        else:
-         
-            dummy_scatter = pd.DataFrame({
-                'X': np.random.rand(50) * 100,
-                'Y': np.random.rand(50) * 100 + 50,
-                'Category': np.random.choice(['A', 'B', 'C'], 50)
-            })
-            fig_scatter = px.scatter(dummy_scatter, x='X', y='Y', color='Category',
-                                   title='Contoh Scatter Plot',
-                                   color_discrete_sequence=px.colors.qualitative.Bold)
-        
-        fig_scatter.update_layout(
-            title_font_size=16,
-            template='plotly_white',
-            xaxis_title="Variabel X",
-            yaxis_title="Variabel Y"
-        )
-        st.plotly_chart(fig_scatter, use_container_width=True)
-        st.caption("Scatter plot menampilkan hubungan korelasi antara dua variabel numerik.")
-    
-    with col6:
-      
-        st.write("**📊 Bar Chart - Performa per Kategori**")
-        
-        if categorical_cols and numeric_cols:
-            bar_data = example_data.groupby(categorical_cols[0])[numeric_cols[0]].mean().reset_index()
-            bar_data.columns = ['Kategori', 'Rata_rata']
-            
-            fig_bar = px.bar(bar_data, x='Kategori', y='Rata_rata',
-                            title=f'Rata-rata {numeric_cols[0]} per {categorical_cols[0]}',
-                            color='Rata_rata',
-                            color_continuous_scale='Viridis')
-        else:
-        
-            bar_data = pd.DataFrame({
-                'Kategori': ['Kategori A', 'Kategori B', 'Kategori C', 'Kategori D'],
-                'Rata_rata': [100, 150, 120, 180]
-            })
-            fig_bar = px.bar(bar_data, x='Kategori', y='Rata_rata',
-                            title='Contoh Bar Chart',
-                            color='Rata_rata',
-                            color_continuous_scale='Viridis')
-        
-        fig_bar.update_layout(
-            title_font_size=16,
-            template='plotly_white',
-            xaxis_title="Kategori",
-            yaxis_title="Rata-rata",
-            showlegend=False
-        )
-        st.plotly_chart(fig_bar, use_container_width=True)
-        st.caption("Bar chart perbandingan rata-rata nilai untuk setiap kategori.")
-    
-
-    col7, col8 = st.columns(2)
-    
-    with col7:
-      
-        st.write("**🌳 Treemap - Struktur Hierarkis**")
-        
-        if len(categorical_cols) >= 2 and numeric_cols:
-        
-            tree_group_cols = categorical_cols[:2]
-            tree_data = example_data.groupby(tree_group_cols)[numeric_cols[0]].sum().reset_index()
-            
-            fig_tree = px.treemap(tree_data, path=tree_group_cols, values=numeric_cols[0],
-                                 title='Struktur Data Hierarkis',
-                                 color=numeric_cols[0], 
-                                 color_continuous_scale='Blues')
-        elif categorical_cols and numeric_cols:
-
-            tree_data = example_data.copy()
-            tree_data['Level2'] = 'Subkategori' 
-            tree_group_cols = [categorical_cols[0], 'Level2']
-            tree_data = tree_data.groupby(tree_group_cols)[numeric_cols[0]].sum().reset_index()
-            
-            fig_tree = px.treemap(tree_data, path=tree_group_cols, values=numeric_cols[0],
-                                 title='Struktur Data Hierarkis',
-                                 color=numeric_cols[0], 
-                                 color_continuous_scale='Blues')
-        else:
-
-            tree_data = pd.DataFrame({
-                'Level1': ['Sektor A', 'Sektor A', 'Sektor B', 'Sektor B'],
-                'Level2': ['Produk 1', 'Produk 2', 'Produk 1', 'Produk 2'],
-                'Value': [100, 200, 150, 250]
-            })
-            fig_tree = px.treemap(tree_data, path=['Level1', 'Level2'], values='Value',
-                                 title='Contoh Treemap',
-                                 color='Value', 
-                                 color_continuous_scale='Blues')
-        
-        fig_tree.update_layout(
-            title_font_size=16,
-            margin=dict(t=50, l=25, r=25, b=25)
-        )
-        st.plotly_chart(fig_tree, use_container_width=True)
-        st.caption("Treemap menampilkan hubungan hierarkis antara kategori data berdasarkan nilai agregat.")
-    
-    with col8:
-        st.write("**📦 Box Plot - Variasi Data**")
-        
-        if categorical_cols and numeric_cols:
-            fig_box = px.box(example_data, x=categorical_cols[0], y=numeric_cols[0],
-                            title=f'Distribusi {numeric_cols[0]} per {categorical_cols[0]}',
-                            color=categorical_cols[0],
-                            color_discrete_sequence=px.colors.qualitative.Pastel)
-        else:
-            dummy_box = pd.DataFrame({
-                'Kategori': ['A']*20 + ['B']*20 + ['C']*20,
-                'Nilai': np.concatenate([
-                    np.random.normal(100, 10, 20), 
-                    np.random.normal(150, 15, 20), 
-                    np.random.normal(120, 12, 20)
-                ])
-            })
-            fig_box = px.box(dummy_box, x='Kategori', y='Nilai', color='Kategori',
-                            title='Contoh Box Plot',
-                            color_discrete_sequence=px.colors.qualitative.Pastel)
-        
-        fig_box.update_layout(
-            title_font_size=16,
-            template='plotly_white',
-            xaxis_title="Kategori",
-            yaxis_title="Nilai",
-            showlegend=False
-        )
-        st.plotly_chart(fig_box, use_container_width=True)
-        st.caption("Box plot menunjukkan distribusi statistik data untuk setiap kategori.")
 
 
+    # ANALISIS KESEHATAN
+    st.subheader("🏥 Analisis Kesehatan Data")
+    health_col1, health_col2, health_col3 = st.columns(3)
+
+    with health_col1:
+        # Gauge Chart - Data Quality Score
+        st.write("**📊 Skor Kualitas Data**")
+        fig_gauge = go.Figure(go.Indicator(
+            mode = "gauge+number+delta",
+            value = 85,
+            domain = {'x': [0, 1], 'y': [0, 1]},
+            title = {'text': "Data Quality Score"},
+            delta = {'reference': 80, 'increasing': {'color': "green"}},
+            gauge = {
+                'axis': {'range': [None, 100], 'tickwidth': 1, 'tickcolor': "darkblue"},
+                'bar': {'color': "darkblue"},
+                'bgcolor': "white",
+                'borderwidth': 2,
+                'bordercolor': "gray",
+                'steps': [
+                    {'range': [0, 60], 'color': 'red'},
+                    {'range': [60, 80], 'color': 'yellow'},
+                    {'range': [80, 100], 'color': 'green'}],
+                'threshold': {
+                    'line': {'color': "red", 'width': 4},
+                    'thickness': 0.75,
+                    'value': 90}}
+        ))
+        fig_gauge.update_layout(height=300)
+        st.plotly_chart(fig_gauge, use_container_width=True)
+
+    with health_col2:
+        # Data Completeness
+        st.write("**✅ Kelengkapan Data**")
+        completeness_data = {
+            'Metric': ['Data Points', 'Complete Records', 'Missing Values', 'Duplicate Records'],
+            'Value': [1000, 950, 50, 12],
+            'Percentage': [100, 95, 5, 1.2]
+        }
+        df_completeness = pd.DataFrame(completeness_data)
+        
+        fig_completeness = px.bar(df_completeness, x='Metric', y='Percentage',
+                                text='Percentage',
+                                color='Percentage',
+                                color_continuous_scale='Viridis')
+        fig_completeness.update_traces(texttemplate='%{text}%', textposition='outside')
+        fig_completeness.update_layout(height=300, showlegend=False)
+        st.plotly_chart(fig_completeness, use_container_width=True)
+
+    with health_col3:
+        # Data Health Metrics
+        st.write("**📈 Metrik Kesehatan Data**")
+        health_metrics = {
+            'Metric': ['Accuracy', 'Consistency', 'Timeliness', 'Validity'],
+            'Score': [92, 88, 95, 90]
+        }
+        df_health = pd.DataFrame(health_metrics)
+        
+        fig_health = px.line_polar(df_health, r='Score', theta='Metric', 
+                                line_close=True,
+                                color_discrete_sequence=['#FF6B6B'])
+        fig_health.update_traces(fill='toself')
+        fig_health.update_layout(height=300, polar=dict(radialaxis=dict(visible=True, range=[0, 100])))
+        st.plotly_chart(fig_health, use_container_width=True)
+
+    # ANALISIS CUACA & LINGKUNGAN
+    st.subheader("🌤️ Analisis Cuaca & Lingkungan")
+
+    # Generate sample weather data
+    def create_weather_data():
+        dates = pd.date_range('2024-01-01', periods=30, freq='D')
+        weather_data = pd.DataFrame({
+            'Date': dates,
+            'Temperature': np.random.normal(25, 5, 30),
+            'Humidity': np.random.normal(65, 15, 30),
+            'Rainfall': np.random.exponential(2, 30),
+            'Wind_Speed': np.random.gamma(2, 2, 30),
+            'Air_Quality': np.random.choice(['Good', 'Moderate', 'Poor'], 30, p=[0.6, 0.3, 0.1])
+        })
+        return weather_data
+
+    weather_data = create_weather_data()
+
+    weather_col1, weather_col2 = st.columns(2)
+
+    with weather_col1:
+        # Temperature Trend
+        st.write("**🌡️ Trend Suhu Harian**")
+        fig_temp = px.line(weather_data, x='Date', y='Temperature',
+                        title='Perkembangan Suhu Harian',
+                        color_discrete_sequence=['#FF6B6B'])
+        fig_temp.add_scatter(x=weather_data['Date'], y=weather_data['Temperature'],
+                            mode='markers', name='Suhu Aktual',
+                            marker=dict(color='#FF6B6B', size=6))
+        fig_temp.update_layout(height=300)
+        st.plotly_chart(fig_temp, use_container_width=True)
+
+    with weather_col2:
+        # Weather Distribution
+        st.write("**🌧️ Distribusi Kondisi Cuaca**")
+        fig_weather = px.scatter(weather_data, x='Temperature', y='Humidity',
+                            color='Air_Quality', size='Rainfall',
+                            title='Hubungan Suhu vs Kelembaban',
+                            color_discrete_sequence=['#00CC96', '#FFA15A', '#EF553B'])
+        fig_weather.update_layout(height=300)
+        st.plotly_chart(fig_weather, use_container_width=True)
+
+    # ANALISIS FINANSIAL LANJUTAN
+    st.subheader("💰 Analisis Finansial Mendalam")
+
+    finance_col1, finance_col2 = st.columns(2)
+
+    with finance_col1:
+        # Candlestick Chart (if available)
+        st.write("**📊 Candlestick Chart**")
+        if all(col in example_data.columns for col in ['Open', 'High', 'Low', 'Close']):
+            fig_candle = go.Figure(data=[go.Candlestick(x=example_data.index,
+                                                    open=example_data['Open'],
+                                                    high=example_data['High'],
+                                                    low=example_data['Low'],
+                                                    close=example_data['Close'])])
+            fig_candle.update_layout(title='Price Movement Candlestick',
+                                xaxis_title='Period',
+                                yaxis_title='Price',
+                                height=400)
+            st.plotly_chart(fig_candle, use_container_width=True)
+        else:
+            # Fallback to area chart
+            st.write("**📈 Cumulative Returns**")
+            returns_data = pd.DataFrame({
+                'Period': range(30),
+                'Returns': np.cumsum(np.random.normal(0, 0.02, 30))
+            })
+            fig_returns = px.area(returns_data, x='Period', y='Returns',
+                                title='Kumulatif Return Investasi')
+            fig_returns.update_layout(height=400)
+            st.plotly_chart(fig_returns, use_container_width=True)
+
+    with finance_col2:
+        # Risk Analysis
+        st.write("**⚖️ Analisis Risiko & Volatilitas**")
+        
+        # Create sample risk data
+        risk_data = pd.DataFrame({
+            'Asset': ['Stock A', 'Stock B', 'Stock C', 'Stock D', 'Stock E'],
+            'Return': [12.5, 8.3, 15.2, 6.7, 10.1],
+            'Risk': [18.2, 12.1, 25.3, 8.5, 14.7],
+            'Sharpe_Ratio': [0.69, 0.69, 0.60, 0.79, 0.69]
+        })
+        
+        fig_risk = px.scatter(risk_data, x='Risk', y='Return', 
+                            size='Sharpe_Ratio', color='Asset',
+                            title='Risk-Return Profile',
+                            size_max=30)
+        fig_risk.update_layout(height=400)
+        st.plotly_chart(fig_risk, use_container_width=True)
+
+    # ANALISIS GEOGRAFIS
+    st.subheader("🌍 Analisis Geografis")
+
+    geo_col1, geo_col2 = st.columns(2)
+
+    with geo_col1:
+        # Choropleth Map (Sample)
+        st.write("**🗺️ Distribusi Geografis**")
+        
+        # Sample geographic data
+        geo_data = pd.DataFrame({
+            'Country': ['USA', 'Canada', 'UK', 'Germany', 'France', 'Japan', 'Australia'],
+            'Value': [100, 85, 75, 65, 60, 55, 50],
+            'Region': ['North America', 'North America', 'Europe', 'Europe', 'Europe', 'Asia', 'Oceania']
+        })
+        
+        fig_geo = px.choropleth(geo_data, 
+                            locations="Country",
+                            locationmode="country names",
+                            color="Value",
+                            hover_name="Country",
+                            color_continuous_scale="Blues",
+                            title="Distribusi Nilai per Negara")
+        fig_geo.update_layout(height=400)
+        st.plotly_chart(fig_geo, use_container_width=True)
+
+    with geo_col2:
+        # 3D Scatter Plot
+        st.write("**📊 3D Analysis**")
+        
+        # Create 3D sample data
+        scatter_3d_data = pd.DataFrame({
+            'X': np.random.rand(50) * 100,
+            'Y': np.random.rand(50) * 100,
+            'Z': np.random.rand(50) * 100,
+            'Category': np.random.choice(['A', 'B', 'C'], 50),
+            'Size': np.random.rand(50) * 30 + 10
+        })
+        
+        fig_3d = px.scatter_3d(scatter_3d_data, x='X', y='Y', z='Z',
+                            color='Category', size='Size',
+                            title='Analisis 3D Multivariabel',
+                            opacity=0.7)
+        fig_3d.update_layout(height=400)
+        st.plotly_chart(fig_3d, use_container_width=True)
+
+    # ANALISIS TIME SERIES LANJUTAN
+    st.subheader("⏰ Analisis Time Series Mendalam")
+
+    ts_col1, ts_col2 = st.columns(2)
+
+    with ts_col1:
+        # Seasonal Decomposition
+        st.write("**📅 Dekomposisi Musiman**")
+        
+        # Create sample seasonal data
+        dates = pd.date_range('2023-01-01', periods=365, freq='D')
+        trend = np.linspace(100, 150, 365)
+        seasonal = 10 * np.sin(2 * np.pi * np.arange(365) / 365)
+        noise = np.random.normal(0, 5, 365)
+        ts_data = trend + seasonal + noise
+        
+        decomposition_df = pd.DataFrame({
+            'Date': dates,
+            'Original': ts_data,
+            'Trend': trend,
+            'Seasonal': seasonal,
+            'Residual': noise
+        })
+        
+        fig_seasonal = px.line(decomposition_df, x='Date', 
+                            y=['Original', 'Trend', 'Seasonal'],
+                            title='Dekomposisi Time Series')
+        fig_seasonal.update_layout(height=400)
+        st.plotly_chart(fig_seasonal, use_container_width=True)
+
+    with ts_col2:
+        # Moving Average
+        st.write("**📈 Moving Average Analysis**")
+        
+        # Calculate moving averages
+        prices = example_data['Close'] if 'Close' in example_data.columns else pd.Series(np.random.rand(100) * 100 + 100)
+        ma_short = prices.rolling(window=5).mean()
+        ma_long = prices.rolling(window=20).mean()
+        
+        ma_df = pd.DataFrame({
+            'Price': prices,
+            'MA_5': ma_short,
+            'MA_20': ma_long
+        })
+        
+        fig_ma = px.line(ma_df, y=['Price', 'MA_5', 'MA_20'],
+                        title='Moving Average Analysis')
+        fig_ma.update_layout(height=400)
+        st.plotly_chart(fig_ma, use_container_width=True)
+
+    # ANALISIS KORELASI MATRIX
+    st.subheader("🔗 Heatmap Korelasi")
+
+    # Create correlation matrix
+    numeric_data = example_data.select_dtypes(include=[np.number])
+    if not numeric_data.empty:
+        corr_matrix = numeric_data.corr()
+        
+        fig_corr = px.imshow(corr_matrix,
+                            text_auto=True,
+                            aspect="auto",
+                            color_continuous_scale='RdBu_r',
+                            title='Matrix Korelasi Variabel Numerik')
+        fig_corr.update_layout(height=500)
+        st.plotly_chart(fig_corr, use_container_width=True)
+
+    # DASHBOARD INTERAKTIF
+    st.subheader("🎮 Dashboard Interaktif")
+
+    interactive_col1, interactive_col2 = st.columns(2)
+
+    with interactive_col1:
+        # Interactive Filters Preview
+        st.write("**🎛️ Filter Interaktif**")
+        st.markdown("""
+        - **Date Range Picker**: Filter data berdasarkan rentang tanggal
+        - **Sector Selector**: Pilih sektor tertentu untuk analisis
+        - **Price Range Slider**: Filter berdasarkan range harga
+        - **Volume Threshold**: Set minimum volume transaksi
+        """)
+        
+        # Sample interactive elements
+        selected_sector = st.selectbox("Pilih Sektor:", ['All', 'Technology', 'Finance', 'Healthcare', 'Energy'])
+        price_range = st.slider("Range Harga:", 0.0, 200.0, (50.0, 150.0))
+        volume_threshold = st.number_input("Minimum Volume:", value=1000)
+
+    with interactive_col2:
+        # Real-time Data Preview
+        st.write("**🔄 Real-time Updates**")
+        st.markdown("""
+        - **Auto-refresh**: Data diperbarui otomatis setiap 5 menit
+        - **Live Alerts**: Notifikasi untuk anomaly detection
+        - **Dynamic KPIs**: Metrik yang update secara real-time
+        - **Streaming Data**: Support untuk data streaming
+        """)
+        
+        # Progress bars for system status
+        st.write("**System Status:**")
+        st.progress(85, text="Data Processing: 85%")
+        st.progress(92, text="API Connection: 92%")
+        st.progress(78, text="Cache Performance: 78%")
+
+    # FOOTER DAN INFORMASI TAMBAHAN
+    st.markdown("---")
     st.subheader("🚀 Fitur Dashboard yang Tersedia")
-    
-    feature_col1, feature_col2, feature_col3 = st.columns(3)
-    
+
+    feature_col1, feature_col2, feature_col3, feature_col4 = st.columns(4)
+
     with feature_col1:
         st.markdown("""
         <div style="background-color: #f8f9fa; padding: 15px; border-radius: 10px; border-left: 4px solid #636EFA;">
@@ -24210,7 +24579,7 @@ else:
             <p style="margin: 0; font-size: 14px;">Visualisasi time series dengan berbagai indikator teknikal</p>
         </div>
         """, unsafe_allow_html=True)
-    
+
     with feature_col2:
         st.markdown("""
         <div style="background-color: #f8f9fa; padding: 15px; border-radius: 10px; border-left: 4px solid #00CC96;">
@@ -24218,12 +24587,55 @@ else:
             <p style="margin: 0; font-size: 14px;">Analisis statistik lengkap dengan metrik KPI</p>
         </div>
         """, unsafe_allow_html=True)
-    
+
     with feature_col3:
         st.markdown("""
         <div style="background-color: #f8f9fa; padding: 15px; border-radius: 10px; border-left: 4px solid #EF553B;">
             <h4 style="margin: 0 0 10px 0; color: #EF553B;">🔍 Analisis Korelasi</h4>
             <p style="margin: 0; font-size: 14px;">Heatmap korelasi dan analisis hubungan variabel</p>
+        </div>
+        """, unsafe_allow_html=True)
+
+    with feature_col4:
+        st.markdown("""
+        <div style="background-color: #f8f9fa; padding: 15px; border-radius: 10px; border-left: 4px solid #FFA15A;">
+            <h4 style="margin: 0 0 10px 0; color: #FFA15A;">🏥 Kesehatan Data</h4>
+            <p style="margin: 0; font-size: 14px;">Monitoring kualitas dan integritas data</p>
+        </div>
+        """, unsafe_allow_html=True)
+
+    # Additional features row
+    feature_col5, feature_col6, feature_col7, feature_col8 = st.columns(4)
+
+    with feature_col5:
+        st.markdown("""
+        <div style="background-color: #f8f9fa; padding: 15px; border-radius: 10px; border-left: 4px solid #19D3F3;">
+            <h4 style="margin: 0 0 10px 0; color: #19D3F3;">🌤️ Analisis Cuaca</h4>
+            <p style="margin: 0; font-size: 14px;">Integrasi data cuaca dan lingkungan</p>
+        </div>
+        """, unsafe_allow_html=True)
+
+    with feature_col6:
+        st.markdown("""
+        <div style="background-color: #f8f9fa; padding: 15px; border-radius: 10px; border-left: 4px solid #FF6692;">
+            <h4 style="margin: 0 0 10px 0; color: #FF6692;">💰 Analisis Finansial</h4>
+            <p style="margin: 0; font-size: 14px;">Risk-return analysis dan portfolio tracking</p>
+        </div>
+        """, unsafe_allow_html=True)
+
+    with feature_col7:
+        st.markdown("""
+        <div style="background-color: #f8f9fa; padding: 15px; border-radius: 10px; border-left: 4px solid #B6E880;">
+            <h4 style="margin: 0 0 10px 0; color: #B6E880;">🌍 Analisis Geografis</h4>
+            <p style="margin: 0; font-size: 14px;">Mapping dan spatial analysis</p>
+        </div>
+        """, unsafe_allow_html=True)
+
+    with feature_col8:
+        st.markdown("""
+        <div style="background-color: #f8f9fa; padding: 15px; border-radius: 10px; border-left: 4px solid #FF97FF;">
+            <h4 style="margin: 0 0 10px 0; color: #FF97FF;">🎮 Interaktif</h4>
+            <p style="margin: 0; font-size: 14px;">Filter real-time dan kontrol interaktif</p>
         </div>
         """, unsafe_allow_html=True)
 
@@ -24243,7 +24655,7 @@ st.markdown("""
     <p style="margin: 15px 0 5px 0; font-style: italic;">Dikembangkan dengan ❤️ oleh:</p>
     <p style="margin: 0; font-weight: bold; color: #636EFA; font-size: 16px;">Dwi Bakti N Dev</p>
     <p style="margin: 5px 0; font-size: 12px;">Data Scientist & Business Intelligence Developer</p>
-    <p style="margin: 5px 0; font-size: 12px;">V3.9.6 Streamlit Launcher</p>
+    <p style="margin: 5px 0; font-size: 12px;">V4.0.0 Streamlit Launcher</p>
     <p style="margin: 5px 0; font-size: 12px;">🍰 <a href="https://pypi.org/project/streamlit-launcher/" target="_blank">Python Install Offline Streamlit Launcher</a></p>
 </div>
 """, unsafe_allow_html=True)
