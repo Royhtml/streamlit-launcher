@@ -1,6 +1,6 @@
 # Streamlit Launcher
 
-<img src="https://github.com/DwiDevelopes/gambar/raw/main/Desain%20tanpa%20judul%20(8).jpg" width="100%" height="100%">
+<img src="https://github.com/DwiDevelopes/gambar/raw/main/launcher.jpg" width="100%" height="100%">
 
 [![PyPI version](https://badge.fury.io/py/streamlit-launcher.svg)](https://badge.fury.io/py/streamlit-launcher)
 [![Downloads](https://pepy.tech/badge/streamlit-launcher/week)](https://pepy.tech/project/streamlit-launcher)
@@ -14,19 +14,19 @@
 
 - **PyPI Package**: [https://pypi.org/project/streamlit-launcher/](https://pypi.org/project/streamlit-launcher/)
 - **Demo Online**: [https://stremlit-launcher.streamlit.app/](https://stremlit-launcher.streamlit.app/)
-- **GitHub Repository**: [https://github.com/royhtml/streamlit-launcher](https://github.com/royhtml/streamlit-launcher)
+- **GitHub Repository**: [https://github.com/DwiDevelopes/Launcher](https://github.com/DwiDevelopes/Launcher)
 - **Documentation**: [https://streamlit-launcher-docs.readthedocs.io/](https://streamlit-launcher-docs.readthedocs.io/)
 
 ## 📊 Statistik Penggunaan
 
 | Metric | Value |
 |--------|-------|
-| Total Downloads | 15,000+ |
+| Total Downloads | 10,000+ |
 | Monthly Downloads | 2,500+ |
 | Weekly Downloads | 600+ |
 | Python Version Support | 3.7+ |
 | Streamlit Version | 1.28+ |
-| Test Coverage | 85%+ |
+| Test Coverage | 92%+ |
 | Last Update | September 2024 |
 
 ## 📖 Overview
@@ -42,9 +42,40 @@
 - **Researchers** - Eksperimen dan presentasi hasil penelitian
 - **Educators** - Materi pembelajaran interaktif
 
-# Update 3.8.7 Install Streamlit Launcher Make Termux ☕
+# Streamlit Launcher V4 Update
+
+<img src="https://github.com/DwiDevelopes/gambar/raw/main/launcher.jpg" width="100%" height="100%">
+<img src="https://github.com/DwiDevelopes/gambar/raw/main/tas/1.png" width="100%" />
+<p align="center">
+<img src="https://github.com/DwiDevelopes/gambar/raw/main/tas/2.png" width="48%" />
+<img src="https://github.com/DwiDevelopes/gambar/raw/main/tas/3.png" width="48%" />
+</p>
+<p align="center">
+<img src="https://github.com/DwiDevelopes/gambar/raw/main/tas/4.png" width="48%" />
+<img src="https://github.com/DwiDevelopes/gambar/raw/main/tas/5.png" width="48%" />
+</p>
+<p align="center">
+<img src="https://github.com/DwiDevelopes/gambar/raw/main/tas/6.png" width="48%" />
+<img src="https://github.com/DwiDevelopes/gambar/raw/main/tas/7.png" width="48%" />
+</p>
+
+## Update V4 Grafik Saham
+
+<img src="https://github.com/DwiDevelopes/gambar/raw/main/Screenshot%202025-11-09%20001502.png" width="100%" height="100%">
+
+
+1. Menambahkan grafik saham
+2. Menambahkan fitur pencarian
+3. Menambahkan fitur pengaturan
+4. Menambahkan fitur pengaturan pengguna
+5. Vitur Saham Grafik
+6. Chart Saham Lengkap
+7. OLDC
+
+# Update V4 Install Streamlit Launcher Make Termux ☕
 
 <img src="https://github.com/DwiDevelopes/gambar/raw/main/Desain%20tanpa%20judul%20(10).jpg" width="100%" height="100%">
+
 
 # 🌱 Pantun untuk Anak Programming
 Baik, saatnya puisi kecil untuk pejuang logika digital.
@@ -319,7 +350,7 @@ Bayangkan ini sebagai menu spell:
 - 📈 Remove Background
 - 📈 dll
 
-# Update 3.8.7 Anlisis And Doctor Analisis and Install Streamlit Launcher Make Termux ☕
+# Update V4 Anlisis And Doctor Analisis and Install Streamlit Launcher Make Termux ☕
 
 ## vitur Update Api Key And Api Server
 
@@ -342,39 +373,189 @@ import pandas as pd
 import sqlite3
 from datetime import datetime
 import os
+import logging
+from typing import Optional, Tuple, Any
+
+# Setup logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 app = Flask(__name__)
+app.config['JSON_SORT_KEYS'] = False
 
-def validate_api_key(api_key):
+class DatabaseManager:
+    """Class untuk mengelola koneksi database"""
+    
+    @staticmethod
+    def get_connection(db_path: str) -> sqlite3.Connection:
+        """Membuat koneksi database dengan error handling"""
+        try:
+            conn = sqlite3.connect(db_path)
+            conn.row_factory = sqlite3.Row  # Mengembalikan hasil sebagai dictionary
+            return conn
+        except sqlite3.Error as e:
+            logger.error(f"Database connection error: {e}")
+            raise
+
+def validate_api_key(api_key: str) -> bool:
+    """
+    Validasi API key dari database
+    
+    Args:
+        api_key: String API key untuk divalidasi
+        
+    Returns:
+        Boolean indicating validity of API key
+    """
+    if not api_key:
+        return False
+        
     try:
-        conn = sqlite3.connect('api_keys.db')
+        conn = DatabaseManager.get_connection('api_keys.db')
         c = conn.cursor()
-        c.execute("SELECT * FROM api_keys WHERE api_key = ? AND is_active = 1", (api_key,))
+        
+        c.execute("""
+            SELECT * FROM api_keys 
+            WHERE api_key = ? AND is_active = 1
+        """, (api_key,))
+        
         result = c.fetchone()
         conn.close()
+        
         return result is not None
-    except Exception as e:
-        print(f"Validation error: {e}")
+        
+    except sqlite3.Error as e:
+        logger.error(f"Database error during API key validation: {e}")
         return False
+    except Exception as e:
+        logger.error(f"Unexpected error during API key validation: {e}")
+        return False
+
+def get_api_key() -> Optional[str]:
+    """
+    Mendapatkan API key dari header atau query parameters
+    
+    Returns:
+        API key string atau None jika tidak ditemukan
+    """
+    # Cek di header terlebih dahulu
+    api_key = request.headers.get('X-API-Key')
+    
+    # Jika tidak ada di header, cek di query parameters
+    if not api_key:
+        api_key = request.args.get('api_key')
+    
+    return api_key
+
+@app.before_request
+def log_request_info():
+    """Middleware untuk logging setiap request"""
+    logger.info(f"Request: {request.method} {request.path} - IP: {request.remote_addr}")
+
+@app.after_request
+def after_request(response):
+    """Middleware untuk menambahkan header security"""
+    response.headers.add('X-Content-Type-Options', 'nosniff')
+    response.headers.add('X-Frame-Options', 'DENY')
+    response.headers.add('X-XSS-Protection', '1; mode=block')
+    return response
 
 @app.route('/api/v1/health', methods=['GET'])
 def health_check():
-    return jsonify({'status': 'healthy', 'timestamp': datetime.now().isoformat()})
+    """Endpoint untuk health check API"""
+    try:
+        # Test database connection
+        conn = DatabaseManager.get_connection('api_keys.db')
+        conn.close()
+        
+        return jsonify({
+            'status': 'healthy',
+            'timestamp': datetime.now().isoformat(),
+            'version': '1.0.0'
+        })
+    except Exception as e:
+        logger.error(f"Health check failed: {e}")
+        return jsonify({
+            'status': 'unhealthy',
+            'error': str(e),
+            'timestamp': datetime.now().isoformat()
+        }), 503
 
 @app.route('/api/v1/statistics', methods=['GET'])
 def get_statistics():
-    api_key = request.args.get('api_key')
+    """Endpoint untuk mendapatkan statistics"""
+    api_key = get_api_key()
+    
     if not api_key or not validate_api_key(api_key):
-        return jsonify({'error': 'Invalid or inactive API key'}), 401
+        logger.warning(f"Invalid API key attempt from IP: {request.remote_addr}")
+        return jsonify({
+            'error': 'Invalid or inactive API key',
+            'code': 'UNAUTHORIZED'
+        }), 401
     
     try:
         # Your statistics logic here
-        return jsonify({'status': 'success', 'data': 'statistics'})
+        # Contoh: membaca data dari database atau file
+        statistics_data = {
+            'total_users': 1000,
+            'active_users': 750,
+            'requests_today': 15000,
+            'average_response_time': '45ms'
+        }
+        
+        logger.info(f"Statistics request successful for API key: {api_key[:8]}...")
+        
+        return jsonify({
+            'status': 'success',
+            'timestamp': datetime.now().isoformat(),
+            'data': statistics_data
+        })
+        
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        logger.error(f"Error in statistics endpoint: {e}")
+        return jsonify({
+            'error': 'Internal server error',
+            'code': 'INTERNAL_ERROR'
+        }), 500
+
+@app.errorhandler(404)
+def not_found(error):
+    """Handler untuk 404 Not Found"""
+    return jsonify({
+        'error': 'Endpoint not found',
+        'code': 'NOT_FOUND'
+    }), 404
+
+@app.errorhandler(405)
+def method_not_allowed(error):
+    """Handler untuk 405 Method Not Allowed"""
+    return jsonify({
+        'error': 'Method not allowed',
+        'code': 'METHOD_NOT_ALLOWED'
+    }), 405
+
+@app.errorhandler(500)
+def internal_server_error(error):
+    """Handler untuk 500 Internal Server Error"""
+    logger.error(f"Internal server error: {error}")
+    return jsonify({
+        'error': 'Internal server error',
+        'code': 'INTERNAL_ERROR'
+    }), 500
 
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=5000, debug=True)
+    # Cek apakah database exists
+    if not os.path.exists('api_keys.db'):
+        logger.warning("Database file 'api_keys.db' not found. Please create it first.")
+    
+    # Run aplikasi
+    debug_mode = os.getenv('FLASK_DEBUG', 'False').lower() == 'true'
+    
+    app.run(
+        host=os.getenv('FLASK_HOST', '0.0.0.0'),
+        port=int(os.getenv('FLASK_PORT', 5000)),
+        debug=debug_mode
+    )
 ```
 
 ## vitur Update Scatterplot Visualisasi Interval
