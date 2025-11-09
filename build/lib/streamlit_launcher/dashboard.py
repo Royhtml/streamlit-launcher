@@ -23530,7 +23530,7 @@ if __name__ == "__main__":
         with col3:
             st.markdown("""
             ### 🔄 Update
-            - Versi terbaru: 4.0.0
+            - Versi terbaru: 4.0.1
             - Rilis: Oktober 2025
             - Last updated: 2025
             - Compatibility: Python 3.8+
@@ -24655,7 +24655,7 @@ st.markdown("""
     <p style="margin: 15px 0 5px 0; font-style: italic;">Dikembangkan dengan ❤️ oleh:</p>
     <p style="margin: 0; font-weight: bold; color: #636EFA; font-size: 16px;">Dwi Bakti N Dev</p>
     <p style="margin: 5px 0; font-size: 12px;">Data Scientist & Business Intelligence Developer</p>
-    <p style="margin: 5px 0; font-size: 12px;">V4.0.0 Streamlit Launcher</p>
+    <p style="margin: 5px 0; font-size: 12px;">V4.0.1 Streamlit Launcher</p>
     <p style="margin: 5px 0; font-size: 12px;">🍰 <a href="https://pypi.org/project/streamlit-launcher/" target="_blank">Python Install Offline Streamlit Launcher</a></p>
 </div>
 """, unsafe_allow_html=True)
